@@ -81,7 +81,7 @@ else
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <div class="cp-avatar cp-avatar-sm">@(u.FirstName?.Substring(0,1))@(u.LastName?.Substring(0,1))</div>
                                 <div>
-                                    <div style="font-weight:600;">@u.FirstName @u.LastName</div>
+                                    <a asp-action="Details" asp-route-id="@u.UserId" class="name-link"><div style="font-weight:600;">@u.FirstName @u.LastName</div></a>
                                 </div>
                             </div>
                         </td>
@@ -95,8 +95,7 @@ else
                             </span>
                         </td>
                         <td class="text-center">
-                            <a asp-action="Details" asp-route-id="@u.UserId" class="cp-btn cp-btn-secondary cp-btn-sm">View</a>
-                            <a asp-action="Edit" asp-route-id="@u.UserId" class="cp-btn cp-btn-secondary cp-btn-sm" style="margin-left:4px;">Edit</a>
+                            <a asp-action="Edit" asp-route-id="@u.UserId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
                             <form method="post" asp-action="Delete" asp-route-id="@u.UserId" style="display:inline;margin-left:4px;"
                                   onsubmit="return confirm('Delete this user account?');">
                                 @Html.AntiForgeryToken()

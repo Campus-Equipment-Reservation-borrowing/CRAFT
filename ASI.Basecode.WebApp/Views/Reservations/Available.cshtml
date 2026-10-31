@@ -7,14 +7,14 @@
     var totalAvailable = items.Sum(i => i.AvailableUnits);
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
         <div class="crumb"><div>CRAFT</div><div>/</div><div class="cur">Equipment Availability</div></div>
-        <div class="title">Equipment Availability</div>
-        <div class="subtitle">@Model.Page?.TotalCount equipment record@(Model.Page?.TotalCount == 1 ? "" : "s") &middot; @totalAvailable unit@(totalAvailable == 1 ? "" : "s") available on this page. Check live stock before submitting a reservation request.</div>
+        <div class="cp-page-title">Equipment Availability</div>
+        <div class="cp-page-subtitle">@Model.Page?.TotalCount equipment record@(Model.Page?.TotalCount == 1 ? "" : "s") &middot; @totalAvailable unit@(totalAvailable == 1 ? "" : "s") available on this page. Check live stock before submitting a reservation request.</div>
     </div>
-    <div class="hd-actions">
-        <a class="btn btn-secondary" href="/Borrowings/Mine">
+    <div class="cp-page-actions">
+        <a class="cp-btn cp-btn-secondary" href="/Borrowings/Mine">
             <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 11h6M9 15h4"/></svg>
             <div>My Borrowings</div>
         </a>
@@ -44,8 +44,8 @@
                 }
             }
         </select>
-        <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
-        <a asp-action="Available" class="btn btn-secondary btn-sm">Clear</a>
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
+        <a asp-action="Available" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
 </div>
 
@@ -117,8 +117,8 @@ else
             <div class="pager">
                 <div class="hint">Page @Model.Page.Page of @Model.Page.TotalPages (@Model.Page.TotalCount items)</div>
                 <div class="acts">
-                    <a class="btn btn-secondary btn-sm" href="@Url.Action("Available", new { search = Model.Search, category = Model.CategoryId, page = Model.Page.Page - 1 })">‹ Previous</a>
-                    <a class="btn btn-secondary btn-sm" href="@Url.Action("Available", new { search = Model.Search, category = Model.CategoryId, page = Model.Page.Page + 1 })">Next ›</a>
+                    <a class="cp-btn cp-btn-secondary cp-btn-sm" href="@Url.Action("Available", new { search = Model.Search, category = Model.CategoryId, page = Model.Page.Page - 1 })">‹ Previous</a>
+                    <a class="cp-btn cp-btn-secondary cp-btn-sm" href="@Url.Action("Available", new { search = Model.Search, category = Model.CategoryId, page = Model.Page.Page + 1 })">Next ›</a>
                 </div>
             </div>
         </div>

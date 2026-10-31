@@ -8,14 +8,14 @@
     var pct = Model.TotalQuantity > 0 ? (int)Math.Round(Model.AvailableUnits * 100.0 / Model.TotalQuantity) : 0;
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
         <div class="crumb"><div>CRAFT</div><div>/</div><div>Equipment</div><div>/</div><div class="cur">@Model.EquipmentName</div></div>
-        <div class="title">@Model.EquipmentName</div>
-        <div class="subtitle">@Model.AssetCode &middot; @Model.CategoryName &middot; @(Model.LocationName ?? "No location")</div>
+        <div class="cp-page-title">@Model.EquipmentName</div>
+        <div class="cp-page-subtitle">@Model.AssetCode &middot; @Model.CategoryName &middot; @(Model.LocationName ?? "No location")</div>
     </div>
-    <div class="hd-actions">
-        <a class="btn btn-secondary" href="/Reservations/Available">
+    <div class="cp-page-actions">
+        <a class="cp-btn cp-btn-secondary" href="/Reservations/Available">
             <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
             <div>Back</div>
         </a>
@@ -75,13 +75,9 @@
                         <div class="stock-top">
                             <div class="stock-n @(isOut ? "out" : "")">@Model.AvailableUnits <span style="font-size:11px;font-weight:600">available</span></div>
                             <div class="stock-of">@Model.AvailableUnits of @Model.TotalQuantity units free</div>
+                            <div class="stock-status"><div class="badge" style="background:@statusBg;color:@statusFg"><div class="dot"></div>@statusLabel</div></div>
                         </div>
                         <div class="stock-tr"><div class="stock-f @(pct <= 25 ? "warn" : "")" style="width:@(pct)%"></div></div>
-                    </div>
-                    <div class="kv">
-                        <div class="kv-row"><div class="kv-k">Total units</div><div class="kv-v">@Model.TotalQuantity</div></div>
-                        <div class="kv-row"><div class="kv-k">Reserved</div><div class="kv-v">@Model.ReservedUnits</div></div>
-                        <div class="kv-row last"><div class="kv-k">Status</div><div class="kv-v"><div class="badge" style="background:@statusBg;color:@statusFg"><div class="dot"></div>@statusLabel</div></div></div>
                     </div>
                 </div>
             </div>
@@ -95,7 +91,7 @@
                             <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                             <div class="banner-b"><div class="banner-t">Available to reserve</div><div>@Model.AvailableUnits unit@(Model.AvailableUnits == 1 ? "" : "s") available for your selected schedule.</div></div>
                         </div>
-                        <a href="/Reservations/New/@Model.EquipmentId" class="btn btn-primary btn-full">
+                        <a href="/Reservations/New/@Model.EquipmentId" class="cp-btn cp-btn-primary cp-btn-lg" style="width:100%">
                             <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
                             <div>Reserve Equipment</div>
                         </a>
@@ -106,7 +102,7 @@
                             <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19L12 3z"/><path d="M12 9.5v5M12 17.6v.4"/></svg>
                             <div class="banner-b"><div class="banner-t">Not available</div><div>@Model.UnavailableReason</div></div>
                         </div>
-                        <div class="btn btn-off btn-full">Reserve Equipment</div>
+                        <div class="cp-btn cp-btn-secondary cp-btn-lg" aria-disabled="true" style="width:100%;opacity:.6;pointer-events:none">Reserve Equipment</div>
                     }
                 </div>
             </div>

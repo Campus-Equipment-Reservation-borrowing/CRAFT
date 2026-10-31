@@ -5,14 +5,14 @@
     ViewData["Title"] = "Equipment Administration";
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
         <div class="crumb"><div>CRAFT</div><div>/</div><div class="cur">Equipment Administration</div></div>
-        <div class="title">Equipment Administration</div>
-        <div class="subtitle">System-wide equipment records, categories, locations and maintenance information.</div>
+        <div class="cp-page-title">Equipment Administration</div>
+        <div class="cp-page-subtitle">System-wide equipment records, categories, locations and maintenance information.</div>
     </div>
-    <div class="hd-actions">
-        <a asp-action="Create" class="btn btn-primary">
+    <div class="cp-page-actions">
+        <a asp-action="Create" class="cp-btn cp-btn-primary">
             <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             <div>Add Equipment</div>
         </a>
@@ -52,8 +52,8 @@
         <select name="location" class="select" style="flex:0 1 150px;padding:0 10px;font:inherit;color:#42504A" asp-items="@(ViewBag.LocationOptions as SelectList)"></select>
         <select name="condition" class="select" style="flex:0 1 150px;padding:0 10px;font:inherit;color:#42504A" asp-items="@(ViewBag.ConditionOptions as SelectList)"></select>
         <select name="operationalStatus" class="select" style="flex:0 1 140px;padding:0 10px;font:inherit;color:#42504A" asp-items="@(ViewBag.OperationalStatusOptions as SelectList)"></select>
-        <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
-        <a asp-action="Index" class="btn btn-secondary btn-sm">Clear</a>
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
+        <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
 
     <div class="tbl">
@@ -88,7 +88,7 @@
                             }
                         </div>
                         <div class="cellname">
-                            <div class="strong">@eq.EquipmentName</div>
+                            <a asp-action="Details" asp-route-id="@eq.EquipmentId" class="name-link"><div class="strong">@eq.EquipmentName</div></a>
                             <div class="sub">@(string.IsNullOrWhiteSpace(eq.Description) ? "-" : (eq.Description.Length > 48 ? eq.Description.Substring(0, 48) + "..." : eq.Description))</div>
                         </div>
                     </div>
@@ -104,11 +104,10 @@
                 </div>
                 <div class="td end" style="flex:220 1 0;min-width:0">
                     <div class="acts">
-                        <a asp-action="Details" asp-route-id="@eq.EquipmentId" class="btn btn-secondary btn-sm">View</a>
-                        <a asp-action="Edit" asp-route-id="@eq.EquipmentId" class="btn btn-secondary btn-sm">Edit</a>
+                        <a asp-action="Edit" asp-route-id="@eq.EquipmentId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
                         <form method="post" asp-action="Delete" asp-route-id="@eq.EquipmentId" style="margin:0" onsubmit="return confirm('Delete this equipment record?');">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
                         </form>
                     </div>
                 </div>
@@ -121,8 +120,8 @@
         <div class="pager">
             <div class="hint">Page @Model.Page.Page of @Model.Page.TotalPages (@Model.Page.TotalCount records)</div>
             <div class="acts">
-                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page - 1)" class="btn btn-secondary btn-sm">‹ Previous</a>
-                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page + 1)" class="btn btn-secondary btn-sm">Next ›</a>
+                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page - 1)" class="cp-btn cp-btn-secondary cp-btn-sm">‹ Previous</a>
+                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page + 1)" class="cp-btn cp-btn-secondary cp-btn-sm">Next ›</a>
             </div>
         </div>
     }

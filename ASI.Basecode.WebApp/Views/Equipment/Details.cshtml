@@ -4,15 +4,15 @@
     ViewData["Title"] = "Equipment Details";
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
         <div class="crumb"><div>CRAFT</div><div>/</div><div>Equipment</div><div>/</div><div class="cur">@Model.EquipmentName</div></div>
-        <div class="title">@Model.EquipmentName</div>
-        <div class="subtitle">@Model.AssetCode &middot; @(Model.EquipmentCategory?.CategoryName ?? "-")</div>
+        <div class="cp-page-title">@Model.EquipmentName</div>
+        <div class="cp-page-subtitle">@Model.AssetCode &middot; @(Model.EquipmentCategory?.CategoryName ?? "-")</div>
     </div>
-    <div class="hd-actions">
-        <a asp-action="Edit" asp-route-id="@Model.EquipmentId" class="btn btn-primary">Edit</a>
-        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    <div class="cp-page-actions">
+        <a asp-action="Edit" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-primary">Edit</a>
+        <a asp-action="Index" class="cp-btn cp-btn-secondary">Back to List</a>
     </div>
 </div>
 
@@ -59,10 +59,7 @@
                     <div class="kv">
                         <div class="kv-row"><div class="kv-k">Total Quantity</div><div class="kv-v">@Model.EquipmentInventoryBalance.TotalQuantity</div></div>
                         <div class="kv-row"><div class="kv-k">Reserved</div><div class="kv-v">@Model.EquipmentInventoryBalance.ReservedQuantity</div></div>
-                        <div class="kv-row"><div class="kv-k">Released</div><div class="kv-v">@Model.EquipmentInventoryBalance.ReleasedQuantity</div></div>
-                        <div class="kv-row"><div class="kv-k">Awaiting Inspection</div><div class="kv-v">@Model.EquipmentInventoryBalance.AwaitingInspectionQuantity</div></div>
-                        <div class="kv-row"><div class="kv-k">Maintenance</div><div class="kv-v">@Model.EquipmentInventoryBalance.MaintenanceQuantity</div></div>
-                        <div class="kv-row last"><div class="kv-k">Unreconciled</div><div class="kv-v">@Model.EquipmentInventoryBalance.UnreconciledQuantity</div></div>
+                        <div class="kv-row last"><div class="kv-k">Released</div><div class="kv-v">@Model.EquipmentInventoryBalance.ReleasedQuantity</div></div>
                     </div>
                 }
             </div>

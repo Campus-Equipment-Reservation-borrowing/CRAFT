@@ -102,11 +102,11 @@
                 </div>
 
                 <div class="acts">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="cp-btn cp-btn-primary">
                         <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                         <div>Save Changes</div>
                     </button>
-                    <a href="/" class="btn btn-secondary">Discard Changes</a>
+                    <a href="/" class="cp-btn cp-btn-secondary">Discard Changes</a>
                 </div>
             </form>
         </div>
@@ -132,8 +132,8 @@
                             <div class="flabel">Confirm New Password<div class="req">*</div></div>
                             <input id="ConfirmPassword" name="ConfirmPassword" type="password" class="input" autocomplete="new-password" style="width:100%" required />
                         </div>
-                        <button type="submit" class="btn btn-primary btn-full">
-                            <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+                        <button type="submit" class="cp-btn cp-btn-primary cp-btn-lg" style="width:100%">
+                            <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4,0 018 0v3"/></svg>
                             <div>Update Password</div>
                         </button>
                     </div>
@@ -150,7 +150,7 @@
                             <div class="kv-v">
                                 <form method="post" action="/Account/Logout" style="margin:0">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-secondary btn-sm">Sign Out</button>
+                                    <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Sign Out</button>
                                 </form>
                             </div>
                         </div>
