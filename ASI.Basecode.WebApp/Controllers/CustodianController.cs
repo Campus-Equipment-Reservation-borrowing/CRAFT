@@ -131,6 +131,20 @@ namespace ASI.Basecode.WebApp.Controllers
                 : this.RedirectToAction(nameof(this.Review), new { id });
         }
 
+        /// <summary>
+        /// Custodian-side expiry for a borrower who never picked up, with a required reason.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Expire(long id, string reason)
+        {
+            var (success, error) = this._custodianService.Expire(id, reason);
+            this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Reservation marked expired." : error;
+            return success
+                ? this.RedirectToAction(nameof(this.Reservations))
+                : this.RedirectToAction(nameof(this.Review), new { id });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Approve(long id, string notes)

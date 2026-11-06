@@ -2,6 +2,24 @@
 @model UserIndexViewModel
 @{
     ViewData["Title"] = "User Management";
+
+    // Quick presets map onto the existing role/status filters by their seeded names.
+    var roleItems = (ViewBag.RoleOptions as SelectList)?.ToList() ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+    var statusItems = (ViewBag.StatusOptions as SelectList)?.ToList() ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+    string IdOf(List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> items, string text) =>
+        items.FirstOrDefault(i => string.Equals(i.Text, text, StringComparison.OrdinalIgnoreCase))?.Value;
+    var presets = new List<(string Label, string Role, string Status)>
+    {
+        ("All", null, null),
+        ("Unverified", null, IdOf(statusItems, "Unverified")),
+        ("Locked", null, IdOf(statusItems, "Locked")),
+        ("Suspended", null, IdOf(statusItems, "Suspended")),
+        ("Custodians", IdOf(roleItems, "Custodian"), null),
+        ("Administrators", IdOf(roleItems, "Administrator"), null),
+    };
+    var currentRole = Model.RoleId?.ToString();
+    var currentStatus = Model.AccountStatusId?.ToString();
+    var presetFiltersOnly = string.IsNullOrWhiteSpace(Model.Search) && Model.DepartmentId == null;
 }
 
 <div class="cp-page-header">
@@ -36,6 +54,15 @@
         <div class="cp-kpi-label">Unverified</div>
         <div class="cp-kpi-value">@(Model.Totals?.Unverified ?? 0)</div>
     </a>
+</div>
+
+<!-- Quick presets -->
+<div class="tabs" style="margin-bottom:12px;">
+    @foreach (var p in presets.Where(p => p.Label == "All" || p.Role != null || p.Status != null))
+    {
+        var on = presetFiltersOnly && p.Role == currentRole && p.Status == currentStatus;
+        <a class="tab @(on ? "on" : "")" asp-action="Index" asp-route-role="@p.Role" asp-route-status="@p.Status">@p.Label</a>
+    }
 </div>
 
 <!-- Filter bar -->

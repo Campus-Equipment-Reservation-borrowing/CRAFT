@@ -362,6 +362,16 @@ namespace ASI.Basecode.Services.Services
         }
 
         public (bool Success, string Error) Cancel(long reservationId, string reason)
+            => this.CloseOut(reservationId, reason, expire: false);
+
+        public (bool Success, string Error) Expire(long reservationId, string reason)
+            => this.CloseOut(reservationId, reason, expire: true);
+
+        /// <summary>
+        /// Cancels or expires a reservation, releasing held units. Expiry is for no-shows and
+        /// lapsed pickups, so it does not apply once some units have already been released.
+        /// </summary>
+        private (bool Success, string Error) CloseOut(long reservationId, string reason, bool expire)
         {
             reason = reason?.Trim();
             if (string.IsNullOrWhiteSpace(reason))
@@ -382,13 +392,14 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 var code = entity.Status.Code;
-                if (code != "PENDING" && code != "APPROVED" && code != "READY_FOR_RELEASE" && code != "PARTIALLY_RELEASED")
+                if (code != "PENDING" && code != "APPROVED" && code != "READY_FOR_RELEASE"
+                    && (expire || code != "PARTIALLY_RELEASED"))
                 {
                     return (false, ErrorMessages.CustodianReservationNotPending);
                 }
 
                 // A partially released reservation keeps its borrowing; only the unreleased rest is cancelled.
-                var targetCode = code == "PARTIALLY_RELEASED" ? "COMPLETED" : "CANCELLED";
+                var targetCode = expire ? "EXPIRED" : code == "PARTIALLY_RELEASED" ? "COMPLETED" : "CANCELLED";
                 var target = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == targetCode);
                 if (target == null)
                 {
@@ -402,11 +413,12 @@ namespace ASI.Basecode.Services.Services
                 this.ClaimIfPooled(entity);
                 this._unitOfWork.SaveChanges();
 
-                this.WriteNotification(entity.BorrowerUserId, "Reservation cancelled",
-                    $"Your reservation {entity.ReservationNumber} for {entity.Equipment.EquipmentName} was cancelled by the custodian. Reason: {reason}");
+                var verb = expire ? "expired" : "cancelled";
+                this.WriteNotification(entity.BorrowerUserId, $"Reservation {verb}",
+                    $"Your reservation {entity.ReservationNumber} for {entity.Equipment.EquipmentName} was {verb} by the custodian. Reason: {reason}");
 
-                this.WriteAudit("CANCEL", "Reservation", entity.ReservationId, entity.ReservationNumber,
-                    $"Cancelled reservation {entity.ReservationNumber} ({released} held unit(s) released). Reason: {reason}");
+                this.WriteAudit(expire ? "EXPIRE" : "CANCEL", "Reservation", entity.ReservationId, entity.ReservationNumber,
+                    $"{(expire ? "Expired" : "Cancelled")} reservation {entity.ReservationNumber} ({released} held unit(s) released). Reason: {reason}");
 
                 return (true, null);
             }
@@ -416,7 +428,7 @@ namespace ASI.Basecode.Services.Services
             }
             catch (Exception ex)
             {
-                this._logger.LogError(ex, "Failed to cancel reservation {ReservationId}.", reservationId);
+                this._logger.LogError(ex, "Failed to close out reservation {ReservationId}.", reservationId);
                 return (false, ErrorMessages.ServerError);
             }
         }

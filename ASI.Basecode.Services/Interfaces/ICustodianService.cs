@@ -14,6 +14,9 @@ namespace ASI.Basecode.Services.Interfaces
         /// <summary>Custodian cancels an open reservation with a reason, releasing its held units.</summary>
         (bool Success, string Error) Cancel(long reservationId, string reason);
 
+        /// <summary>Marks a no-show or lapsed reservation EXPIRED and releases its held units.</summary>
+        (bool Success, string Error) Expire(long reservationId, string reason);
+
         /// <summary>
         /// Resolves a scanned code: a reservation number, or an equipment asset code (listing in-scope
         /// releases and returns for that item).

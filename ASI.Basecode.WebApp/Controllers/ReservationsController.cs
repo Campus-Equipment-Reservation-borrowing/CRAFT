@@ -44,6 +44,7 @@ namespace ASI.Basecode.WebApp.Controllers
         /// Borrower equipment availability list (Figma: B - Equipment Availability).
         /// Search matches name, asset code or category; filter narrows to a category.
         /// </summary>
+        [Authorize(Roles = RoleCodes.Borrower)]
         public IActionResult Available(string search, long? category, int page = 1, int pageSize = 10)
         {
             try
@@ -66,6 +67,7 @@ namespace ASI.Basecode.WebApp.Controllers
         /// <summary>
         /// Borrower equipment details (Figma: B - Equipment Details, screen 2.2).
         /// </summary>
+        [Authorize(Roles = RoleCodes.Borrower)]
         [HttpGet]
         public IActionResult EquipmentDetails(long id)
         {
