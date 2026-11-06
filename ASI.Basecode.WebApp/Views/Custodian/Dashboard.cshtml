@@ -43,18 +43,6 @@
                 <span>@Model.PendingReservations pending request@(Model.PendingReservations == 1 ? "" : "s"), @Model.ScheduledReleasesToday release@(Model.ScheduledReleasesToday == 1 ? "" : "s") scheduled and @Model.ExpectedReturnsToday return@(Model.ExpectedReturnsToday == 1 ? "" : "s") due today.</span>
             }
         </div>
-        <div class="cp-hero-chips">
-            <div class="cp-chip warn"><div class="dot"></div>@Model.PendingReservations awaiting review</div>
-            <div class="cp-chip"><div class="dot"></div>@Model.ActiveBorrowings active borrowings</div>
-            @if (Model.OverdueEquipment > 0)
-            {
-                <div class="cp-chip error"><div class="dot"></div>@Model.OverdueEquipment overdue</div>
-            }
-        </div>
-    </div>
-    <div class="cp-hero-actions">
-        <a href="/Custodian/Reservations" class="cp-btn cp-btn-light">Review Requests</a>
-        <a href="/Custodian/Borrowings" class="cp-btn cp-btn-light">Active Borrowings</a>
     </div>
 </div>
 
@@ -87,21 +75,6 @@
         <div class="cp-kpi-value">@Model.AwaitingInspection</div>
     </a>
 </div>
-
-@if (Model.LowStockCount > 0 || Model.UnderMaintenanceCount > 0)
-{
-    <div class="cp-section-title">Inventory alerts</div>
-    <div class="cp-kpi-grid">
-        <a class="cp-kpi" href="/Equipment">
-            <div class="cp-kpi-label">Low Stock (threshold @Model.LowStockThreshold)</div>
-            <div class="cp-kpi-value warn">@Model.LowStockCount</div>
-        </a>
-        <a class="cp-kpi" href="/Equipment">
-            <div class="cp-kpi-label">Under Maintenance</div>
-            <div class="cp-kpi-value error">@Model.UnderMaintenanceCount</div>
-        </a>
-    </div>
-}
 
 <div class="cp-section-title">Today's tasks</div>
 <div class="cp-grid-2">
@@ -137,7 +110,10 @@
     </div>
 
     <div class="cp-card">
-        <div class="cp-card-header">Inventory Alerts</div>
+        <div class="cp-card-header">
+            Inventory Alerts
+            <span class="cp-cell-sub">@Model.LowStockCount low stock (at or below @Model.LowStockThreshold) &middot; @Model.UnderMaintenanceCount under maintenance</span>
+        </div>
         <div class="cp-list">
             @if (!Model.InventoryAlerts.Any())
             {

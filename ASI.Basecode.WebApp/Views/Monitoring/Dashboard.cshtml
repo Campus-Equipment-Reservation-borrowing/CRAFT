@@ -8,10 +8,6 @@
         <h1 class="cp-page-title">Administrator Dashboard</h1>
         <p class="cp-page-subtitle">System-wide totals for users, equipment and transactions.</p>
     </div>
-    <div class="cp-page-actions">
-        <a href="/Monitoring/Transactions" class="cp-btn cp-btn-secondary">Transactions</a>
-        <a href="/Monitoring/AuditLogs" class="cp-btn cp-btn-primary">Audit Logs</a>
-    </div>
 </div>
 
 <div class="cp-hero">
@@ -20,18 +16,6 @@
         <div class="cp-hero-sub">
             @Model.TotalUsers registered account@(Model.TotalUsers == 1 ? "" : "s"), @Model.EquipmentRecords equipment record@(Model.EquipmentRecords == 1 ? "" : "s") and @Model.ReservationTotal reservation@(Model.ReservationTotal == 1 ? "" : "s") on record.
         </div>
-        <div class="cp-hero-chips">
-            <div class="cp-chip"><div class="dot"></div>@Model.AvailableUnits units available</div>
-            <div class="cp-chip warn"><div class="dot"></div>@Model.ReservationPending pending</div>
-            @if (Model.BorrowingOverdue > 0)
-            {
-                <div class="cp-chip error"><div class="dot"></div>@Model.BorrowingOverdue overdue</div>
-            }
-        </div>
-    </div>
-    <div class="cp-hero-actions">
-        <a href="/Users" class="cp-btn cp-btn-light">Manage Users</a>
-        <a href="/Equipment" class="cp-btn cp-btn-light">Equipment</a>
     </div>
 </div>
 

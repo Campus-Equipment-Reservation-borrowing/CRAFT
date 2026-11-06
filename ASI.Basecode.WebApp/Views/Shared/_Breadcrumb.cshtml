@@ -1,0 +1,9 @@
+@* Breadcrumb for second-level pages. Model: parent links as (Text, Href); the current page title comes from ViewData["Title"]. *@
+@model IEnumerable<(string Text, string Href)>
+<nav class="cp-breadcrumb" aria-label="Breadcrumb">
+    @foreach (var (text, href) in Model)
+    {
+        <a href="@href">@text</a><span aria-hidden="true">/</span>
+    }
+    <span class="cur" aria-current="page">@ViewData["Title"]</span>
+</nav>
