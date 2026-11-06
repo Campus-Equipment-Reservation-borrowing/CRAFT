@@ -1,5 +1,5 @@
 *{margin:0;padding:0;box-sizing:border-box}
-html{width:100%;min-width:1280px;overflow-x:auto}
+html{width:100%}
 a{text-decoration:none;color:inherit;display:block}
 body{width:100%;margin:0 auto;font-family:'Inter','Manrope','DM Sans','Segoe UI',sans-serif;background:#F4F8F5;
      color:#17251E;font-size:13px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}

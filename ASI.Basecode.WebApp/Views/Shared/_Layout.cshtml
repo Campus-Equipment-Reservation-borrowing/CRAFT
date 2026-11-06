@@ -18,7 +18,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=1280" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - CRAFT: Campus Reservation and Asset Flow Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -193,25 +193,15 @@
             <div class="content">
                 @RenderBody()
             </div>
+            <footer class="craft-footer">
+                <div class="footer-brand">
+                    <div class="footer-mark">CR</div>
+                    <div class="footer-name">CRAFT</div>
+                </div>
+                <div class="footer-copy">Property Office &middot; A.Y. 2026-2027</div>
+            </footer>
         </main>
     </div>
-    <footer class="craft-footer">
-        <div class="footer-inner">
-            <div class="footer-brand">
-                <div class="footer-mark">CR</div>
-                <div>
-                    <div class="footer-name">CRAFT</div>
-                    <div class="footer-sub">Campus Reservation and Asset Flow Tracker</div>
-                </div>
-            </div>
-            <div class="footer-links">
-                <a href="/Account/Login">Sign In</a>
-                <a href="/Account/Register">Create Account</a>
-                <a href="/Support">Support</a>
-            </div>
-            <div class="footer-copy">Property Office &middot; A.Y. 2026-2027</div>
-        </div>
-    </footer>
 </div>
 
 <div id="cp-toast-container"></div>
