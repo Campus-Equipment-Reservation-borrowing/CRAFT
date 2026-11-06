@@ -222,4 +222,58 @@
   <data name="CustodianRejectReasonRequired" xml:space="preserve">
     <value>A rejection reason is required.</value>
   </data>
+  <data name="VerificationNotPending" xml:space="preserve">
+    <value>This account is not awaiting verification.</value>
+  </data>
+  <data name="VerificationReasonRequired" xml:space="preserve">
+    <value>A rejection reason is required.</value>
+  </data>
+  <data name="UserSelfChangeBlocked" xml:space="preserve">
+    <value>You can't change your own role or account status. Ask another administrator.</value>
+  </data>
+  <data name="UserSelfDeleteBlocked" xml:space="preserve">
+    <value>You can't delete your own account.</value>
+  </data>
+  <data name="UserLastAdminBlocked" xml:space="preserve">
+    <value>This is the last active administrator. Promote or activate another administrator first.</value>
+  </data>
+  <data name="UserTemporaryPasswordInvalid" xml:space="preserve">
+    <value>Temporary password must be at least 8 characters with 1 uppercase letter and 1 number.</value>
+  </data>
+  <data name="CustodianNotAssigned" xml:space="preserve">
+    <value>This reservation is assigned to another custodian.</value>
+  </data>
+  <data name="CustodianClaimUnavailable" xml:space="preserve">
+    <value>Only unassigned pending or approved reservations can be claimed.</value>
+  </data>
+  <data name="AssignmentDuplicate" xml:space="preserve">
+    <value>That borrower, location or category already has a custodian. Remove the existing assignment first.</value>
+  </data>
+  <data name="AssignmentInvalid" xml:space="preserve">
+    <value>Choose a custodian and an item to assign.</value>
+  </data>
+  <data name="AssignmentNotFound" xml:space="preserve">
+    <value>The assignment no longer exists.</value>
+  </data>
+  <data name="InspectionOutcomeMismatch" xml:space="preserve">
+    <value>Good, damaged and lost quantities must add up to the inspected quantity.</value>
+  </data>
+  <data name="InspectionQuantityInvalid" xml:space="preserve">
+    <value>Inspected quantity can't exceed the units returned and not yet inspected.</value>
+  </data>
+  <data name="InspectionAmountInvalid" xml:space="preserve">
+    <value>Repair cost and penalty can't be negative.</value>
+  </data>
+  <data name="AnnouncementInvalid" xml:space="preserve">
+    <value>An announcement needs a title, a message and at least one audience.</value>
+  </data>
+  <data name="TicketInvalid" xml:space="preserve">
+    <value>Choose a category and enter a subject and message.</value>
+  </data>
+  <data name="TicketNotFound" xml:space="preserve">
+    <value>That support ticket doesn't exist or isn't yours.</value>
+  </data>
+  <data name="TicketClosed" xml:space="preserve">
+    <value>This ticket is resolved. Open a new ticket if you need more help.</value>
+  </data>
 </root>

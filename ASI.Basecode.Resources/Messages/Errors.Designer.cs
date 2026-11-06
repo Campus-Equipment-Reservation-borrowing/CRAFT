@@ -374,5 +374,167 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("CustodianRejectReasonRequired", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This account is not awaiting verification..
+        /// </summary>
+        public static string VerificationNotPending {
+            get {
+                return ResourceManager.GetString("VerificationNotPending", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A rejection reason is required..
+        /// </summary>
+        public static string VerificationReasonRequired {
+            get {
+                return ResourceManager.GetString("VerificationReasonRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You can't change your own role or account status. Ask another administrator..
+        /// </summary>
+        public static string UserSelfChangeBlocked {
+            get {
+                return ResourceManager.GetString("UserSelfChangeBlocked", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You can't delete your own account..
+        /// </summary>
+        public static string UserSelfDeleteBlocked {
+            get {
+                return ResourceManager.GetString("UserSelfDeleteBlocked", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This is the last active administrator. Promote or activate another administrator first..
+        /// </summary>
+        public static string UserLastAdminBlocked {
+            get {
+                return ResourceManager.GetString("UserLastAdminBlocked", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Temporary password must be at least 8 characters with 1 uppercase letter and 1 number..
+        /// </summary>
+        public static string UserTemporaryPasswordInvalid {
+            get {
+                return ResourceManager.GetString("UserTemporaryPasswordInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This reservation is assigned to another custodian..
+        /// </summary>
+        public static string CustodianNotAssigned {
+            get {
+                return ResourceManager.GetString("CustodianNotAssigned", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Only unassigned pending or approved reservations can be claimed..
+        /// </summary>
+        public static string CustodianClaimUnavailable {
+            get {
+                return ResourceManager.GetString("CustodianClaimUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to That borrower, location or category already has a custodian. Remove the existing assignment first..
+        /// </summary>
+        public static string AssignmentDuplicate {
+            get {
+                return ResourceManager.GetString("AssignmentDuplicate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Choose a custodian and an item to assign..
+        /// </summary>
+        public static string AssignmentInvalid {
+            get {
+                return ResourceManager.GetString("AssignmentInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The assignment no longer exists..
+        /// </summary>
+        public static string AssignmentNotFound {
+            get {
+                return ResourceManager.GetString("AssignmentNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Good, damaged and lost quantities must add up to the inspected quantity..
+        /// </summary>
+        public static string InspectionOutcomeMismatch {
+            get {
+                return ResourceManager.GetString("InspectionOutcomeMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Inspected quantity can't exceed the units returned and not yet inspected..
+        /// </summary>
+        public static string InspectionQuantityInvalid {
+            get {
+                return ResourceManager.GetString("InspectionQuantityInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Repair cost and penalty can't be negative..
+        /// </summary>
+        public static string InspectionAmountInvalid {
+            get {
+                return ResourceManager.GetString("InspectionAmountInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An announcement needs a title, a message and at least one audience..
+        /// </summary>
+        public static string AnnouncementInvalid {
+            get {
+                return ResourceManager.GetString("AnnouncementInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Choose a category and enter a subject and message..
+        /// </summary>
+        public static string TicketInvalid {
+            get {
+                return ResourceManager.GetString("TicketInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to That support ticket doesn't exist or isn't yours..
+        /// </summary>
+        public static string TicketNotFound {
+            get {
+                return ResourceManager.GetString("TicketNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This ticket is resolved. Open a new ticket if you need more help..
+        /// </summary>
+        public static string TicketClosed {
+            get {
+                return ResourceManager.GetString("TicketClosed", resourceCulture);
+            }
+        }
     }
 }

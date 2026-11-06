@@ -32,6 +32,10 @@
         <div class="cp-kpi-label">Custodians &amp; Admins</div>
         <div class="cp-kpi-value">@(Model.Totals?.CustodianAdmins ?? 0)</div>
     </div>
+    <a class="cp-kpi" asp-action="Verifications" style="text-decoration:none;color:inherit;" title="Open the verification queue">
+        <div class="cp-kpi-label">Unverified</div>
+        <div class="cp-kpi-value">@(Model.Totals?.Unverified ?? 0)</div>
+    </a>
 </div>
 
 <!-- Filter bar -->
@@ -90,7 +94,7 @@ else
                         <td>@(u.DepartmentName ?? "—")</td>
                         <td style="font-size:11.6px;">@u.SchoolEmail</td>
                         <td>
-                            <span class="cp-badge @(u.AccountStatusCode == "ACTIVE" ? "cp-badge-success" : u.AccountStatusCode == "SUSPENDED" ? "cp-badge-warning" : u.AccountStatusCode == "LOCKED" ? "cp-badge-error" : "cp-badge-neutral")">
+                            <span class="cp-badge @(u.AccountStatusCode switch { "ACTIVE" => "cp-badge-success", "SUSPENDED" or "UNVERIFIED" => "cp-badge-warning", "LOCKED" or "REJECTED" => "cp-badge-error", _ => "cp-badge-neutral" })">
                                 @u.AccountStatusDescription
                             </span>
                         </td>

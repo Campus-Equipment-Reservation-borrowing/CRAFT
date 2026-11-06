@@ -1,0 +1,69 @@
+@using ASI.Basecode.Services.ViewModelClasses
+@model AssignmentSectionViewModel
+
+<div class="cp-card">
+    <div class="cp-card-header">@Model.Title <span class="cp-badge cp-badge-neutral" style="margin-left:6px;">@Model.Rows.Count</span></div>
+    <p class="cp-cell-sub" style="margin:0 0 12px;">@Model.Hint</p>
+
+    @if (Model.CustodianOptions.Count == 0)
+    {
+        <div class="banner warn" style="margin-bottom:12px;"><div class="banner-b">No active custodian accounts yet. Create one in User Management first.</div></div>
+    }
+    else if (Model.TargetOptions.Count > 0)
+    {
+        <form method="post" asp-action="Assign" class="cp-filter-bar" style="margin-bottom:12px;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="scopeType" value="@Model.ScopeType" />
+            <select name="targetId" class="cp-select" required aria-label="@Model.TargetLabel">
+                <option value="">Select @Model.TargetLabel.ToLowerInvariant()…</option>
+                @foreach (var o in Model.TargetOptions)
+                {
+                    <option value="@o.Id">@o.Text</option>
+                }
+            </select>
+            <select name="custodianUserId" class="cp-select" required aria-label="Custodian">
+                <option value="">Select custodian…</option>
+                @foreach (var c in Model.CustodianOptions)
+                {
+                    <option value="@c.Id">@c.Text</option>
+                }
+            </select>
+            <button type="submit" class="cp-btn cp-btn-success cp-btn-sm">Assign</button>
+        </form>
+    }
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="cp-empty-state" style="padding:18px;">
+            <div class="cp-empty-state-text">Nothing assigned. Unassigned reservations go to the shared pool.</div>
+        </div>
+    }
+    else
+    {
+        <div class="cp-table-wrap">
+            <table class="cp-table">
+                <thead><tr><th>@Model.TargetLabel</th><th>Custodian</th><th>Since</th><th class="text-center">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model.Rows)
+                    {
+                        <tr>
+                            <td>
+                                <span class="cp-cell-name">@a.TargetName</span>
+                                <div class="cp-cell-sub">@a.TargetDetail</div>
+                            </td>
+                            <td><a asp-controller="Users" asp-action="Details" asp-route-id="@a.CustodianUserId" class="name-link">@a.CustodianName</a></td>
+                            <td style="font-size:11.6px;">@a.AssignedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
+                            <td class="text-center">
+                                <form method="post" asp-action="Unassign" asp-route-id="@a.AssignmentId" style="display:inline;"
+                                      onsubmit="return confirm('Remove this assignment? New reservations will go to the shared pool.');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

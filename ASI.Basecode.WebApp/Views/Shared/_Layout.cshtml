@@ -48,9 +48,7 @@
             </div>
         </div>
         <div class="craft-header-right">
-            <a class="icon-btn" href="/Notifications" title="Notifications">
-                <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z"/><path d="M10 21a2 2 0 004 0"/></svg>
-            </a>
+            @await Component.InvokeAsync("NotificationBadge")
             <a class="user" href="/Profile" title="Profile &amp; Settings">
                 <div class="uinfo" style="align-items:flex-end">
                     <div class="uname">@displayName</div>
@@ -86,6 +84,10 @@
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                     <div>Borrowing History</div>
                 </a>
+                <a class="nav-item @(controller == "Support" ? "active" : "")" href="/Support">
+                    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/><path d="M9 10h6M9 14h4"/></svg>
+                    <div>Support</div>
+                </a>
             }
             else if (isCustodian)
             {
@@ -98,7 +100,7 @@
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
                     <div>Reservations</div>
                 </a>
-                <a class="nav-item" href="/Custodian/Reservations">
+                <a class="nav-item @(controller == "Custodian" && (action == "Scan" || action == "Release") ? "active" : "")" href="/Custodian/Scan">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
                     <div>Equipment Release</div>
                 </a>
@@ -114,6 +116,10 @@
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
                     <div>Equipment Management</div>
                 </a>
+                <a class="nav-item @(controller == "Support" ? "active" : "")" href="/Support">
+                    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/><path d="M9 10h6M9 14h4"/></svg>
+                    <div>Support Tickets</div>
+                </a>
             }
             else if (isAdmin)
             {
@@ -122,9 +128,17 @@
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
                     <div>Dashboard</div>
                 </a>
-                <a class="nav-item @(controller == "Users" ? "active" : "")" href="/Users">
+                <a class="nav-item @(controller == "Users" && action != "Verifications" ? "active" : "")" href="/Users">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 21a7 7 0 0114 0"/><path d="M17 5a4 4 0 010 7"/><path d="M19 21a6 6 0 00-3-5"/></svg>
                     <div>User Management</div>
+                </a>
+                <a class="nav-item @(controller == "Users" && action == "Verifications" ? "active" : "")" href="/Users/Verifications">
+                    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 21a7 7 0 0114 0"/><path d="M16 11l2 2 4-4"/></svg>
+                    <div>Verifications</div>
+                </a>
+                <a class="nav-item @(controller == "CustodianAssignments" ? "active" : "")" href="/CustodianAssignments">
+                    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 7h4a3 3 0 013 3v4M7 10v4a3 3 0 003 3h4"/></svg>
+                    <div>Custodian Assignments</div>
                 </a>
                 <a class="nav-item @(controller == "Equipment" ? "active" : "")" href="/Equipment">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
@@ -141,6 +155,14 @@
                 <a class="nav-item @(controller == "Monitoring" && action == "AuditLogs" ? "active" : "")" href="/Monitoring/AuditLogs">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l4 4v14H5z"/><path d="M9 12h7M9 16h7"/></svg>
                     <div>Audit Logs</div>
+                </a>
+                <a class="nav-item @(controller == "Announcements" ? "active" : "")" href="/Announcements">
+                    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1z"/><path d="M15 9a4 4 0 010 6M18 6a8 8 0 010 12"/></svg>
+                    <div>Announcements</div>
+                </a>
+                <a class="nav-item @(controller == "Support" ? "active" : "")" href="/Support">
+                    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/><path d="M9 10h6M9 14h4"/></svg>
+                    <div>Support Tickets</div>
                 </a>
                 <a class="nav-item @(controller == "Settings" ? "active" : "")" href="/Settings">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 000-1l2-1-2-3-2 1a7 7 0 00-2-1l-.5-2h-4L10 7a7 7 0 00-2 1L6 7 4 10l2 1a7 7 0 000 2l-2 1 2 3 2-1a7 7 0 002 1l.5 2h4l.5-2a7 7 0 002-1l2 1 2-3-2-1z"/></svg>
@@ -185,7 +207,7 @@
             <div class="footer-links">
                 <a href="/Account/Login">Sign In</a>
                 <a href="/Account/Register">Create Account</a>
-                <a href="#">Support</a>
+                <a href="/Support">Support</a>
             </div>
             <div class="footer-copy">Property Office &middot; A.Y. 2026-2027</div>
         </div>
@@ -196,8 +218,9 @@
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script>
     (function() {
-        var success = '@Html.Raw(TempData["SuccessMessage"]?.ToString()?.Replace("'", "\\'") ?? "")';
-        var error = '@Html.Raw(TempData["ErrorMessage"]?.ToString()?.Replace("'", "\\'") ?? "")';
+        @* JSON-encode so names/reasons inside messages can't break out of the script. *@
+        var success = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SuccessMessage"]?.ToString() ?? ""));
+        var error = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["ErrorMessage"]?.ToString() ?? ""));
         var container = document.getElementById('cp-toast-container');
         function toast(msg, cls) {
             if (!msg) return;

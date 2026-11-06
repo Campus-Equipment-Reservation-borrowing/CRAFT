@@ -1,0 +1,56 @@
+@using ASI.Basecode.Services.ViewModelClasses
+@model SupportTicketFormViewModel
+@{
+    ViewData["Title"] = "New Support Ticket";
+    var categories = new[]
+    {
+        ("VERIFICATION", "Account verification", "Questions about your pending registration."),
+        ("APPEAL", "Appeal a decision", "Ask us to reconsider a rejected verification, reservation or penalty."),
+        ("FEEDBACK", "Feedback", "Ideas and suggestions for the Property Office."),
+        ("OTHER", "Something else", "Anything that doesn't fit above."),
+    };
+}
+
+<div class="cp-page-header">
+    <div>
+        <div class="crumb"><div>CRAFT</div><div>/</div><a asp-action="Index">Support</a><div>/</div><div class="cur">New ticket</div></div>
+        <h1 class="cp-page-title">New Support Ticket</h1>
+        <p class="cp-page-subtitle">An administrator will reply here; you'll get a notification when they do.</p>
+    </div>
+</div>
+
+<div class="cp-card" style="max-width:760px;">
+    <form method="post" asp-action="Create">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
+
+        <fieldset class="cp-form-group" style="border:0;padding:0;">
+            <legend class="cp-form-label">What is this about? <span class="required">*</span></legend>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:8px;">
+                @foreach (var (code, label, hint) in categories)
+                {
+                    <label style="display:flex;gap:8px;align-items:flex-start;border:1px solid var(--color-border);border-radius:10px;padding:10px 12px;cursor:pointer;">
+                        <input type="radio" name="Category" value="@code" checked="@(Model.Category == code)" required style="margin-top:3px;" />
+                        <span><span class="cp-cell-name">@label</span><span class="cp-cell-sub" style="display:block;">@hint</span></span>
+                    </label>
+                }
+            </div>
+            <span asp-validation-for="Category" class="cp-form-error"></span>
+        </fieldset>
+
+        <div class="cp-form-group">
+            <label class="cp-form-label" asp-for="Subject">Subject <span class="required">*</span></label>
+            <input asp-for="Subject" class="cp-input" maxlength="200" required />
+            <span asp-validation-for="Subject" class="cp-form-error"></span>
+        </div>
+        <div class="cp-form-group">
+            <label class="cp-form-label" asp-for="Body">Message <span class="required">*</span></label>
+            <textarea asp-for="Body" class="cp-textarea" rows="6" maxlength="4000" required></textarea>
+            <span asp-validation-for="Body" class="cp-form-error"></span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
+            <button type="submit" class="cp-btn cp-btn-primary">Submit ticket</button>
+        </div>
+    </form>
+</div>

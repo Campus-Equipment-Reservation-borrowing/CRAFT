@@ -35,6 +35,8 @@
     </div>
 </div>
 
+@await Component.InvokeAsync("AnnouncementBanner")
+
 <div class="cp-section-title">At a glance</div>
 <div class="cp-kpi-grid">
     <a class="cp-kpi" href="/Users">
@@ -98,6 +100,16 @@
         <div class="cp-kpi-value muted">@Model.ReservationCancelled</div>
     </a>
 </div>
+
+@if (ViewBag.VerificationStats is ASI.Basecode.Services.ViewModelClasses.VerificationStatsViewModel verificationStats)
+{
+    <partial name="_VerificationStats" model="verificationStats" />
+}
+
+@if (ViewBag.Workload is ASI.Basecode.Services.ViewModelClasses.CustodianWorkloadViewModel workload)
+{
+    <partial name="_CustodianWorkload" model="workload" />
+}
 
 <div class="cp-section-title">Recent system activity</div>
 <div class="cp-card">

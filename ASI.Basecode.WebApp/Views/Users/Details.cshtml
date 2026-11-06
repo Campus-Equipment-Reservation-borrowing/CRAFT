@@ -3,80 +3,144 @@
 @{
     ViewData["Title"] = "User Details";
     var statusCode = Model.AccountStatus?.Code;
-    var statusBg = statusCode switch
+    var statusBadge = statusCode switch
     {
-        "ACTIVE" => "#EAF5EF",
-        "SUSPENDED" => "#FBEAEA",
-        "LOCKED" => "#FDF3E1",
-        "UNVERIFIED" => "#FDF3E1",
-        _ => "#EEF2F0",
-    };
-    var statusFg = statusCode switch
-    {
-        "ACTIVE" => "#0B5D3E",
-        "SUSPENDED" => "#8E2F2F",
-        "LOCKED" => "#8A5D0F",
-        "UNVERIFIED" => "#8A5D0F",
-        _ => "#3E514A",
+        "ACTIVE" => "cp-badge-success",
+        "SUSPENDED" or "UNVERIFIED" => "cp-badge-warning",
+        "LOCKED" or "REJECTED" => "cp-badge-error",
+        _ => "cp-badge-neutral",
     };
     var initials = (string.IsNullOrWhiteSpace(Model.FirstName) ? string.Empty : Model.FirstName.Trim().Substring(0, 1).ToUpperInvariant())
         + (string.IsNullOrWhiteSpace(Model.LastName) ? string.Empty : Model.LastName.Trim().Substring(0, 1).ToUpperInvariant());
+    var issuedPassword = TempData["IssuedPassword"] as string;
+    var inviteLink = TempData["InviteLink"] as string;
+    var lockedOut = Model.LockoutUntilUtc.HasValue && Model.LockoutUntilUtc.Value > DateTime.UtcNow;
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div>Users</div><div>/</div><div class="cur">@Model.FirstName @Model.LastName</div></div>
-        <div class="title">@Model.FirstName @Model.LastName</div>
-        <div class="subtitle">@Model.AccountIdentifier &middot; @(Model.Role?.RoleName ?? "No role")</div>
+        <div class="crumb"><div>CRAFT</div><div>/</div><a asp-action="Index">Users</a><div>/</div><div class="cur">@Model.FirstName @Model.LastName</div></div>
+        <h1 class="cp-page-title">@Model.FirstName @Model.LastName</h1>
+        <p class="cp-page-subtitle">@Model.AccountIdentifier &middot; @(Model.Role?.RoleName ?? "No role")</p>
     </div>
-    <div class="hd-actions">
-        <a asp-action="Edit" asp-route-id="@Model.UserId" class="btn btn-primary">Edit</a>
-        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    <div class="cp-page-actions">
+        @if (Model.Role?.IsBorrowerRole == true)
+        {
+            <a asp-action="History" asp-route-id="@Model.UserId" class="cp-btn cp-btn-secondary">History</a>
+        }
+        <a asp-action="Edit" asp-route-id="@Model.UserId" class="cp-btn cp-btn-primary">Edit</a>
+        <a asp-action="Index" class="cp-btn cp-btn-secondary">Back to List</a>
     </div>
 </div>
 
-<div class="row" style="gap:20px;align-items:flex-start">
-    <div style="flex:1;min-width:0">
-        <div class="card">
-            <div class="card-bd" style="padding:18px 20px">
-                <div style="display:flex;align-items:center;gap:16px">
-                    <div class="avatar" style="width:60px;height:60px;font-size:20px;border-radius:16px">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
-                    <div style="min-width:0">
-                        <div style="font-size:17px;font-weight:700">@Model.FirstName @Model.LastName</div>
-                        <div class="hint" style="overflow-wrap:anywhere">@Model.SchoolEmail</div>
-                        <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap">
-                            <div class="badge" style="background:#E6F1F5;color:#245C6E"><div class="dot"></div>@(Model.Role?.RoleName ?? "No role")</div>
-                            <div class="badge" style="background:@statusBg;color:@statusFg"><div class="dot"></div>@(Model.AccountStatus?.Description ?? "-")</div>
-                        </div>
+@if (!string.IsNullOrEmpty(issuedPassword))
+{
+    <div class="banner ok" role="status" style="margin-bottom:16px;">
+        <div class="banner-b">
+            <strong>Temporary password issued</strong>
+            <span>Give this to @Model.FirstName in person. It is shown only once and must be changed at first sign-in.</span>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                <code id="issuedPassword" style="font-size:14px;font-weight:700;letter-spacing:.05em;background:#fff;padding:4px 10px;border-radius:6px;border:1px solid #CEE7D9;">@issuedPassword</code>
+                <button type="button" class="cp-btn cp-btn-secondary cp-btn-sm js-copy" data-copy-target="issuedPassword">Copy</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(inviteLink))
+{
+    <div class="banner info" role="status" style="margin-bottom:16px;">
+        <div class="banner-b">
+            <strong>One-time invite link created</strong>
+            <span>Valid for 24 hours. Send it through a trusted channel; anyone with the link can set this account's password.</span>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px;min-width:0;">
+                <code id="inviteLink" style="font-size:11.5px;background:#fff;padding:4px 10px;border-radius:6px;border:1px solid #CDE1EA;overflow-wrap:anywhere;">@inviteLink</code>
+                <button type="button" class="cp-btn cp-btn-secondary cp-btn-sm js-copy" data-copy-target="inviteLink">Copy</button>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="cp-grid-2">
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+        <div class="cp-card">
+            <div style="display:flex;align-items:center;gap:16px;">
+                <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+                <div style="min-width:0;">
+                    <div style="font-size:17px;font-weight:700;">@Model.FirstName @Model.LastName</div>
+                    <div class="cp-cell-sub" style="overflow-wrap:anywhere;">@Model.SchoolEmail</div>
+                    <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;">
+                        <span class="cp-badge cp-badge-info">@(Model.Role?.RoleName ?? "No role")</span>
+                        <span class="cp-badge @statusBadge">@(Model.AccountStatus?.Description ?? "-")</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Profile</div></div></div>
-            <div class="card-bd">
-                <div class="kv">
-                    <div class="kv-row"><div class="kv-k">School / Account ID</div><div class="kv-v">@Model.AccountIdentifier</div></div>
-                    <div class="kv-row"><div class="kv-k">School Email</div><div class="kv-v">@Model.SchoolEmail</div></div>
-                    <div class="kv-row"><div class="kv-k">Contact Number</div><div class="kv-v">@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "-" : Model.ContactNumber)</div></div>
-                    <div class="kv-row last"><div class="kv-k">Alternate Contact</div><div class="kv-v">@(string.IsNullOrWhiteSpace(Model.AlternateContact) ? "-" : Model.AlternateContact)</div></div>
-                </div>
+        <div class="cp-card">
+            <div class="cp-card-header">Profile</div>
+            <div class="kv">
+                <div class="kv-row"><div class="kv-k">School / Account ID</div><div class="kv-v">@Model.AccountIdentifier</div></div>
+                <div class="kv-row"><div class="kv-k">School Email</div><div class="kv-v">@Model.SchoolEmail</div></div>
+                <div class="kv-row"><div class="kv-k">Contact Number</div><div class="kv-v">@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "-" : Model.ContactNumber)</div></div>
+                <div class="kv-row last"><div class="kv-k">Alternate Contact</div><div class="kv-v">@(string.IsNullOrWhiteSpace(Model.AlternateContact) ? "-" : Model.AlternateContact)</div></div>
             </div>
         </div>
+
+        @await Html.PartialAsync("_UserAssignments", Model)
     </div>
 
-    <div style="flex:1;min-width:0">
-        <div class="card">
-            <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Account</div></div></div>
-            <div class="card-bd">
-                <div class="kv">
-                    <div class="kv-row"><div class="kv-k">Role</div><div class="kv-v">@(Model.Role?.RoleName ?? "-")</div></div>
-                    <div class="kv-row"><div class="kv-k">Department</div><div class="kv-v">@(Model.Department?.DepartmentName ?? "-")</div></div>
-                    <div class="kv-row"><div class="kv-k">Status</div><div class="kv-v"><div class="badge" style="background:@statusBg;color:@statusFg"><div class="dot"></div>@(Model.AccountStatus?.Description ?? "-")</div></div></div>
-                    <div class="kv-row last"><div class="kv-k">Created</div><div class="kv-v">@Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</div></div>
-                </div>
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+        <div class="cp-card">
+            <div class="cp-card-header">Account</div>
+            <div class="kv">
+                <div class="kv-row"><div class="kv-k">Role</div><div class="kv-v">@(Model.Role?.RoleName ?? "-")</div></div>
+                <div class="kv-row"><div class="kv-k">Department</div><div class="kv-v">@(Model.Department?.DepartmentName ?? "-")</div></div>
+                <div class="kv-row"><div class="kv-k">Status</div><div class="kv-v"><span class="cp-badge @statusBadge">@(Model.AccountStatus?.Description ?? "-")</span></div></div>
+                @if (statusCode == "REJECTED" && !string.IsNullOrWhiteSpace(Model.VerificationNote))
+                {
+                    <div class="kv-row"><div class="kv-k">Rejection reason</div><div class="kv-v">@Model.VerificationNote</div></div>
+                }
+                @if (Model.VerifiedAtUtc.HasValue)
+                {
+                    <div class="kv-row"><div class="kv-k">@(statusCode == "REJECTED" ? "Reviewed" : "Verified")</div><div class="kv-v">@Model.VerifiedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</div></div>
+                }
+                <div class="kv-row last"><div class="kv-k">Created</div><div class="kv-v">@Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</div></div>
+            </div>
+        </div>
+
+        <div class="cp-card">
+            <div class="cp-card-header">Sign-in &amp; Security</div>
+            <div class="kv" style="margin-bottom:14px;">
+                <div class="kv-row"><div class="kv-k">Password</div><div class="kv-v">@(Model.MustChangePassword ? "Temporary — must be changed at next sign-in" : "Set by user")</div></div>
+                <div class="kv-row last"><div class="kv-k">Lockout</div><div class="kv-v">@(lockedOut ? $"Locked until {Model.LockoutUntilUtc.Value.ToLocalTime():hh:mm tt}" : "Not locked")</div></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <form method="post" asp-action="ResetPassword" asp-route-id="@Model.UserId"
+                      onsubmit="return confirm('Issue a new temporary password? The current password stops working immediately.');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Reset password</button>
+                </form>
+                <form method="post" asp-action="InviteLink" asp-route-id="@Model.UserId">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Generate invite link</button>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.js-copy').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var el = document.getElementById(btn.dataset.copyTarget);
+                if (!el || !navigator.clipboard) return;
+                navigator.clipboard.writeText(el.textContent.trim()).then(function () {
+                    btn.textContent = 'Copied';
+                    setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+                });
+            });
+        });
+    </script>
+}

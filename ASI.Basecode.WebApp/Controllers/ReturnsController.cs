@@ -94,7 +94,9 @@ namespace ASI.Basecode.WebApp.Controllers
             var form = new InspectionFormViewModel
             {
                 BorrowingId = id,
-                InspectedQuantity = ctx.ReleasedQuantity - ctx.AlreadyReturned,
+                // Inspection follows a return: default to the units already handed back.
+                InspectedQuantity = ctx.AlreadyReturned > 0 ? ctx.AlreadyReturned : ctx.ReleasedQuantity,
+                GoodQuantity = ctx.AlreadyReturned > 0 ? ctx.AlreadyReturned : ctx.ReleasedQuantity,
                 InspectionStatusId = 1,
             };
             this.ViewBag.ConditionOptions = this.ToSelectList(this._service.GetConditionOptions(), null, "-- Select condition --");
@@ -110,8 +112,8 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 var ctx = this._service.GetReturnFormContext(form.BorrowingId);
                 this.ViewBag.Context = ctx;
-                this.ViewBag.ConditionOptions = this._service.GetConditionOptions();
-                this.ViewBag.InspectionStatusOptions = this._service.GetInspectionStatusOptions();
+                this.ViewBag.ConditionOptions = this.ToSelectList(this._service.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
+                this.ViewBag.InspectionStatusOptions = this.ToSelectList(this._service.GetInspectionStatusOptions(), form.InspectionStatusId, "-- Select status --");
                 return this.View(form);
             }
 
@@ -121,8 +123,8 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.ModelState.AddModelError(string.Empty, error);
                 var ctx = this._service.GetReturnFormContext(form.BorrowingId);
                 this.ViewBag.Context = ctx;
-                this.ViewBag.ConditionOptions = this._service.GetConditionOptions();
-                this.ViewBag.InspectionStatusOptions = this._service.GetInspectionStatusOptions();
+                this.ViewBag.ConditionOptions = this.ToSelectList(this._service.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
+                this.ViewBag.InspectionStatusOptions = this.ToSelectList(this._service.GetInspectionStatusOptions(), form.InspectionStatusId, "-- Select status --");
                 return this.View(form);
             }
 

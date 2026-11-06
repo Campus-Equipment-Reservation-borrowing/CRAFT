@@ -7,9 +7,26 @@
 <div class="cp-page-header">
     <div>
         <h1 class="cp-page-title">Reservation Review</h1>
-        <p class="cp-page-subtitle">@Model.ReservationNumber</p>
+        <p class="cp-page-subtitle">
+            @Model.ReservationNumber &middot;
+            @if (Model.AssignedCustodianName == null)
+            {
+                <span class="cp-badge cp-badge-neutral">Shared pool</span>
+            }
+            else
+            {
+                <span>Custodian: @Model.AssignedCustodianName</span>
+            }
+        </p>
     </div>
     <div class="cp-page-actions">
+        @if (Model.CanClaim && User.IsInRole("TECHNICIAN"))
+        {
+            <form method="post" asp-action="Claim" asp-route-id="@Model.ReservationId" asp-route-returnTo="review" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="cp-btn cp-btn-primary cp-btn-sm">Assign to me</button>
+            </form>
+        }
         <a asp-action="Reservations" class="cp-btn cp-btn-secondary cp-btn-sm">Back to list</a>
     </div>
 </div>
@@ -78,10 +95,29 @@
         else
         {
             <p style="color:var(--color-text-gray);font-size:12.5px;">This reservation is no longer pending. Current status: @Model.StatusDescription.</p>
-            @if (Model.StatusCode == "APPROVED")
+            @if (Model.StatusCode == "APPROVED" || Model.StatusCode == "PARTIALLY_RELEASED")
             {
-                <a asp-action="Release" asp-route-id="@Model.ReservationId" class="cp-btn cp-btn-success" style="margin-top:8px;">Release Equipment</a>
+                <a asp-action="Release" asp-route-id="@Model.ReservationId" class="cp-btn cp-btn-success" style="margin-top:8px;">
+                    @(Model.StatusCode == "PARTIALLY_RELEASED" ? "Release Remaining Units" : "Release Equipment")
+                </a>
             }
+        }
+
+        @if (Model.StatusCode is "PENDING" or "APPROVED" or "READY_FOR_RELEASE" or "PARTIALLY_RELEASED")
+        {
+            <details style="margin-top:16px;border-top:1px solid var(--color-border);padding-top:12px;">
+                <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:var(--color-text-gray);">
+                    @(Model.StatusCode == "PARTIALLY_RELEASED" ? "Close out the unreleased units" : "Cancel this reservation")
+                </summary>
+                <form asp-action="Cancel" asp-route-id="@Model.ReservationId" method="post" style="margin-top:10px;">
+                    @Html.AntiForgeryToken()
+                    <div class="cp-form-group">
+                        <label class="cp-form-label" for="cancelReason">Reason (required, sent to the borrower)</label>
+                        <textarea id="cancelReason" name="reason" class="cp-textarea" rows="2" required placeholder="e.g. Borrower did not pick up within the window."></textarea>
+                    </div>
+                    <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Cancel and release held units</button>
+                </form>
+            </details>
         }
     </div>
 </div>

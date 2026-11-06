@@ -20,10 +20,13 @@ namespace ASI.Basecode.Services.Services
 
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
-        public DashboardService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork)
+        private readonly ICurrentUserService _currentUser;
+
+        public DashboardService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, ICurrentUserService currentUser)
             : base(loggerFactory)
         {
             this._unitOfWork = unitOfWork;
+            this._currentUser = currentUser;
         }
 
         public BorrowerDashboardViewModel GetBorrowerDashboard(long userId)
@@ -79,6 +82,7 @@ namespace ASI.Basecode.Services.Services
                 DisplayName = user == null ? "Borrower" : $"{user.FirstName} {user.LastName}".Trim(),
                 FirstName = user?.FirstName,
                 AccountStatus = user?.AccountStatus?.Code,
+                VerificationNote = user?.VerificationNote,
 
                 ActiveBorrowings = openBorrowings.Count,
                 PendingReservations = reservations.Count(r => r.Status.Code == "PENDING"),
@@ -170,11 +174,15 @@ namespace ASI.Basecode.Services.Services
                 .FirstOrDefault();
             var lowStockThreshold = policy?.LowStockThreshold ?? 2;
 
+            // Tasks are scoped to the custodian (routed work + shared pool); inventory alerts stay global.
+            var scope = this._currentUser.GetCustodianScope();
+
             var reservations = this.DbContext.Reservations
                 .AsNoTracking()
                 .Include(r => r.BorrowerUser)
                 .Include(r => r.Equipment)
                 .Include(r => r.Status)
+                .Where(r => scope == null || r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == scope)
                 .ToList();
 
             var borrowings = this.DbContext.Borrowings
@@ -183,6 +191,9 @@ namespace ASI.Basecode.Services.Services
                 .Include(b => b.Equipment)
                 .Include(b => b.Status)
                 .Include(b => b.InspectionStatus)
+                .Where(b => scope == null || b.Reservation == null
+                    || b.Reservation.AssignedCustodianUserId == null
+                    || b.Reservation.AssignedCustodianUserId == scope)
                 .ToList();
 
             var equipment = this.DbContext.Equipment

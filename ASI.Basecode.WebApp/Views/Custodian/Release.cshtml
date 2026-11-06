@@ -26,7 +26,7 @@
             <div style="color:var(--color-text-gray);">Borrower</div><div>@ctx.BorrowerName (@ctx.BorrowerRole)</div>
             <div style="color:var(--color-text-gray);">Equipment</div><div>@ctx.EquipmentName (@ctx.AssetCode) — @ctx.CategoryName</div>
             <div style="color:var(--color-text-gray);">Pickup Point</div><div>@(ctx.PickupLocationName ?? "—")</div>
-            <div style="color:var(--color-text-gray);">Approved Qty</div><div>@ctx.ApprovedQuantity</div>
+            <div style="color:var(--color-text-gray);">Remaining to Release</div><div>@ctx.ApprovedQuantity@(ctx.AlreadyReleasedQuantity > 0 ? $" ({ctx.AlreadyReleasedQuantity} already released)" : "")</div>
             <div style="color:var(--color-text-gray);">Expected Return</div><div>@ctx.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
         </div>
     </div>

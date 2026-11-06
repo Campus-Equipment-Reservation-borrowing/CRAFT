@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - CRAFT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />
+    <style>
+        body { margin: 0; background: #EEF2F0; font-family: Inter, system-ui, sans-serif; color: #12251C; }
+        .print-toolbar { display: flex; gap: 8px; justify-content: center; padding: 16px; }
+        .print-sheet { background: #fff; margin: 0 auto 32px; padding: 24px; border-radius: 12px; box-shadow: 0 6px 18px -8px rgba(16,45,32,.25); }
+        .print-qr svg { display: block; width: 100%; height: auto; }
+        .print-meta { font-size: 12px; color: #4A5D54; }
+        .print-code { font-family: ui-monospace, Consolas, monospace; font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+        @@media print {
+            body { background: #fff; }
+            .print-toolbar { display: none; }
+            .print-sheet { box-shadow: none; border: 1px dashed #9AA8A1; margin: 0 auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar">
+        <button type="button" class="cp-btn cp-btn-primary" onclick="window.print()">Print</button>
+        <button type="button" class="cp-btn cp-btn-secondary" onclick="history.back()">Back</button>
+    </div>
+    @RenderBody()
+</body>
+</html>

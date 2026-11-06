@@ -34,6 +34,11 @@ namespace ASI.Basecode.Services.Interfaces
         (SignInResult Result, AuthenticatedUserViewModel User, string Error) SignIn(string userId, string password);
 
         /// <summary>
+        /// Writes the LOGOUT audit row (never throws).
+        /// </summary>
+        void RecordSignOut(long userId);
+
+        /// <summary>
         /// Creates a borrower account with status UNVERIFIED. Enforces the [1.1] validation rules.
         /// </summary>
         (bool Success, string Error, long UserId) Register(RegisterViewModel form);

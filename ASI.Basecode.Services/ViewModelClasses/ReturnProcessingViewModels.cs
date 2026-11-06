@@ -56,6 +56,14 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public long? ReleaseConditionId { get; set; }
         public string InspectionNotes { get; set; }
         public long InspectionStatusId { get; set; }
+
+        // Close-out outcome — applied when the inspection status is COMPLETED.
+        public int GoodQuantity { get; set; }
+        public int DamagedQuantity { get; set; }
+        public int LostQuantity { get; set; }
+        public decimal? RepairCost { get; set; }
+        public decimal? PenaltyAmount { get; set; }
+        public string PenaltyNote { get; set; }
     }
 
     public class InspectionFormContextViewModel

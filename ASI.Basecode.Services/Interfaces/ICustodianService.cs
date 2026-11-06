@@ -8,6 +8,18 @@ namespace ASI.Basecode.Services.Interfaces
         CustodianReservationsIndexViewModel GetReservationsIndex(string search, long? statusId, int page, int pageSize);
 
         ReservationReviewViewModel GetReservationReview(long reservationId);
+        /// <summary>Takes an unassigned PENDING/APPROVED reservation from the shared pool.</summary>
+        (bool Success, string Error) Claim(long reservationId);
+
+        /// <summary>Custodian cancels an open reservation with a reason, releasing its held units.</summary>
+        (bool Success, string Error) Cancel(long reservationId, string reason);
+
+        /// <summary>
+        /// Resolves a scanned code: a reservation number, or an equipment asset code (listing in-scope
+        /// releases and returns for that item).
+        /// </summary>
+        ScanResultViewModel ResolveScan(string code);
+
 
         (bool Success, string Error) Approve(long reservationId, string notes);
 

@@ -52,6 +52,39 @@
                 </div>
             </div>
 
+            <fieldset class="cp-card" style="margin:0 0 16px;padding:14px 16px;background:var(--color-primary-tint-3);">
+                <legend class="cp-form-label" style="padding:0 6px;">Close-out outcome <span class="cp-cell-sub">(applied when status is Inspection Completed)</span></legend>
+                <p class="cp-cell-sub" style="margin:0 0 10px;">Split the inspected units. Good units become available again, damaged units go to maintenance, and lost units are recorded as unreconciled.</p>
+                <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:12px;margin-bottom:12px;">
+                    <div class="cp-form-group" style="margin:0;">
+                        <label asp-for="GoodQuantity" class="cp-form-label">Good</label>
+                        <input asp-for="GoodQuantity" type="number" min="0" class="cp-input" />
+                    </div>
+                    <div class="cp-form-group" style="margin:0;">
+                        <label asp-for="DamagedQuantity" class="cp-form-label">Damaged</label>
+                        <input asp-for="DamagedQuantity" type="number" min="0" class="cp-input" />
+                    </div>
+                    <div class="cp-form-group" style="margin:0;">
+                        <label asp-for="LostQuantity" class="cp-form-label">Lost</label>
+                        <input asp-for="LostQuantity" type="number" min="0" class="cp-input" />
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:12px;">
+                    <div class="cp-form-group" style="margin:0;">
+                        <label asp-for="RepairCost" class="cp-form-label">Repair cost (₱)</label>
+                        <input asp-for="RepairCost" type="number" min="0" step="0.01" class="cp-input" />
+                    </div>
+                    <div class="cp-form-group" style="margin:0;">
+                        <label asp-for="PenaltyAmount" class="cp-form-label">Penalty (₱)</label>
+                        <input asp-for="PenaltyAmount" type="number" min="0" step="0.01" class="cp-input" />
+                    </div>
+                    <div class="cp-form-group" style="margin:0;">
+                        <label asp-for="PenaltyNote" class="cp-form-label">Penalty note</label>
+                        <input asp-for="PenaltyNote" maxlength="500" class="cp-input" placeholder="e.g. Cracked lens hood; replacement charged" />
+                    </div>
+                </div>
+            </fieldset>
+
             <div class="cp-form-group">
                 <label asp-for="InspectionNotes" class="cp-form-label">Inspection Notes</label>
                 <textarea asp-for="InspectionNotes" class="cp-textarea" rows="3"></textarea>

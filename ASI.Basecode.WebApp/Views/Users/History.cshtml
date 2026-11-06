@@ -1,0 +1,50 @@
+@using ASI.Basecode.Services.ViewModelClasses
+@model BorrowerHistoryViewModel
+@{
+    ViewData["Title"] = "Borrower History";
+}
+
+<div class="cp-page-header">
+    <div>
+        <div class="crumb"><div>CRAFT</div><div>/</div><a asp-action="Index">Users</a><div>/</div><a asp-action="Details" asp-route-id="@Model.UserId">@Model.BorrowerName</a><div>/</div><div class="cur">History</div></div>
+        <h1 class="cp-page-title">@Model.BorrowerName</h1>
+        <p class="cp-page-subtitle">@Model.AccountIdentifier &middot; @Model.Reservations.Count reservation(s), @Model.Borrowings.Count borrowing(s)</p>
+    </div>
+    <div class="cp-page-actions">
+        <a asp-action="Details" asp-route-id="@Model.UserId" class="cp-btn cp-btn-secondary">Back to account</a>
+    </div>
+</div>
+
+@foreach (var (title, rows, numberLabel, startLabel, endLabel) in new[]
+{
+    ("Reservations", Model.Reservations, "Reservation #", "Start", "Return by"),
+    ("Borrowings", Model.Borrowings, "Transaction #", "Released", "Due"),
+})
+{
+    <div class="cp-section-title">@title</div>
+    @if (rows.Count == 0)
+    {
+        <div class="cp-empty-state" style="padding:18px;"><div class="cp-empty-state-text">No @title.ToLowerInvariant() yet.</div></div>
+    }
+    else
+    {
+        <div class="cp-table-wrap" style="margin-bottom:16px;">
+            <table class="cp-table">
+                <thead><tr><th>@numberLabel</th><th>Equipment</th><th class="text-center">Qty</th><th>Status</th><th>@startLabel</th><th>@endLabel</th></tr></thead>
+                <tbody>
+                    @foreach (var r in rows)
+                    {
+                        <tr>
+                            <td><strong>@r.Number</strong></td>
+                            <td>@r.EquipmentName<div class="cp-cell-sub">@r.AssetCode</div></td>
+                            <td class="text-center">@r.Quantity</td>
+                            <td>@r.Status @if (r.Late) {<span class="cp-badge cp-badge-error" style="margin-left:4px;">Late</span>}</td>
+                            <td style="font-size:11.6px;">@r.StartUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
+                            <td style="font-size:11.6px;">@r.EndUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

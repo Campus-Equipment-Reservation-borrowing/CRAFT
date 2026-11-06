@@ -24,16 +24,25 @@ namespace ASI.Basecode.WebApp.Controllers
     public class UsersController : ControllerBase<UsersController>
     {
         private readonly IUserService _userService;
+        private readonly IAuthService _authService;
+        private readonly ICustodianAssignmentService _assignments;
+        private readonly ICommunicationService _communication;
 
         public UsersController(
             IHttpContextAccessor httpContextAccessor,
             ILoggerFactory loggerFactory,
             IConfiguration configuration,
             IMapper mapper,
-            IUserService userService)
+            IUserService userService,
+            IAuthService authService,
+            ICustodianAssignmentService assignments,
+            ICommunicationService communication)
             : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
             this._userService = userService;
+            this._authService = authService;
+            this._assignments = assignments;
+            this._communication = communication;
         }
 
         /// <summary>
@@ -91,16 +100,66 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.View(form);
             }
 
-            var (success, error, _) = this._userService.Save(form);
+            var (success, error, userId) = this._userService.Save(form);
             if (!success)
             {
+                form.TemporaryPassword = null;
                 this.ModelState.AddModelError(string.Empty, error);
                 this.PopulateFormSelectLists(form.RoleId, form.DepartmentId, form.AccountStatusId);
                 return this.View(form);
             }
 
+            // Shown once on the details page; TempData is consumed on read.
+            this.TempData["IssuedPassword"] = form.IssuedTemporaryPassword;
             this.TempData["SuccessMessage"] = "User account created.";
-            return this.RedirectToAction(nameof(this.Index));
+            return this.RedirectToAction(nameof(this.Details), new { id = userId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ResetPassword(long id)
+        {
+            var (success, error, temporary) = this._userService.ResetPassword(id);
+            if (success)
+            {
+                this.TempData["IssuedPassword"] = temporary;
+                this.TempData["SuccessMessage"] = "Temporary password issued.";
+            }
+            else
+            {
+                this.TempData["ErrorMessage"] = error;
+            }
+
+            return this.RedirectToAction(nameof(this.Details), new { id });
+        }
+
+        /// <summary>
+        /// One-time set-password link (reuses the password reset token flow); there is no mail
+        /// transport yet, so the link is shown to the admin to hand over.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult InviteLink(long id)
+        {
+            var user = this._userService.GetByIdWithDetails(id);
+            if (user == null)
+            {
+                this.TempData["ErrorMessage"] = ASI.Basecode.Resources.Messages.Errors.UserNotFound;
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
+            var (success, error, token) = this._authService.CreatePasswordResetToken(user.SchoolEmail);
+            if (success)
+            {
+                this.TempData["InviteLink"] = this.Url.Action("ResetPassword", "Account", new { token }, this.Request.Scheme);
+                this.TempData["SuccessMessage"] = "Invite link created.";
+            }
+            else
+            {
+                this.TempData["ErrorMessage"] = error;
+            }
+
+            return this.RedirectToAction(nameof(this.Details), new { id });
         }
 
         public IActionResult Edit(long id)
@@ -152,6 +211,7 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.RedirectToAction(nameof(this.Index));
             }
 
+            this.ViewBag.AssignmentSummary = this._assignments.GetUserSummary(id);
             return this.View(entity);
         }
 
@@ -170,6 +230,56 @@ namespace ASI.Basecode.WebApp.Controllers
             }
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        /// <summary>
+        /// One borrower's reservation and borrowing history (per-user drill-down).
+        /// </summary>
+        public IActionResult History(long id)
+        {
+            var model = this._communication.GetBorrowerHistory(id);
+            if (model == null)
+            {
+                this.TempData["ErrorMessage"] = ASI.Basecode.Resources.Messages.Errors.UserNotFound;
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
+            return this.View(model);
+        }
+
+        /// <summary>
+        /// Pending Verifications queue (UNVERIFIED accounts) with a Rejected tab.
+        /// </summary>
+        public IActionResult Verifications(string tab = "pending", string search = null, int page = 1)
+        {
+            try
+            {
+                return this.View(this._userService.GetVerificationQueue(tab, search, page, 10));
+            }
+            catch (Exception ex)
+            {
+                this.HandleExceptionLog(ex, "Verifications");
+                this.TempData["ErrorMessage"] = "Unable to load the verification queue.";
+                return this.View(new VerificationQueueViewModel { Page = new PagedResult<UserListViewModel>(), Tab = "pending" });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Verify(long id, string returnTab = "pending")
+        {
+            var (success, error) = this._userService.Verify(id);
+            this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Account verified." : error;
+            return this.RedirectToAction(nameof(this.Verifications), new { tab = returnTab });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RejectVerification(long id, string reason)
+        {
+            var (success, error) = this._userService.RejectVerification(id, reason);
+            this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Verification rejected." : error;
+            return this.RedirectToAction(nameof(this.Verifications));
         }
 
         private void PopulateFormSelectLists(long? roleId, long? departmentId, long? accountStatusId)

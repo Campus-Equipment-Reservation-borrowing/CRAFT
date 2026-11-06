@@ -209,6 +209,24 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.View(entity);
         }
 
+        /// <summary>
+        /// Printable QR label. The code opens Custodian/Scan for the asset, which lists the
+        /// releases and returns waiting on it.
+        /// </summary>
+        public IActionResult Label(long id)
+        {
+            var entity = this._equipmentService.GetByIdWithDetails(id);
+            if (entity == null)
+            {
+                this.TempData["ErrorMessage"] = ASI.Basecode.Resources.Messages.Errors.EquipmentNotFound;
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
+            var scanUrl = this.Url.Action("Scan", "Custodian", new { code = entity.AssetCode }, this.Request.Scheme);
+            this.ViewBag.QrSvg = QrCode.ToSvg(scanUrl);
+            return this.View(entity);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Delete(long id)

@@ -100,5 +100,35 @@ namespace ASI.Basecode.Services.Manager
                 .Replace('/', '_')
                 .TrimEnd('=');
         }
+
+        /// <summary>
+        /// Random 12-character temporary password that satisfies <see cref="MeetsPolicy"/>.
+        /// Look-alike characters (0/O, 1/l/I) are excluded so it can be read out loud.
+        /// </summary>
+        public static string GenerateTemporaryPassword()
+        {
+            const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string lower = "abcdefghijkmnpqrstuvwxyz";
+            const string digits = "23456789";
+            const string all = upper + lower + digits;
+
+            var chars = new char[12];
+            chars[0] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
+            chars[1] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
+            chars[2] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
+            for (var i = 3; i < chars.Length; i++)
+            {
+                chars[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
+            }
+
+            // Fisher-Yates so the guaranteed classes aren't always in the first positions.
+            for (var i = chars.Length - 1; i > 0; i--)
+            {
+                var j = RandomNumberGenerator.GetInt32(i + 1);
+                (chars[i], chars[j]) = (chars[j], chars[i]);
+            }
+
+            return new string(chars);
+        }
     }
 }

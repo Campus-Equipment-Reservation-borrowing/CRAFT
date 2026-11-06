@@ -48,5 +48,15 @@ namespace ASI.Basecode.WebApp.Mvc
                 ? httpContext?.Session?.GetString(ActorNameSessionKey)
                 : name;
         }
+
+        public string GetActorRoleCode()
+        {
+            return this._httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.Value;
+        }
+
+        public bool IsActorAdmin()
+        {
+            return string.Equals(this.GetActorRoleCode(), ASI.Basecode.Resources.Constants.RoleCodes.Admin, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

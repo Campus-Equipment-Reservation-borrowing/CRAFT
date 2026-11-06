@@ -26,6 +26,29 @@
     </div>
 </div>
 
+@await Component.InvokeAsync("AnnouncementBanner")
+
+@if (Model.AccountStatus == "UNVERIFIED")
+{
+    <div class="banner warn" role="status" style="margin-bottom:16px;">
+        <div class="banner-b">
+            <strong>Your account is pending verification</strong>
+            <span>An administrator is reviewing your registration. You can browse equipment, but reservations unlock once your account is verified.</span>
+            <span><a href="/Support/Create?category=VERIFICATION">Ask about your verification</a></span>
+        </div>
+    </div>
+}
+else if (Model.AccountStatus == "REJECTED")
+{
+    <div class="banner err" role="alert" style="margin-bottom:16px;">
+        <div class="banner-b">
+            <strong>Your account verification was rejected</strong>
+            <span>Reason: @(string.IsNullOrWhiteSpace(Model.VerificationNote) ? "No reason was recorded." : Model.VerificationNote)</span>
+            <span><a href="/Support/Create?category=APPEAL">Submit an appeal</a></span>
+        </div>
+    </div>
+}
+
 <div class="col">
     <div class="hero">
         <div style="min-width:0">

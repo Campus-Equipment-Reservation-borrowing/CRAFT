@@ -129,11 +129,14 @@ namespace ASI.Basecode.Data.Repositories
             var referencesBorrowing = this.Context.Borrowings
                 .Any(b => b.BorrowerUserId == userId || b.ReleasedByUserId == userId);
             var referencesReservation = this.Context.Reservations
-                .Any(r => r.BorrowerUserId == userId);
+                .Any(r => r.BorrowerUserId == userId || r.AssignedCustodianUserId == userId);
             var referencesMovement = this.Context.InventoryMovements
                 .Any(m => m.PerformedByUserId == userId);
 
-            return referencesBorrowing || referencesReservation || referencesMovement;
+            var referencesSupport = this.Context.SupportTickets.Any(t => t.RequesterUserId == userId)
+                || this.Context.SupportTicketReplies.Any(r => r.AuthorUserId == userId);
+
+            return referencesBorrowing || referencesReservation || referencesMovement || referencesSupport;
         }
 
         public UserTotals GetTotals()
@@ -144,6 +147,7 @@ namespace ASI.Basecode.Data.Repositories
                 Students = this.Context.Users.Count(u => u.Role.RoleCode == "STUDENT"),
                 Faculty = this.Context.Users.Count(u => u.Role.RoleCode == "FACULTY"),
                 CustodianAdmins = this.Context.Users.Count(u => u.Role.RoleCode == "TECHNICIAN" || u.Role.RoleCode == "ADMIN"),
+                Unverified = this.Context.Users.Count(u => u.AccountStatus.Code == "UNVERIFIED"),
             };
         }
 

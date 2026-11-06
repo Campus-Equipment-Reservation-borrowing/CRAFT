@@ -15,5 +15,15 @@ namespace ASI.Basecode.Services.Interfaces
         /// Human readable name of the operator for audit details.
         /// </summary>
         string GetActorName();
+
+        /// <summary>
+        /// Role code of the signed-in user (STUDENT / FACULTY / TECHNICIAN / ADMIN), or null.
+        /// </summary>
+        string GetActorRoleCode();
+
+        /// <summary>
+        /// True for administrators, who see every custodian's work unscoped.
+        /// </summary>
+        bool IsActorAdmin();
     }
 }

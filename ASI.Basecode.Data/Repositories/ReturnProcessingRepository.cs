@@ -11,7 +11,7 @@ namespace ASI.Basecode.Data.Repositories
     {
         Borrowing GetBorrowingForReturn(long borrowingId);
 
-        PagedResult<BorrowingReturn> GetReturnsPaged(string search, int page, int pageSize);
+        PagedResult<BorrowingReturn> GetReturnsPaged(string search, int page, int pageSize, long? scopeCustodianUserId = null);
 
         BorrowingReturn GetReturnWithDetails(long returnId);
     }
@@ -30,10 +30,12 @@ namespace ASI.Basecode.Data.Repositories
                 .Include(b => b.Equipment).ThenInclude(e => e.EquipmentInventoryBalance)
                 .Include(b => b.Status)
                 .Include(b => b.InspectionStatus)
+                .Include(b => b.Reservation)
+                .Include(b => b.BorrowingReturns)
                 .FirstOrDefault(b => b.BorrowingId == borrowingId);
         }
 
-        public PagedResult<BorrowingReturn> GetReturnsPaged(string search, int page, int pageSize)
+        public PagedResult<BorrowingReturn> GetReturnsPaged(string search, int page, int pageSize, long? scopeCustodianUserId = null)
         {
             const int DefaultPage = 1;
             const int DefaultPageSize = 10;
@@ -43,6 +45,14 @@ namespace ASI.Basecode.Data.Repositories
                 .Include(r => r.Borrowing).ThenInclude(b => b.BorrowerUser)
                 .Include(r => r.ReceivedByUser)
                 .AsNoTracking();
+
+            if (scopeCustodianUserId.HasValue)
+            {
+                var custodianId = scopeCustodianUserId.Value;
+                query = query.Where(r => r.Borrowing.Reservation == null
+                    || r.Borrowing.Reservation.AssignedCustodianUserId == null
+                    || r.Borrowing.Reservation.AssignedCustodianUserId == custodianId);
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -79,6 +89,7 @@ namespace ASI.Basecode.Data.Repositories
             return this.Context.BorrowingReturns
                 .Include(r => r.Borrowing).ThenInclude(b => b.Equipment)
                 .Include(r => r.Borrowing).ThenInclude(b => b.BorrowerUser)
+                .Include(r => r.Borrowing).ThenInclude(b => b.Reservation)
                 .Include(r => r.ReceivedByUser)
                 .Include(r => r.ConditionInspections)
                 .FirstOrDefault(r => r.ReturnId == returnId);

@@ -1,0 +1,157 @@
+@using ASI.Basecode.Services.ViewModelClasses
+@model VerificationQueueViewModel
+@{
+    ViewData["Title"] = "Pending Verifications";
+    var isRejectedTab = Model.Tab == "rejected";
+}
+
+<div class="cp-page-header">
+    <div>
+        <h1 class="cp-page-title">Pending Verifications</h1>
+        <p class="cp-page-subtitle">Review self-registered borrower accounts before they can reserve equipment.</p>
+    </div>
+    <div class="cp-page-actions">
+        <a asp-action="Index" class="cp-btn cp-btn-secondary">All Users</a>
+    </div>
+</div>
+
+<div class="cp-card">
+    <div class="tabs" role="tablist">
+        <a class="tab @(isRejectedTab ? "" : "on")" role="tab" aria-selected="@(!isRejectedTab ? "true" : "false")"
+           asp-action="Verifications" asp-route-tab="pending">Pending <span class="cp-badge cp-badge-warning">@Model.PendingCount</span></a>
+        <a class="tab @(isRejectedTab ? "on" : "")" role="tab" aria-selected="@(isRejectedTab ? "true" : "false")"
+           asp-action="Verifications" asp-route-tab="rejected">Rejected <span class="cp-badge cp-badge-neutral">@Model.RejectedCount</span></a>
+    </div>
+
+    <div style="padding:16px 20px 20px;">
+        <form method="get" asp-action="Verifications" class="cp-filter-bar" style="margin-bottom:16px;">
+            <input type="hidden" name="tab" value="@Model.Tab" />
+            <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by name, account ID or email..." aria-label="Search accounts" />
+            <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Search</button>
+        </form>
+
+        @if (Model.Page?.Items == null || !Model.Page.Items.Any())
+        {
+            <div class="cp-empty-state">
+                <div class="cp-empty-state-icon"><i class="fa-solid fa-user-check"></i></div>
+                <div class="cp-empty-state-text">@(isRejectedTab ? "No rejected accounts." : "No accounts are waiting for verification.")</div>
+            </div>
+        }
+        else
+        {
+            <div class="cp-table-wrap">
+                <table class="cp-table">
+                    <thead>
+                        <tr>
+                            <th>Borrower</th>
+                            <th>Account ID</th>
+                            <th>Role</th>
+                            <th>Department</th>
+                            <th>Registered</th>
+                            @if (isRejectedTab)
+                            {
+                                <th>Reason</th>
+                            }
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in Model.Page.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@u.UserId" class="name-link" style="font-weight:600;">@u.FirstName @u.LastName</a>
+                                    <div class="cp-cell-sub">@u.SchoolEmail</div>
+                                </td>
+                                <td style="font-family:monospace;font-size:11.6px;">@u.AccountIdentifier</td>
+                                <td>@u.RoleName</td>
+                                <td>@(u.DepartmentName ?? "—")</td>
+                                <td>@(u.CreatedAtUtc == default ? "—" : u.CreatedAtUtc.ToLocalTime().ToString("MMM d, yyyy"))</td>
+                                @if (isRejectedTab)
+                                {
+                                    <td style="max-width:280px;">@u.VerificationNote</td>
+                                }
+                                <td class="text-center" style="white-space:nowrap;">
+                                    <form method="post" asp-action="Verify" asp-route-id="@u.UserId" asp-route-returnTab="@Model.Tab" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="cp-btn cp-btn-success cp-btn-sm">Approve</button>
+                                    </form>
+                                    @if (!isRejectedTab)
+                                    {
+                                        <button type="button" class="cp-btn cp-btn-danger cp-btn-sm js-reject" style="margin-left:4px;"
+                                                data-user-id="@u.UserId" data-user-name="@u.FirstName @u.LastName">Reject</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.Page.TotalPages > 1)
+            {
+                <div class="cp-pagination">
+                    <span class="cp-pagination-info">Page @Model.Page.Page of @Model.Page.TotalPages (@Model.Page.TotalCount accounts)</span>
+                    <ul class="cp-pagination-list">
+                        <li class="@(Model.Page.HasPrevious ? "" : "disabled")"><a asp-action="Verifications" asp-route-tab="@Model.Tab" asp-route-search="@Model.Search" asp-route-page="@(Model.Page.Page - 1)">‹</a></li>
+                        @for (var p = 1; p <= Model.Page.TotalPages; p++)
+                        {
+                            <li class="@(p == Model.Page.Page ? "active" : "")"><a asp-action="Verifications" asp-route-tab="@Model.Tab" asp-route-search="@Model.Search" asp-route-page="@p">@p</a></li>
+                        }
+                        <li class="@(Model.Page.HasNext ? "" : "disabled")"><a asp-action="Verifications" asp-route-tab="@Model.Tab" asp-route-search="@Model.Search" asp-route-page="@(Model.Page.Page + 1)">›</a></li>
+                    </ul>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<div class="cp-modal-overlay" id="rejectModal" style="display:none;">
+    <div class="cp-modal" role="dialog" aria-modal="true" aria-labelledby="rejectTitle">
+        <h2 class="cp-modal-title" id="rejectTitle">Reject verification</h2>
+        <form method="post" id="rejectForm">
+            @Html.AntiForgeryToken()
+            <p style="font-size:12.6px;margin:0 0 12px;">The borrower <strong id="rejectName"></strong> will be notified with this reason and can appeal.</p>
+            <div class="cp-form-group">
+                <label class="cp-form-label" for="rejectReason">Reason <span class="required">*</span></label>
+                <textarea id="rejectReason" name="reason" class="cp-textarea" rows="3" maxlength="500" required
+                          placeholder="e.g. Account ID does not match the registrar's records."></textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+                <button type="button" class="cp-btn cp-btn-secondary cp-btn-sm" id="rejectCancel">Cancel</button>
+                <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Reject account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var modal = document.getElementById('rejectModal');
+            var form = document.getElementById('rejectForm');
+            var reason = document.getElementById('rejectReason');
+            var lastTrigger = null;
+
+            function close() {
+                modal.style.display = 'none';
+                if (lastTrigger) lastTrigger.focus();
+            }
+
+            document.querySelectorAll('.js-reject').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    lastTrigger = btn;
+                    form.action = '/Users/RejectVerification/' + encodeURIComponent(btn.dataset.userId);
+                    document.getElementById('rejectName').textContent = btn.dataset.userName;
+                    reason.value = '';
+                    modal.style.display = 'flex';
+                    reason.focus();
+                });
+            });
+
+            document.getElementById('rejectCancel').addEventListener('click', close);
+            modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal.style.display !== 'none') close(); });
+        })();
+    </script>
+}

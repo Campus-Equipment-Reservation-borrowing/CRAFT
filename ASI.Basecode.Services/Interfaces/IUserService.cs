@@ -61,5 +61,26 @@ namespace ASI.Basecode.Services.Interfaces
         /// All user accounts with role info (ordered by name) for the operator switcher.
         /// </summary>
         List<UserListViewModel> GetOperatorOptions();
+
+        /// <summary>
+        /// Verification queue: UNVERIFIED accounts ("pending" tab) or REJECTED ones ("rejected" tab).
+        /// </summary>
+        VerificationQueueViewModel GetVerificationQueue(string tab, string search, int page, int pageSize);
+
+        /// <summary>
+        /// Approves an UNVERIFIED or REJECTED account (status ACTIVE), audits VERIFY and notifies the borrower.
+        /// </summary>
+        (bool Success, string Error) Verify(long userId);
+
+        /// <summary>
+        /// Rejects an UNVERIFIED account with a required reason, audits REJECT and notifies the borrower.
+        /// </summary>
+        (bool Success, string Error) RejectVerification(long userId, string reason);
+
+        /// <summary>
+        /// Issues a new temporary password (must be changed at next sign-in), clears any lockout,
+        /// and audits PASSWORD_RESET. Returns the plain temporary password to show the admin once.
+        /// </summary>
+        (bool Success, string Error, string TemporaryPassword) ResetPassword(long userId);
     }
 }

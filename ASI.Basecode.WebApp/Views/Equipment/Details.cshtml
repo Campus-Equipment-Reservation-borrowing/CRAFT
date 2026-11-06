@@ -11,6 +11,7 @@
         <div class="cp-page-subtitle">@Model.AssetCode &middot; @(Model.EquipmentCategory?.CategoryName ?? "-")</div>
     </div>
     <div class="cp-page-actions">
+        <a asp-action="Label" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-secondary">Print QR label</a>
         <a asp-action="Edit" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-primary">Edit</a>
         <a asp-action="Index" class="cp-btn cp-btn-secondary">Back to List</a>
     </div>

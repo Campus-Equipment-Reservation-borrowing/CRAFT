@@ -121,6 +121,28 @@ namespace ASI.Basecode.Services.ViewModelClasses
     }
 
     /// <summary>
+    /// First sign-in with an admin-issued temporary password: the user must choose their own.
+    /// </summary>
+    public class ForcedPasswordChangeViewModel
+    {
+        [Display(Name = "Temporary Password")]
+        [Required(ErrorMessage = "Please complete all required fields.")]
+        [DataType(DataType.Password)]
+        public string CurrentPassword { get; set; }
+
+        [Display(Name = "New Password")]
+        [Required(ErrorMessage = "Please complete all required fields.")]
+        [DataType(DataType.Password)]
+        public string NewPassword { get; set; }
+
+        [Display(Name = "Confirm New Password")]
+        [Required(ErrorMessage = "Please complete all required fields.")]
+        [DataType(DataType.Password)]
+        [Compare(nameof(NewPassword), ErrorMessage = "Passwords do not match.")]
+        public string ConfirmPassword { get; set; }
+    }
+
+    /// <summary>
     /// Identity resolved by a successful sign in; used to build the auth cookie.
     /// </summary>
     public class AuthenticatedUserViewModel
@@ -144,5 +166,8 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         /// <summary>ACTIVE | UNVERIFIED | INACTIVE | SUSPENDED | LOCKED.</summary>
         public string AccountStatusCode { get; set; }
+
+        /// <summary>Admin-issued password that must be replaced before using the app.</summary>
+        public bool MustChangePassword { get; set; }
     }
 }

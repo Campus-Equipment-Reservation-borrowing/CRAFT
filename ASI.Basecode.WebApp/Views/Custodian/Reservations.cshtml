@@ -39,6 +39,7 @@ else
                     <th class="text-center">Qty</th>
                     <th>Pickup Point</th>
                     <th>Status</th>
+                    <th>Custodian</th>
                     <th>Submitted</th>
                     <th>Start / Due</th>
                     <th class="text-center">Actions</th>
@@ -47,6 +48,7 @@ else
             <tbody>
                 @foreach (var r in Model.Page.Items)
                 {
+                    var claimable = r.AssignedCustodianUserId == null && (r.StatusCode == "PENDING" || r.StatusCode == "APPROVED");
                     <tr>
                         <td><strong>@r.ReservationNumber</strong></td>
                         <td>@r.BorrowerName</td>
@@ -57,15 +59,32 @@ else
                         <td class="text-center">@r.RequestedQuantity</td>
                         <td>@(r.PickupLocationName ?? "—")</td>
                         <td>
-                            <span class="cp-badge @(r.StatusCode == "PENDING" ? "cp-badge-warning" : r.StatusCode == "APPROVED" ? "cp-badge-info" : r.StatusCode == "COMPLETED" ? "cp-badge-success" : "cp-badge-neutral")">
+                            <span class="cp-badge @(r.StatusCode == "PENDING" ? "cp-badge-warning" : r.StatusCode == "APPROVED" || r.StatusCode == "PARTIALLY_RELEASED" ? "cp-badge-info" : r.StatusCode == "COMPLETED" ? "cp-badge-success" : r.StatusCode == "EXPIRED" ? "cp-badge-error" : "cp-badge-neutral")">
                                 @r.StatusDescription
                             </span>
                         </td>
+                        <td>
+                            @if (r.AssignedCustodianName == null)
+                            {
+                                <span class="cp-badge cp-badge-neutral" title="Not routed to a custodian yet">Shared pool</span>
+                            }
+                            else
+                            {
+                                @r.AssignedCustodianName
+                            }
+                        </td>
                         <td style="font-size:11.6px;">@r.SubmittedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
                         <td style="font-size:11.6px;">@r.RequestedStartAtUtc.ToLocalTime().ToString("dd MMM") – @r.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
-                        <td class="text-center">
+                        <td class="text-center" style="white-space:nowrap;">
+                            @if (claimable && User.IsInRole("TECHNICIAN"))
+                            {
+                                <form method="post" asp-action="Claim" asp-route-id="@r.ReservationId" style="display:inline;margin-right:4px;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="cp-btn cp-btn-primary cp-btn-sm">Assign to me</button>
+                                </form>
+                            }
                             <a asp-action="Review" asp-route-id="@r.ReservationId" class="cp-btn cp-btn-secondary cp-btn-sm">Review</a>
-                            @if (r.StatusCode == "APPROVED")
+                            @if (r.StatusCode == "APPROVED" || r.StatusCode == "PARTIALLY_RELEASED")
                             {
                                 <a asp-action="Release" asp-route-id="@r.ReservationId" class="cp-btn cp-btn-success cp-btn-sm" style="margin-left:4px;">Release</a>
                             }

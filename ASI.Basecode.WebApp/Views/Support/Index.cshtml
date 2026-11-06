@@ -1,0 +1,75 @@
+@using ASI.Basecode.Services.ViewModelClasses
+@model SupportTicketIndexViewModel
+@{
+    ViewData["Title"] = Model.IsStaffView ? "Support Tickets" : "Support";
+    string CategoryLabel(string c) => c switch { "VERIFICATION" => "Verification", "APPEAL" => "Appeal", "FEEDBACK" => "Feedback", _ => "Other" };
+}
+
+<div class="cp-page-header">
+    <div>
+        <h1 class="cp-page-title">@ViewData["Title"]</h1>
+        <p class="cp-page-subtitle">
+            @(Model.IsStaffView
+                ? "Questions, verification follow-ups and appeals from borrowers."
+                : "Ask the Property Office for help, follow up on your verification, or appeal a decision.")
+        </p>
+    </div>
+    @if (!Model.IsStaffView)
+    {
+        <div class="cp-page-actions">
+            <a asp-action="Create" class="cp-btn cp-btn-primary">New ticket</a>
+        </div>
+    }
+</div>
+
+<div class="cp-card">
+    <div class="tabs" role="tablist" style="padding-left:0;">
+        <a class="tab @(Model.Status == null ? "on" : "")" asp-action="Index">All</a>
+        <a class="tab @(Model.Status == "OPEN" ? "on" : "")" asp-action="Index" asp-route-status="open">Open <span class="cp-badge cp-badge-warning">@Model.OpenCount</span></a>
+        <a class="tab @(Model.Status == "RESOLVED" ? "on" : "")" asp-action="Index" asp-route-status="resolved">Resolved</a>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="cp-empty-state">
+            <div class="cp-empty-state-text">@(Model.IsStaffView ? "No tickets here." : "You haven't opened any tickets.")</div>
+        </div>
+    }
+    else
+    {
+        <div class="cp-table-wrap" style="margin-top:12px;">
+            <table class="cp-table">
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        @if (Model.IsStaffView)
+                        {
+                            <th>From</th>
+                        }
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Last activity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@t.TicketId" class="name-link cp-cell-name">@t.Subject</a>
+                                <div class="cp-cell-sub">TKT-@t.TicketId &middot; @t.ReplyCount repl@(t.ReplyCount == 1 ? "y" : "ies")</div>
+                            </td>
+                            @if (Model.IsStaffView)
+                            {
+                                <td>@t.RequesterName<div class="cp-cell-sub">@t.RequesterIdentifier</div></td>
+                            }
+                            <td><span class="cp-badge @(t.Category == "APPEAL" ? "cp-badge-error" : t.Category == "VERIFICATION" ? "cp-badge-warning" : "cp-badge-info")">@CategoryLabel(t.Category)</span></td>
+                            <td><span class="cp-badge @(t.Status == "OPEN" ? "cp-badge-warning" : "cp-badge-success")">@(t.Status == "OPEN" ? "Open" : "Resolved")</span></td>
+                            <td style="font-size:11.6px;">@t.LastActivityUtc.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

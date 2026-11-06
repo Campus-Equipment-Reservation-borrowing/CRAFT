@@ -1,0 +1,22 @@
+@using ASI.Basecode.Services.ViewModelClasses
+@model VerificationStatsViewModel
+
+<div class="cp-section-title">Account verification</div>
+<div class="cp-kpi-grid">
+    <a class="cp-kpi" href="/Users/Verifications">
+        <div class="cp-kpi-label">Pending</div>
+        <div class="cp-kpi-value @(Model.Pending > 0 ? "warn" : "")">@Model.Pending</div>
+    </a>
+    <div class="cp-kpi">
+        <div class="cp-kpi-label">Approved</div>
+        <div class="cp-kpi-value">@Model.Approved</div>
+    </div>
+    <a class="cp-kpi" href="/Users/Verifications?tab=rejected">
+        <div class="cp-kpi-label">Rejected</div>
+        <div class="cp-kpi-value">@Model.Rejected</div>
+    </a>
+    <div class="cp-kpi">
+        <div class="cp-kpi-label">Median time to decision</div>
+        <div class="cp-kpi-value">@(Model.MedianHoursToDecision.HasValue ? (Model.MedianHoursToDecision.Value < 48 ? $"{Model.MedianHoursToDecision.Value:0.#} h" : $"{Model.MedianHoursToDecision.Value / 24:0.#} d") : "—")</div>
+    </div>
+</div>

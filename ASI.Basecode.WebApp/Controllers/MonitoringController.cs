@@ -17,20 +17,28 @@ namespace ASI.Basecode.WebApp.Controllers
     public class MonitoringController : ControllerBase<MonitoringController>
     {
         private readonly IMonitoringService _service;
+        private readonly ICustodianAssignmentService _assignments;
+        private readonly ICommunicationService _communication;
 
         public MonitoringController(
             IHttpContextAccessor httpContextAccessor,
             ILoggerFactory loggerFactory,
             IConfiguration configuration,
             IMapper mapper,
-            IMonitoringService service)
+            IMonitoringService service,
+            ICustodianAssignmentService assignments,
+            ICommunicationService communication)
             : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
             this._service = service;
+            this._assignments = assignments;
+            this._communication = communication;
         }
 
         public IActionResult Dashboard()
         {
+            this.ViewBag.Workload = this._assignments.GetWorkload();
+            this.ViewBag.VerificationStats = this._communication.GetVerificationStats();
             return this.View(this._service.GetDashboard());
         }
 
@@ -64,6 +72,18 @@ namespace ASI.Basecode.WebApp.Controllers
             var csv = this._service.ExportMovementsCsv(search);
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
             return this.File(bytes, "text/csv", "inventory-movements.csv");
+        }
+
+        public IActionResult ExportReservationsCsv(System.DateTime? from)
+        {
+            var csv = this._service.ExportReservationsCsv(from?.ToUniversalTime());
+            return this.File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", "reservations.csv");
+        }
+
+        public IActionResult ExportBorrowingsCsv(System.DateTime? from)
+        {
+            var csv = this._service.ExportBorrowingsCsv(from?.ToUniversalTime());
+            return this.File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", "borrowings.csv");
         }
     }
 }

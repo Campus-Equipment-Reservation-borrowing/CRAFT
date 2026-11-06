@@ -1,0 +1,50 @@
+@using ASI.Basecode.Services.ViewModelClasses
+@model ASI.Basecode.Data.Models.User
+@{
+    var summary = ViewBag.AssignmentSummary as UserAssignmentSummaryViewModel;
+}
+@if (summary != null && summary.IsCustodian)
+{
+    <div class="cp-card">
+        <div class="cp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Custodian Assignments</span>
+            <a asp-controller="CustodianAssignments" asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Manage</a>
+        </div>
+        @if (summary.Assignments.Count == 0)
+        {
+            <p class="cp-cell-sub" style="margin:0;">No borrowers, locations or categories assigned. This custodian only sees the shared pool.</p>
+        }
+        else
+        {
+            <div class="cp-table-wrap">
+                <table class="cp-table">
+                    <thead><tr><th>Covers</th><th>Type</th></tr></thead>
+                    <tbody>
+                        @foreach (var a in summary.Assignments)
+                        {
+                            <tr>
+                                <td><span class="cp-cell-name">@a.TargetName</span><div class="cp-cell-sub">@a.TargetDetail</div></td>
+                                <td><span class="cp-badge cp-badge-info">@(a.ScopeType switch { "BORROWER" => "Borrower", "LOCATION" => "Location", _ => "Category" })</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+else if (summary != null && summary.IsBorrower)
+{
+    <div class="cp-card">
+        <div class="cp-card-header">Assigned Custodian</div>
+        @if (summary.AssignedCustodianName == null)
+        {
+            <p class="cp-cell-sub" style="margin:0 0 10px;">Not assigned directly. Requests are routed by equipment location or category, or go to the shared pool.</p>
+        }
+        else
+        {
+            <p style="margin:0 0 10px;"><a asp-action="Details" asp-route-id="@summary.AssignedCustodianUserId" class="name-link cp-cell-name">@summary.AssignedCustodianName</a> handles this borrower's reservations.</p>
+        }
+        <a asp-controller="CustodianAssignments" asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Manage assignments</a>
+    </div>
+}

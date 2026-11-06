@@ -73,7 +73,10 @@ namespace ASI.Basecode.WebApp
                     sqlServerOptions => sqlServerOptions.CommandTimeout(120));
             });
 
-            services.AddControllersWithViews();
+            services.AddControllersWithViews(options =>
+            {
+                options.Filters.Add<ASI.Basecode.WebApp.Mvc.MustChangePasswordFilter>();
+            });
             services.AddRazorPages().AddRazorRuntimeCompilation();
 
             // Session (shared by the current-operator/audit helpers)

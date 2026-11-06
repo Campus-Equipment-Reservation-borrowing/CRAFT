@@ -5,6 +5,7 @@ using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -183,10 +184,54 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.RedirectToAction(nameof(Login));
         }
 
+        /// <summary>
+        /// Forced first-sign-in password change for admin-provisioned / admin-reset accounts.
+        /// </summary>
+        [HttpGet]
+        [Authorize]
+        public IActionResult ChangePassword()
+        {
+            return this.View(new ForcedPasswordChangeViewModel());
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(ForcedPasswordChangeViewModel model)
+        {
+            if (!this.ModelState.IsValid)
+            {
+                return this.View(model);
+            }
+
+            var userId = long.TryParse(this.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
+            var (success, error) = this._authService.ChangePassword(userId, model.CurrentPassword, model.NewPassword);
+            if (!success)
+            {
+                this.ModelState.AddModelError(string.Empty, error);
+                return this.View(model);
+            }
+
+            // Re-issue the cookie without the must-change claim.
+            var refreshed = this._authService.GetAuthenticatedUser(userId);
+            if (refreshed != null)
+            {
+                await this.SignInAsync(refreshed, persistent: false);
+            }
+
+            this.TempData["SuccessMessage"] = "Password updated. Welcome to CRAFT.";
+            return this.RedirectToAction("Index", "Home");
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
+            if (long.TryParse(this.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var signedInUserId))
+            {
+                this._authService.RecordSignOut(signedInUserId);
+            }
+
             await this.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
             // A password change or sign out ends the legacy operator session too.
@@ -215,6 +260,11 @@ namespace ASI.Basecode.WebApp.Controllers
                 new Claim(CampusPulseClaims.IsBorrower, (user.IsBorrowerRole ? "1" : "0")),
                 new Claim(CampusPulseClaims.Department, user.DepartmentName ?? string.Empty),
             };
+
+            if (user.MustChangePassword)
+            {
+                claims.Add(new Claim(CampusPulseClaims.MustChangePassword, "1"));
+            }
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);

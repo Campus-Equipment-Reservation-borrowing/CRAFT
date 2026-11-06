@@ -80,6 +80,57 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.View(model);
         }
 
+        /// <summary>
+        /// "Claim / Assign to me": takes an unassigned reservation from the shared pool.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleCodes.Technician)]
+        public IActionResult Claim(long id, string returnTo = null)
+        {
+            var (success, error) = this._custodianService.Claim(id);
+            this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Reservation assigned to you." : error;
+            return string.Equals(returnTo, "review", StringComparison.OrdinalIgnoreCase)
+                ? this.RedirectToAction(nameof(this.Review), new { id })
+                : this.RedirectToAction(nameof(this.Reservations));
+        }
+
+        /// <summary>
+        /// Scan-to-release / scan-to-return: resolves a scanned (or typed) asset code or
+        /// reservation number. A single actionable match opens directly.
+        /// </summary>
+        [HttpGet]
+        public IActionResult Scan(string code)
+        {
+            var result = this._custodianService.ResolveScan(code);
+            if (result.Matches.Count == 1)
+            {
+                var match = result.Matches[0];
+                return match.Kind switch
+                {
+                    "RELEASE" => this.RedirectToAction(nameof(this.Release), new { id = match.Id }),
+                    "RETURN" => this.RedirectToAction("Create", "Returns", new { id = match.Id }),
+                    _ => this.RedirectToAction(nameof(this.Review), new { id = match.Id }),
+                };
+            }
+
+            return this.View(result);
+        }
+
+        /// <summary>
+        /// Custodian-side cancel (no-show, item withdrawn, duplicate) with a required reason.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Cancel(long id, string reason)
+        {
+            var (success, error) = this._custodianService.Cancel(id, reason);
+            this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Reservation cancelled." : error;
+            return success
+                ? this.RedirectToAction(nameof(this.Reservations))
+                : this.RedirectToAction(nameof(this.Review), new { id });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Approve(long id, string notes)

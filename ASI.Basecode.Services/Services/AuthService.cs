@@ -6,7 +6,6 @@ using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -16,25 +15,24 @@ namespace ASI.Basecode.Services.Services
 {
     /// <summary>
     /// Authentication + account self-service (screens 1.1 - 1.4).
-    /// Password hashing lives in <see cref="PasswordManager"/>; lockout state is kept
-    /// in memory because the scaffolded schema has no failed-attempt columns.
+    /// Password hashing lives in <see cref="PasswordManager"/>; failed attempts and the lockout
+    /// window are persisted on <c>users</c> so they survive restarts.
     /// </summary>
     public class AuthService : ServiceBase, IAuthService
     {
         private const int MaxFailedAttempts = 5;
         private static readonly TimeSpan LockoutWindow = TimeSpan.FromMinutes(15);
         private static readonly TimeSpan ResetTokenLifetime = TimeSpan.FromHours(24);
+        private const string LockedOutMessage = "Too many failed attempts. Please try again in 15 minutes.";
 
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IMemoryCache _cache;
 
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
-        public AuthService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IMemoryCache cache)
+        public AuthService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork)
             : base(loggerFactory)
         {
             this._unitOfWork = unitOfWork;
-            this._cache = cache;
         }
 
         public (SignInResult Result, AuthenticatedUserViewModel User, string Error) SignIn(string userId, string password)
@@ -45,13 +43,6 @@ namespace ASI.Basecode.Services.Services
             }
 
             var key = userId.Trim().ToLowerInvariant();
-            var attemptsKey = "cp:login:" + key;
-
-            if (this._cache.TryGetValue<int>(attemptsKey, out var attempts) && attempts >= MaxFailedAttempts)
-            {
-                return (SignInResult.LockedOut, null, "Too many failed attempts. Please try again in 15 minutes.");
-            }
-
             var user = this.DbContext.Users
                 .Include(u => u.Role)
                 .Include(u => u.Department)
@@ -65,17 +56,31 @@ namespace ASI.Basecode.Services.Services
                 return (SignInResult.UserNotFound, null, "User Account does not exist.");
             }
 
+            var now = DateTime.UtcNow;
+            if (user.LockoutUntilUtc.HasValue && user.LockoutUntilUtc.Value > now)
+            {
+                return (SignInResult.LockedOut, null, LockedOutMessage);
+            }
+
             if (!PasswordManager.Verify(password, user.PasswordHash))
             {
-                var next = (attempts + 1);
-                this._cache.Set(attemptsKey, next, LockoutWindow);
-
-                if (next >= MaxFailedAttempts)
+                user.FailedLoginCount++;
+                var lockedNow = user.FailedLoginCount >= MaxFailedAttempts;
+                if (lockedNow)
                 {
-                    return (SignInResult.LockedOut, null, "Too many failed attempts. Please try again in 15 minutes.");
+                    user.LockoutUntilUtc = now.Add(LockoutWindow);
+                    user.FailedLoginCount = 0;
                 }
 
-                return (SignInResult.InvalidPassword, null, "Invalid username or password.");
+                this._unitOfWork.SaveChanges();
+                this.WriteAudit(user.UserId, user.AccountIdentifier, "LOGIN_FAILED", "User",
+                    lockedNow
+                        ? $"Failed sign-in for '{user.AccountIdentifier}'; locked out for {LockoutWindow.TotalMinutes:0} minutes."
+                        : $"Failed sign-in for '{user.AccountIdentifier}'.");
+
+                return lockedNow
+                    ? (SignInResult.LockedOut, null, LockedOutMessage)
+                    : (SignInResult.InvalidPassword, null, "Invalid username or password.");
             }
 
             var statusCode = user.AccountStatus?.Code;
@@ -84,9 +89,43 @@ namespace ASI.Basecode.Services.Services
                 return (SignInResult.AccountDisabled, null, "This account has been suspended. Please contact the administrator.");
             }
 
-            this._cache.Remove(attemptsKey);
+            if (statusCode == AccountStatusCodes.Locked)
+            {
+                return (SignInResult.AccountDisabled, null, "This account is locked. Please contact the administrator.");
+            }
+
+            if (user.FailedLoginCount != 0 || user.LockoutUntilUtc.HasValue)
+            {
+                user.FailedLoginCount = 0;
+                user.LockoutUntilUtc = null;
+                this._unitOfWork.SaveChanges();
+            }
+
+            this.WriteAudit(user.UserId, user.AccountIdentifier, "LOGIN", "User",
+                $"Signed in as '{user.AccountIdentifier}'.");
 
             return (SignInResult.Success, this.MapUser(user), null);
+        }
+
+        public void RecordSignOut(long userId)
+        {
+            try
+            {
+                var identifier = this.DbContext.Users
+                    .AsNoTracking()
+                    .Where(u => u.UserId == userId)
+                    .Select(u => u.AccountIdentifier)
+                    .FirstOrDefault();
+                if (identifier != null)
+                {
+                    this.WriteAudit(userId, identifier, "LOGOUT", "User", $"Signed out '{identifier}'.");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Sign-out must never fail because of auditing.
+                this._logger.LogWarning(ex, "Failed to audit sign-out for user {UserId}.", userId);
+            }
         }
 
         public (bool Success, string Error, long UserId) Register(RegisterViewModel form)
@@ -273,6 +312,9 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 user.PasswordHash = PasswordManager.Hash(form.NewPassword);
+                user.MustChangePassword = false;
+                user.FailedLoginCount = 0;
+                user.LockoutUntilUtc = null;
                 reset.UsedAtUtc = now;
 
                 this._unitOfWork.SaveChanges();
@@ -309,7 +351,13 @@ namespace ASI.Basecode.Services.Services
                     return (false, "Password must be at least 8 characters with 1 uppercase letter and 1 number.");
                 }
 
+                if (string.Equals(currentPassword, newPassword, StringComparison.Ordinal))
+                {
+                    return (false, "Choose a new password that is different from the current one.");
+                }
+
                 user.PasswordHash = PasswordManager.Hash(newPassword);
+                user.MustChangePassword = false;
                 this._unitOfWork.SaveChanges();
 
                 this.WriteAudit(user.UserId, user.AccountIdentifier, "PASSWORD_CHANGE", "User",
@@ -369,6 +417,7 @@ namespace ASI.Basecode.Services.Services
                 IsBorrowerRole = user.Role?.IsBorrowerRole ?? false,
                 DepartmentName = user.Department?.DepartmentName,
                 AccountStatusCode = user.AccountStatus?.Code,
+                MustChangePassword = user.MustChangePassword,
             };
         }
 

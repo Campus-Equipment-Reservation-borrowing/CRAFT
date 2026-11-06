@@ -1,6 +1,7 @@
 using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
 using AutoMapper;
@@ -26,6 +27,9 @@ namespace ASI.Basecode.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IReservationRepository _reservationRepository;
         private readonly ICurrentUserService _currentUser;
+        private readonly INotificationDispatcher _notifications;
+        private readonly ICustodianAssignmentService _assignments;
+        private readonly ReservationLifecycleOptions _lifecycle;
         private readonly IMapper _mapper;
 
         /// <summary>Direct EF access for codebook lookups and the small writes this service owns.</summary>
@@ -36,12 +40,18 @@ namespace ASI.Basecode.Services.Services
             IUnitOfWork unitOfWork,
             IReservationRepository reservationRepository,
             ICurrentUserService currentUser,
+            INotificationDispatcher notifications,
+            ICustodianAssignmentService assignments,
+            Microsoft.Extensions.Options.IOptions<ReservationLifecycleOptions> lifecycle,
             IMapper mapper)
             : base(loggerFactory)
         {
             this._unitOfWork = unitOfWork;
             this._reservationRepository = reservationRepository;
             this._currentUser = currentUser;
+            this._notifications = notifications;
+            this._assignments = assignments;
+            this._lifecycle = lifecycle?.Value ?? new ReservationLifecycleOptions();
             this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -215,6 +225,11 @@ namespace ASI.Basecode.Services.Services
                     return (false, "Your account is still pending verification.", form.EquipmentId);
                 }
 
+                if (string.Equals(borrower.AccountStatus?.Code, "REJECTED", StringComparison.OrdinalIgnoreCase))
+                {
+                    return (false, "Your account verification was rejected. Submit an appeal from your dashboard.", form.EquipmentId);
+                }
+
                 var isFaculty = string.Equals(borrower.Role?.RoleCode, "FACULTY", StringComparison.OrdinalIgnoreCase);
                 var maxBorrowDays = isFaculty ? policy.FacultyMaxBorrowDays : policy.MaxBorrowDays;
                 var durationDays = (expectedReturn - requestedStart).TotalDays;
@@ -271,7 +286,7 @@ namespace ASI.Basecode.Services.Services
                     PickupLocationId = form.PickupLocationId.Value,
                     RequestedQuantity = form.Quantity.Value,
                     ApprovedQuantity = 0,
-                    HeldQuantity = 0,
+                    HeldQuantity = form.Quantity.Value, // held on the balance below
                     RequestedStartAtUtc = requestedStart,
                     ExpectedReturnAtUtc = expectedReturn,
                     Purpose = form.Purpose?.Trim(),
@@ -279,6 +294,7 @@ namespace ASI.Basecode.Services.Services
                     StatusId = pendingStatusId,
                     SubmittedAtUtc = submittedAt,
                     CompletedAtUtc = null,
+                    AssignedCustodianUserId = this._assignments.ResolveCustodian(actorUserId.Value, equipment.EquipmentId),
                 };
 
                 this.DbContext.Reservations.Add(reservation);
@@ -296,6 +312,8 @@ namespace ASI.Basecode.Services.Services
                 this.WriteAudit("CREATE", "Reservation", reservation.ReservationId, reservation.ReservationNumber,
                     $"Submitted reservation {reservation.ReservationNumber} for '{equipment.EquipmentName}' " +
                     $"({form.Quantity} unit(s), start {requestedStart:yyyy-MM-dd HH:mm} UTC) as PENDING.{notesSuffix}");
+
+                this.NotifyStaffOfSubmission(reservation, equipment.EquipmentName);
 
                 return (true, null, reservation.ReservationId);
             }
@@ -458,7 +476,7 @@ namespace ASI.Basecode.Services.Services
                     MaxActiveTransactions = 3,
                     ReservationLeadTimeDays = 1,
                     MaxAdvanceBookingDays = 30,
-                    AutoCancelHours = 24,
+                    AutoCancelHours = this._lifecycle.AutoCancelHours,
                     FacultyMaxBorrowDays = 21,
                     BlockReservationWhenOverdue = true,
                 };
@@ -475,7 +493,7 @@ namespace ASI.Basecode.Services.Services
                 MaxActiveTransactions = latest.MaxActiveBorrowingUnits,
                 ReservationLeadTimeDays = 1,
                 MaxAdvanceBookingDays = 30,
-                AutoCancelHours = 24,
+                AutoCancelHours = this._lifecycle.AutoCancelHours,
                 FacultyMaxBorrowDays = 21,
                 BlockReservationWhenOverdue = latest.BlockReservationWhenOverdue,
             };
@@ -591,6 +609,34 @@ namespace ASI.Basecode.Services.Services
                 - (entity.EquipmentInventoryBalance?.MaintenanceQuantity ?? 0)
                 - (entity.EquipmentInventoryBalance?.UnreconciledQuantity ?? 0);
             return row;
+        }
+
+        /// <summary>
+        /// Tells staff a new request is waiting: the routed custodian when one is assigned,
+        /// otherwise every custodian (shared pool), plus administrators.
+        /// </summary>
+        private void NotifyStaffOfSubmission(Reservation reservation, string equipmentName)
+        {
+            try
+            {
+                var recipients = reservation.AssignedCustodianUserId.HasValue
+                    ? new List<long> { reservation.AssignedCustodianUserId.Value }
+                    : this._notifications.GetActiveUserIdsInRoles(RoleCodes.Technician);
+                recipients.AddRange(this._notifications.GetActiveUserIdsInRoles(RoleCodes.Admin));
+                var borrowerName = this.DbContext.Users
+                    .AsNoTracking()
+                    .Where(u => u.UserId == reservation.BorrowerUserId)
+                    .Select(u => u.FirstName + " " + u.LastName)
+                    .FirstOrDefault();
+                this._notifications.Notify(recipients, NotificationTypes.Reservation,
+                    $"New reservation {reservation.ReservationNumber}",
+                    $"{borrowerName} requested {reservation.RequestedQuantity} unit(s) of {equipmentName} starting {reservation.RequestedStartAtUtc:dd MMM yyyy}. Review it in the custodian console.");
+            }
+            catch (Exception ex)
+            {
+                // The reservation is already saved; a failed alert must not undo it.
+                this._logger.LogWarning(ex, "Failed to notify staff about reservation {ReservationId}.", reservation.ReservationId);
+            }
         }
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)

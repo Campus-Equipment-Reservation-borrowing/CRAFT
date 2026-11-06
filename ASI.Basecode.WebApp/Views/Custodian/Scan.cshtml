@@ -1,0 +1,156 @@
+@using ASI.Basecode.Services.ViewModelClasses
+@model ScanResultViewModel
+@{
+    ViewData["Title"] = "Scan";
+}
+
+<div class="cp-page-header">
+    <div>
+        <h1 class="cp-page-title">Scan</h1>
+        <p class="cp-page-subtitle">Scan an equipment label or a borrower's pickup slip to open the matching release or return.</p>
+    </div>
+</div>
+
+<div class="cp-grid-2">
+    <div class="cp-card">
+        <div class="cp-card-header">Camera</div>
+        <div id="scanCameraWrap" style="display:none;">
+            <video id="scanVideo" playsinline muted style="width:100%;max-height:340px;border-radius:10px;background:#0E1A14;"></video>
+            <p class="cp-cell-sub" id="scanStatus" role="status" style="margin:8px 0 0;">Point the camera at the QR code.</p>
+            <button type="button" class="cp-btn cp-btn-secondary cp-btn-sm" id="scanStop" style="margin-top:8px;">Stop camera</button>
+        </div>
+        <div id="scanCameraStart">
+            <p class="cp-cell-sub" style="margin:0 0 10px;">Uses your device camera. Nothing is uploaded; the code is read in the browser.</p>
+            <button type="button" class="cp-btn cp-btn-primary" id="scanStart">Start camera</button>
+        </div>
+        <p class="cp-cell-sub" id="scanUnsupported" style="display:none;margin:10px 0 0;">
+            This browser can't read QR codes from the camera. Type the code, or use a USB scanner in the box on the right.
+        </p>
+    </div>
+
+    <div class="cp-card">
+        <div class="cp-card-header">Enter code</div>
+        <form method="get" asp-action="Scan" class="cp-filter-bar" style="margin:0;">
+            <input type="text" name="code" value="@Model.Code" class="cp-input" autofocus autocomplete="off"
+                   placeholder="Asset code or reservation number" aria-label="Asset code or reservation number" />
+            <button type="submit" class="cp-btn cp-btn-primary cp-btn-sm">Find</button>
+        </form>
+        <p class="cp-cell-sub" style="margin:8px 0 0;">USB and Bluetooth scanners type into this box and press Enter.</p>
+    </div>
+</div>
+
+@if (Model.Searched)
+{
+    <div class="cp-section-title">Results for “@Model.Code”</div>
+    @if (Model.Matches.Count == 0)
+    {
+        <div class="cp-empty-state">
+            <div class="cp-empty-state-text">
+                @(Model.EquipmentName == null
+                    ? "No equipment or reservation matches this code, or it's assigned to another custodian."
+                    : $"{Model.EquipmentName} has no releases or returns waiting for you.")
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="cp-card">
+            @if (Model.EquipmentName != null)
+            {
+                <div class="cp-card-header">@Model.EquipmentName</div>
+            }
+            <div class="cp-table-wrap">
+                <table class="cp-table">
+                    <tbody>
+                        @foreach (var m in Model.Matches)
+                        {
+                            <tr>
+                                <td><span class="cp-cell-name">@m.Title</span><div class="cp-cell-sub">@m.Subtitle</div></td>
+                                <td class="text-center" style="width:1%;white-space:nowrap;">
+                                    @switch (m.Kind)
+                                    {
+                                        case "RELEASE":
+                                            <a asp-action="Release" asp-route-id="@m.Id" class="cp-btn cp-btn-success cp-btn-sm">Release</a>
+                                            break;
+                                        case "RETURN":
+                                            <a asp-controller="Returns" asp-action="Create" asp-route-id="@m.Id" class="cp-btn cp-btn-primary cp-btn-sm">Record return</a>
+                                            break;
+                                        default:
+                                            <a asp-action="Review" asp-route-id="@m.Id" class="cp-btn cp-btn-secondary cp-btn-sm">Review</a>
+                                            break;
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var startBtn = document.getElementById('scanStart');
+            var stopBtn = document.getElementById('scanStop');
+            var video = document.getElementById('scanVideo');
+            var status = document.getElementById('scanStatus');
+            var wrap = document.getElementById('scanCameraWrap');
+            var startWrap = document.getElementById('scanCameraStart');
+            var unsupported = document.getElementById('scanUnsupported');
+            var stream = null, timer = null;
+
+            if (!('BarcodeDetector' in window) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                startWrap.style.display = 'none';
+                unsupported.style.display = 'block';
+                return;
+            }
+
+            var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+
+            // Labels encode a /Custodian/Scan?code=... URL; slips may carry just the code.
+            function codeFrom(raw) {
+                try {
+                    var url = new URL(raw);
+                    return url.searchParams.get('code') || raw;
+                } catch (e) {
+                    return raw;
+                }
+            }
+
+            function stop() {
+                if (timer) { clearInterval(timer); timer = null; }
+                if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+                wrap.style.display = 'none';
+                startWrap.style.display = 'block';
+            }
+
+            startBtn.addEventListener('click', function () {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (s) {
+                    stream = s;
+                    video.srcObject = s;
+                    video.play();
+                    wrap.style.display = 'block';
+                    startWrap.style.display = 'none';
+                    timer = setInterval(function () {
+                        detector.detect(video).then(function (codes) {
+                            if (!codes.length) return;
+                            var code = codeFrom(codes[0].rawValue).trim();
+                            if (!code) return;
+                            status.textContent = 'Found ' + code + '. Opening…';
+                            stop();
+                            window.location.href = '/Custodian/Scan?code=' + encodeURIComponent(code);
+                        }).catch(function () { });
+                    }, 400);
+                }).catch(function () {
+                    unsupported.textContent = 'Camera access was blocked. Allow it in the browser, or type the code instead.';
+                    unsupported.style.display = 'block';
+                });
+            });
+
+            stopBtn.addEventListener('click', stop);
+            window.addEventListener('pagehide', stop);
+        })();
+    </script>
+}

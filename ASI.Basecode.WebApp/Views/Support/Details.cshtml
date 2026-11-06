@@ -1,0 +1,86 @@
+@using ASI.Basecode.Services.ViewModelClasses
+@model SupportTicketDetailsViewModel
+@{
+    ViewData["Title"] = $"TKT-{Model.TicketId}";
+    var isStaff = User.IsInRole("ADMIN") || User.IsInRole("TECHNICIAN");
+}
+
+<div class="cp-page-header">
+    <div>
+        <div class="crumb"><div>CRAFT</div><div>/</div><a asp-action="Index">Support</a><div>/</div><div class="cur">TKT-@Model.TicketId</div></div>
+        <h1 class="cp-page-title">@Model.Subject</h1>
+        <p class="cp-page-subtitle">
+            TKT-@Model.TicketId &middot; @Model.Category.ToLowerInvariant() &middot;
+            <span class="cp-badge @(Model.Status == "OPEN" ? "cp-badge-warning" : "cp-badge-success")">@(Model.Status == "OPEN" ? "Open" : "Resolved")</span>
+        </p>
+    </div>
+    <div class="cp-page-actions">
+        @if (Model.CanResolve)
+        {
+            <form method="post" asp-action="Resolve" asp-route-id="@Model.TicketId">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="cp-btn cp-btn-success">Mark resolved</button>
+            </form>
+        }
+        <a asp-action="Index" class="cp-btn cp-btn-secondary">Back</a>
+    </div>
+</div>
+
+<div class="cp-grid-2">
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0;">
+        <div class="cp-card">
+            <div class="cp-cell-sub" style="margin-bottom:6px;">@Model.RequesterName &middot; @Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")</div>
+            <p style="margin:0;font-size:13px;white-space:pre-line;">@Model.Body</p>
+        </div>
+
+        @foreach (var r in Model.Replies)
+        {
+            <div class="cp-card" style="@(r.AuthorIsStaff ? "background:var(--color-primary-tint-3);" : "")">
+                <div class="cp-cell-sub" style="margin-bottom:6px;">
+                    @r.AuthorName @(r.AuthorIsStaff ? "(Property Office)" : "") &middot; @r.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")
+                </div>
+                <p style="margin:0;font-size:13px;white-space:pre-line;">@r.Body</p>
+            </div>
+        }
+
+        @if (Model.CanReply)
+        {
+            <div class="cp-card">
+                <form method="post" asp-action="Reply" asp-route-id="@Model.TicketId">
+                    @Html.AntiForgeryToken()
+                    <label class="cp-form-label" for="replyBody">Reply</label>
+                    <textarea id="replyBody" name="body" class="cp-textarea" rows="4" maxlength="4000" required></textarea>
+                    <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+                        <button type="submit" class="cp-btn cp-btn-primary cp-btn-sm">Send reply</button>
+                    </div>
+                </form>
+            </div>
+        }
+        else
+        {
+            <p class="cp-cell-sub">This ticket was resolved@(Model.ResolvedAtUtc.HasValue ? " on " + Model.ResolvedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy") : ""). <a asp-action="Create">Open a new ticket</a> if you need more help.</p>
+        }
+    </div>
+
+    @if (isStaff)
+    {
+        <div class="cp-card" style="align-self:flex-start;">
+            <div class="cp-card-header">Requester</div>
+            <div class="kv">
+                <div class="kv-row"><div class="kv-k">Name</div><div class="kv-v">@Model.RequesterName</div></div>
+                <div class="kv-row"><div class="kv-k">Account ID</div><div class="kv-v">@Model.RequesterIdentifier</div></div>
+                <div class="kv-row last"><div class="kv-k">Account status</div><div class="kv-v">@Model.RequesterStatus</div></div>
+            </div>
+            @if (User.IsInRole("ADMIN"))
+            {
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                    <a asp-controller="Users" asp-action="Details" asp-route-id="@Model.RequesterUserId" class="cp-btn cp-btn-secondary cp-btn-sm">Open account</a>
+                    @if (Model.Category is "VERIFICATION" or "APPEAL")
+                    {
+                        <a asp-controller="Users" asp-action="Verifications" asp-route-tab="@(Model.RequesterStatus == "Rejected" ? "rejected" : "pending")" class="cp-btn cp-btn-secondary cp-btn-sm">Verification queue</a>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>

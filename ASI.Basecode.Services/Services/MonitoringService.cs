@@ -203,25 +203,85 @@ namespace ASI.Basecode.Services.Services
         public string ExportAuditLogsCsv(string search, string entityType)
         {
             var result = this._repository.GetAuditLogsPaged(search, entityType, 1, 100000);
-            var sb = new StringBuilder();
-            sb.AppendLine("OccurredAtUtc,Actor,ActionType,EntityType,ReferenceNumber,Details");
+            var csv = new Csv("OccurredAtUtc", "Actor", "ActionType", "EntityType", "ReferenceNumber", "Details");
             foreach (var a in result.Items)
             {
-                sb.AppendLine($"\"{a.OccurredAtUtc:O}\",\"{a.ActorUser?.FirstName} {a.ActorUser?.LastName}\",\"{a.ActionType}\",\"{a.EntityType}\",\"{a.ReferenceNumber}\",\"{a.Details?.Replace("\"", "\"\"")}\"");
+                csv.Row(a.OccurredAtUtc, $"{a.ActorUser?.FirstName} {a.ActorUser?.LastName}".Trim(), a.ActionType, a.EntityType, a.ReferenceNumber, a.Details);
             }
-            return sb.ToString();
+            return csv.ToString();
         }
 
         public string ExportMovementsCsv(string search)
         {
             var result = this._repository.GetMovementsPaged(search, 1, 100000);
-            var sb = new StringBuilder();
-            sb.AppendLine("OccurredAtUtc,Equipment,AssetCode,MovementType,FromState,ToState,Quantity,ReferenceNumber,PerformedBy");
+            var csv = new Csv("OccurredAtUtc", "Equipment", "AssetCode", "MovementType", "FromState", "ToState", "Quantity", "ReferenceNumber", "PerformedBy");
             foreach (var m in result.Items)
             {
-                sb.AppendLine($"\"{m.OccurredAtUtc:O}\",\"{m.Equipment?.EquipmentName}\",\"{m.Equipment?.AssetCode}\",\"{m.MovementType}\",\"{m.FromState}\",\"{m.ToState}\",\"{m.Quantity}\",\"{m.ReferenceNumber}\",\"{m.PerformedByUser?.FirstName} {m.PerformedByUser?.LastName}\"");
+                csv.Row(m.OccurredAtUtc, m.Equipment?.EquipmentName, m.Equipment?.AssetCode, m.MovementType, m.FromState, m.ToState, m.Quantity, m.ReferenceNumber, $"{m.PerformedByUser?.FirstName} {m.PerformedByUser?.LastName}".Trim());
             }
-            return sb.ToString();
+            return csv.ToString();
+        }
+
+        public string ExportReservationsCsv(DateTime? fromUtc)
+        {
+            var rows = this.DbContext.Reservations.AsNoTracking()
+                .Where(r => fromUtc == null || r.SubmittedAtUtc >= fromUtc)
+                .OrderByDescending(r => r.SubmittedAtUtc)
+                .Select(r => new
+                {
+                    r.ReservationNumber,
+                    r.SubmittedAtUtc,
+                    Borrower = r.BorrowerUser.FirstName + " " + r.BorrowerUser.LastName,
+                    BorrowerId = r.BorrowerUser.AccountIdentifier,
+                    r.Equipment.EquipmentName,
+                    r.Equipment.AssetCode,
+                    r.RequestedQuantity,
+                    r.ApprovedQuantity,
+                    Status = r.Status.Code,
+                    Custodian = r.AssignedCustodianUser == null ? null : r.AssignedCustodianUser.FirstName + " " + r.AssignedCustodianUser.LastName,
+                    r.RequestedStartAtUtc,
+                    r.ExpectedReturnAtUtc,
+                    r.CompletedAtUtc,
+                })
+                .ToList();
+
+            var csv = new Csv("ReservationNumber", "SubmittedAtUtc", "Borrower", "BorrowerId", "Equipment", "AssetCode", "Requested", "Approved", "Status", "Custodian", "StartUtc", "ExpectedReturnUtc", "CompletedAtUtc");
+            foreach (var r in rows)
+            {
+                csv.Row(r.ReservationNumber, r.SubmittedAtUtc, r.Borrower, r.BorrowerId, r.EquipmentName, r.AssetCode, r.RequestedQuantity, r.ApprovedQuantity, r.Status, r.Custodian, r.RequestedStartAtUtc, r.ExpectedReturnAtUtc, r.CompletedAtUtc);
+            }
+            return csv.ToString();
+        }
+
+        public string ExportBorrowingsCsv(DateTime? fromUtc)
+        {
+            var rows = this.DbContext.Borrowings.AsNoTracking()
+                .Where(b => fromUtc == null || b.ReleasedAtUtc >= fromUtc)
+                .OrderByDescending(b => b.ReleasedAtUtc)
+                .Select(b => new
+                {
+                    b.TransactionNumber,
+                    Reservation = b.Reservation == null ? null : b.Reservation.ReservationNumber,
+                    Borrower = b.BorrowerUser.FirstName + " " + b.BorrowerUser.LastName,
+                    BorrowerId = b.BorrowerUser.AccountIdentifier,
+                    b.Equipment.EquipmentName,
+                    b.Equipment.AssetCode,
+                    b.ReleasedQuantity,
+                    Returned = b.BorrowingReturns.Sum(x => (int?)x.ReturnedQuantity) ?? 0,
+                    b.ReleasedAtUtc,
+                    b.DueAtUtc,
+                    Status = b.Status.Code,
+                    Inspection = b.InspectionStatus.Code,
+                    ReleasedBy = b.ReleasedByUser.FirstName + " " + b.ReleasedByUser.LastName,
+                })
+                .ToList();
+
+            var csv = new Csv("TransactionNumber", "ReservationNumber", "Borrower", "BorrowerId", "Equipment", "AssetCode", "Released", "Returned", "ReleasedAtUtc", "DueAtUtc", "Status", "Inspection", "ReleasedBy");
+            foreach (var b in rows)
+            {
+                csv.Row(b.TransactionNumber, b.Reservation, b.Borrower, b.BorrowerId, b.EquipmentName, b.AssetCode, b.ReleasedQuantity, b.Returned, b.ReleasedAtUtc, b.DueAtUtc, b.Status, b.Inspection, b.ReleasedBy);
+            }
+            return csv.ToString();
         }
     }
 }

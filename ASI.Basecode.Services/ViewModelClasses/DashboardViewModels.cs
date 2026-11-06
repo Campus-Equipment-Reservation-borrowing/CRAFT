@@ -58,6 +58,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string FirstName { get; set; }
         public string AccountStatus { get; set; }
 
+        /// <summary>Rejection reason when <see cref="AccountStatus"/> is REJECTED.</summary>
+        public string VerificationNote { get; set; }
+
         public int ActiveBorrowings { get; set; }
         public int PendingReservations { get; set; }
         public int ApprovedReady { get; set; }

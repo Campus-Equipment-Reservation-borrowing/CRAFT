@@ -52,9 +52,21 @@
     </div>
 </div>
 
+@if (Model.UserId == 0)
+{
+    <div class="frow">
+        <div class="field">
+            <div class="flabel">Temporary Password</div>
+            <input asp-for="TemporaryPassword" type="password" class="input" style="width:100%" autocomplete="new-password" placeholder="Leave blank to generate one" />
+            <div class="hint">At least 8 characters with 1 uppercase letter and 1 number. It's shown once after saving, and the user must change it at first sign-in.</div>
+            <span asp-validation-for="TemporaryPassword" class="fielderr"></span>
+        </div>
+    </div>
+}
+
 <div class="acts">
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-    <button type="submit" class="btn btn-primary">
+    <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
+    <button type="submit" class="cp-btn cp-btn-primary">
         <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
         <div>Save User</div>
     </button>

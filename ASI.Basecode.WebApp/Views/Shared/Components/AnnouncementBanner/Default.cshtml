@@ -1,0 +1,15 @@
+@model List<ASI.Basecode.Services.ViewModelClasses.AnnouncementRowViewModel>
+@if (Model != null && Model.Count > 0)
+{
+    <section aria-label="Announcements" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+        @foreach (var a in Model)
+        {
+            <div class="banner info" role="status">
+                <div class="banner-b">
+                    <strong>@a.Title</strong>
+                    <span style="white-space:pre-line;">@a.Body</span>
+                </div>
+            </div>
+        }
+    </section>
+}

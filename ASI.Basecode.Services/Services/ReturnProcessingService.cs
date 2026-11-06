@@ -1,6 +1,7 @@
 using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
@@ -21,6 +22,7 @@ namespace ASI.Basecode.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IReturnProcessingRepository _repository;
         private readonly ICurrentUserService _currentUser;
+        private readonly INotificationDispatcher _notifications;
         private readonly IMapper _mapper;
 
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
@@ -30,18 +32,20 @@ namespace ASI.Basecode.Services.Services
             IUnitOfWork unitOfWork,
             IReturnProcessingRepository repository,
             ICurrentUserService currentUser,
+            INotificationDispatcher notifications,
             IMapper mapper)
             : base(loggerFactory)
         {
             this._unitOfWork = unitOfWork;
             this._repository = repository;
             this._currentUser = currentUser;
+            this._notifications = notifications;
             this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
         public ReturnsIndexViewModel GetReturnsIndex(string search, int page, int pageSize)
         {
-            var result = this._repository.GetReturnsPaged(search, page, pageSize);
+            var result = this._repository.GetReturnsPaged(search, page, pageSize, this._currentUser.GetCustodianScope());
             return new ReturnsIndexViewModel
             {
                 Page = new PagedResult<ReturnRowViewModel>
@@ -70,7 +74,7 @@ namespace ASI.Basecode.Services.Services
         public ReturnFormContextViewModel GetReturnFormContext(long borrowingId)
         {
             var borrowing = this._repository.GetBorrowingForReturn(borrowingId);
-            if (borrowing == null)
+            if (borrowing == null || !this._currentUser.CanActOn(borrowing.Reservation?.AssignedCustodianUserId))
             {
                 return null;
             }
@@ -128,6 +132,11 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ServerError, 0);
                 }
 
+                if (!this._currentUser.CanActOn(borrowing.Reservation?.AssignedCustodianUserId))
+                {
+                    return (false, ErrorMessages.CustodianNotAssigned, 0);
+                }
+
                 var alreadyReturned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
                 var remaining = borrowing.ReleasedQuantity - alreadyReturned;
                 if (form.ReturnedQuantity > remaining)
@@ -151,12 +160,12 @@ namespace ASI.Basecode.Services.Services
 
                 this.DbContext.BorrowingReturns.Add(returnEntity);
 
-                // update balance: released -> available
+                // update balance: released -> awaiting inspection (finalized by CreateInspection)
                 var balance = borrowing.Equipment.EquipmentInventoryBalance;
                 if (balance != null)
                 {
                     balance.ReleasedQuantity = Math.Max(0, balance.ReleasedQuantity - form.ReturnedQuantity);
-                    // units come back as available (total unchanged; released decreased)
+                    balance.AwaitingInspectionQuantity += form.ReturnedQuantity;
                 }
 
                 // update borrowing status
@@ -183,7 +192,7 @@ namespace ASI.Basecode.Services.Services
                     EquipmentId = borrowing.EquipmentId,
                     MovementType = "RETURN",
                     FromState = "RELEASED",
-                    ToState = "AVAILABLE",
+                    ToState = "AWAITING_INSPECTION",
                     Quantity = form.ReturnedQuantity,
                     ReferenceNumber = borrowing.TransactionNumber,
                     PerformedByUserId = returnEntity.ReceivedByUserId,
@@ -223,10 +232,37 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ServerError, 0);
                 }
 
+                if (!this._currentUser.CanActOn(borrowing.Reservation?.AssignedCustodianUserId))
+                {
+                    return (false, ErrorMessages.CustodianNotAssigned, 0);
+                }
+
                 var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.StatusId == form.InspectionStatusId);
                 if (inspectionStatus == null)
                 {
                     inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == "PENDING");
+                }
+
+                var finalize = inspectionStatus?.Code == "COMPLETED";
+                if (finalize)
+                {
+                    var returned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
+                    var alreadyFinalized = this.DbContext.ConditionInspections
+                        .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionStatus.Code == "COMPLETED")
+                        .Sum(i => (int?)i.InspectedQuantity) ?? 0;
+                    if (form.InspectedQuantity > returned - alreadyFinalized)
+                    {
+                        return (false, ErrorMessages.InspectionQuantityInvalid, 0);
+                    }
+                    if (form.GoodQuantity < 0 || form.DamagedQuantity < 0 || form.LostQuantity < 0
+                        || form.GoodQuantity + form.DamagedQuantity + form.LostQuantity != form.InspectedQuantity)
+                    {
+                        return (false, ErrorMessages.InspectionOutcomeMismatch, 0);
+                    }
+                    if (form.RepairCost < 0 || form.PenaltyAmount < 0)
+                    {
+                        return (false, ErrorMessages.InspectionAmountInvalid, 0);
+                    }
                 }
 
                 var inspection = new ConditionInspection
@@ -240,6 +276,12 @@ namespace ASI.Basecode.Services.Services
                     InspectionNotes = form.InspectionNotes,
                     InspectedByUserId = this._currentUser.GetActorUserId() ?? borrowing.ReleasedByUserId,
                     InspectionStatusId = inspectionStatus?.StatusId ?? 1,
+                    GoodQuantity = finalize ? form.GoodQuantity : null,
+                    DamagedQuantity = finalize ? form.DamagedQuantity : null,
+                    LostQuantity = finalize ? form.LostQuantity : null,
+                    RepairCost = finalize ? form.RepairCost : null,
+                    PenaltyAmount = finalize ? form.PenaltyAmount : null,
+                    PenaltyNote = finalize ? form.PenaltyNote?.Trim() : null,
                 };
 
                 this.DbContext.ConditionInspections.Add(inspection);
@@ -284,7 +326,17 @@ namespace ASI.Basecode.Services.Services
                     equipment.CurrentConditionId = form.CurrentConditionId;
                 }
 
+                if (finalize)
+                {
+                    this.ApplyInspectionOutcome(borrowing, form, inspection);
+                }
+
                 this._unitOfWork.SaveChanges();
+
+                if (finalize)
+                {
+                    this.NotifyInspectionOutcome(borrowing, form);
+                }
 
                 this.WriteAudit("INSPECT", "ConditionInspection", inspection.InspectionId, borrowing.TransactionNumber,
                     $"Inspected {form.InspectedQuantity} unit(s) of {borrowing.Equipment.AssetCode}: condition={form.CurrentConditionId}, status={inspectionStatus?.Code}." +
@@ -299,18 +351,95 @@ namespace ASI.Basecode.Services.Services
             }
         }
 
+        /// <summary>
+        /// Closes the inventory loop: units leave "awaiting inspection"; damaged ones go to
+        /// maintenance and lost ones to unreconciled (good ones become available again).
+        /// Marks the borrowing's inspection COMPLETED once every returned unit is finalized.
+        /// </summary>
+        private void ApplyInspectionOutcome(Borrowing borrowing, InspectionFormViewModel form, ConditionInspection inspection)
+        {
+            var balance = borrowing.Equipment?.EquipmentInventoryBalance;
+            if (balance != null)
+            {
+                // Returns recorded before this change went straight to available, so only take
+                // from the awaiting bucket what is actually there.
+                balance.AwaitingInspectionQuantity -= Math.Min(form.InspectedQuantity, balance.AwaitingInspectionQuantity);
+                balance.MaintenanceQuantity += form.DamagedQuantity;
+                balance.UnreconciledQuantity += form.LostQuantity;
+            }
+
+            var actor = inspection.InspectedByUserId;
+            void Move(int qty, string to)
+            {
+                if (qty <= 0)
+                {
+                    return;
+                }
+
+                this.DbContext.InventoryMovements.Add(new InventoryMovement
+                {
+                    EquipmentId = borrowing.EquipmentId,
+                    MovementType = "INSPECTION",
+                    FromState = "AWAITING_INSPECTION",
+                    ToState = to,
+                    Quantity = qty,
+                    ReferenceNumber = borrowing.TransactionNumber,
+                    PerformedByUserId = actor,
+                });
+            }
+
+            Move(form.GoodQuantity, "AVAILABLE");
+            Move(form.DamagedQuantity, "MAINTENANCE");
+            Move(form.LostQuantity, "UNRECONCILED");
+
+            var returned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
+            var finalizedBefore = this.DbContext.ConditionInspections
+                .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionId != inspection.InspectionId && i.InspectionStatus.Code == "COMPLETED")
+                .Sum(i => (int?)i.InspectedQuantity) ?? 0;
+            var allReturned = returned >= borrowing.ReleasedQuantity;
+            if (allReturned && finalizedBefore + form.InspectedQuantity >= returned)
+            {
+                var completed = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == "COMPLETED");
+                if (completed != null)
+                {
+                    borrowing.InspectionStatusId = completed.StatusId;
+                }
+            }
+        }
+
+        private void NotifyInspectionOutcome(Borrowing borrowing, InspectionFormViewModel form)
+        {
+            var item = borrowing.Equipment?.EquipmentName ?? "equipment";
+            var parts = new List<string> { $"{form.GoodQuantity} in good condition" };
+            if (form.DamagedQuantity > 0) parts.Add($"{form.DamagedQuantity} damaged");
+            if (form.LostQuantity > 0) parts.Add($"{form.LostQuantity} lost");
+            var charges = form.PenaltyAmount > 0 ? $" A penalty of {form.PenaltyAmount:N2} was recorded" + (string.IsNullOrWhiteSpace(form.PenaltyNote) ? "." : $": {form.PenaltyNote.Trim()}") : string.Empty;
+
+            this.WriteNotification(borrowing.BorrowerUserId, "Return inspection completed",
+                $"Inspection of {item} ({borrowing.TransactionNumber}) is complete: {string.Join(", ", parts)}.{charges}");
+
+            if (form.DamagedQuantity + form.LostQuantity > 0)
+            {
+                var staff = this._notifications.GetActiveUserIdsInRoles(RoleCodes.Admin);
+                if (borrowing.Reservation?.AssignedCustodianUserId is long custodianId)
+                {
+                    staff.Add(custodianId);
+                }
+                else
+                {
+                    staff.AddRange(this._notifications.GetActiveUserIdsInRoles(RoleCodes.Technician));
+                }
+
+                this._notifications.Notify(staff, NotificationTypes.Alert,
+                    $"Damage/loss recorded: {borrowing.TransactionNumber}",
+                    $"{item}: {form.DamagedQuantity} damaged (moved to maintenance), {form.LostQuantity} lost (unreconciled)." +
+                    (form.RepairCost > 0 ? $" Estimated repair cost {form.RepairCost:N2}." : string.Empty));
+            }
+        }
+
         private void WriteNotification(long recipientUserId, string title, string message)
         {
-            this.DbContext.Notifications.Add(new Notification
-            {
-                RecipientUserId = recipientUserId,
-                NotificationType = "RETURN",
-                Title = title,
-                Message = message,
-                IsRead = false,
-                CreatedAtUtc = DateTime.UtcNow,
-            });
-            this._unitOfWork.SaveChanges();
+            this._notifications.Notify(recipientUserId, NotificationTypes.Return, title, message);
         }
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)

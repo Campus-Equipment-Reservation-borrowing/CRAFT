@@ -25,6 +25,10 @@
         <p class="cp-page-subtitle">@Model.ReservationNumber</p>
     </div>
     <div class="cp-page-actions">
+        @if (Model.StatusCode is "APPROVED" or "READY_FOR_RELEASE" or "PARTIALLY_RELEASED")
+        {
+            <a asp-controller="Reservations" asp-action="Slip" asp-route-id="@Model.ReservationId" class="cp-btn cp-btn-secondary cp-btn-sm">Print pickup slip</a>
+        }
         @if (Model.CanCancel)
         {
             <form method="post" asp-controller="Reservations" asp-action="Cancel" asp-route-id="@Model.ReservationId" style="display:inline;"

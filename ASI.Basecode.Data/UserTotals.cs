@@ -12,5 +12,8 @@ namespace ASI.Basecode.Data
         public int Faculty { get; set; }
 
         public int CustodianAdmins { get; set; }
+
+        /// <summary>Accounts waiting in the verification queue (UNVERIFIED).</summary>
+        public int Unverified { get; set; }
     }
 }

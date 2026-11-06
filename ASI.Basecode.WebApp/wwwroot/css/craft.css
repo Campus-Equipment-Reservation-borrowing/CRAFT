@@ -266,3 +266,21 @@ html, body {
         flex-wrap: wrap;
     }
 }
+
+/* Unread notification count on the header bell */
+.craft-badge-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--color-error, #C2410C);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+    box-shadow: 0 0 0 2px #fff;
+}

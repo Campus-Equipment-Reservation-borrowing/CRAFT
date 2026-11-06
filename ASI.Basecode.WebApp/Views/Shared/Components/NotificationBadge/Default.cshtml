@@ -1,0 +1,11 @@
+@model int
+@{
+    var label = Model == 0 ? "Notifications" : $"Notifications, {Model} unread";
+}
+<a class="icon-btn" href="/Notifications" title="@label" aria-label="@label" style="position:relative;">
+    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z"/><path d="M10 21a2 2 0 004 0"/></svg>
+    @if (Model > 0)
+    {
+        <span class="craft-badge-count" aria-hidden="true">@(Model > 99 ? "99+" : Model.ToString())</span>
+    }
+</a>
