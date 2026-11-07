@@ -137,6 +137,12 @@ namespace ASI.Basecode.WebApp
 
             this.ConfigureLogger();
 
+            if (!this._environment.IsDevelopment())
+            {
+                this._app.UseExceptionHandler("/Home/Error");
+                this._app.UseStatusCodePagesWithReExecute("/Home/Error", "?statusCode={0}");
+            }
+
             this._app.UseHttpsRedirection();
             this._app.UseStaticFiles();
 
@@ -148,6 +154,7 @@ namespace ASI.Basecode.WebApp
             this._app.UseRouting();
 
             this._app.UseAuthentication();
+            this._app.UseMiddleware<ASI.Basecode.WebApp.Middleware.MaintenanceModeMiddleware>();
             this._app.UseAuthorization();
         }
     }

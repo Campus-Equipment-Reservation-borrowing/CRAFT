@@ -1,6 +1,7 @@
 ﻿using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -14,11 +15,15 @@ namespace ASI.Basecode.WebApp.Controllers
     /// </summary>
     public class HomeController : ControllerBase<HomeController>
     {
+        private readonly ASI.Basecode.Services.Interfaces.ICommunicationService _communication;
+
         public HomeController(IHttpContextAccessor httpContextAccessor,
                               ILoggerFactory loggerFactory,
                               IConfiguration configuration,
+                              ASI.Basecode.Services.Interfaces.ICommunicationService communication,
                               IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
+            this._communication = communication;
         }
 
         /// <summary>
@@ -32,6 +37,29 @@ namespace ASI.Basecode.WebApp.Controllers
             }
 
             return this.RedirectToRoleHome(this.User.FindFirst(ClaimTypes.Role)?.Value);
+        }
+
+        /// <summary>Shown to non-administrators while a MAINTENANCE announcement is active.</summary>
+        [AllowAnonymous]
+        public IActionResult Maintenance()
+        {
+            var announcement = this._communication.GetActiveMaintenanceAnnouncement();
+            if (announcement == null)
+            {
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
+            return this.View(announcement);
+        }
+
+        /// <summary>Safe error page used by the production exception handler.</summary>
+        [AllowAnonymous]
+        public IActionResult Error()
+        {
+            return this.View(new ASI.Basecode.WebApp.Models.ErrorViewModel
+            {
+                RequestId = System.Diagnostics.Activity.Current?.Id ?? this.HttpContext.TraceIdentifier,
+            });
         }
 
         private IActionResult RedirectToRoleHome(string roleCode)

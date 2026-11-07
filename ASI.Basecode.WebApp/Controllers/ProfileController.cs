@@ -68,8 +68,13 @@ namespace ASI.Basecode.WebApp.Controllers
             if (!this.ModelState.IsValid)
             {
                 var model = this._profileService.GetProfile(userId.Value);
+                if (model == null)
+                {
+                    return this.RedirectToAction("Login", "Account");
+                }
+
                 this.TempData["ErrorMessage"] = "Please correct the highlighted fields.";
-                return this.View(this.ResolveView(model?.RoleCode), model);
+                return this.View(this.ResolveView(model.RoleCode), model);
             }
 
             var (success, error) = this._profileService.SaveContact(userId.Value, form);

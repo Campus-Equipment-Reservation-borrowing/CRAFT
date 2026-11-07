@@ -168,7 +168,16 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ReservationEquipmentNotFound, form.EquipmentId);
                 }
 
+                if (string.Equals(equipment.OperationalStatus?.Code, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase))
+                {
+                    return (false, "This equipment is under maintenance and cannot be reserved right now.", form.EquipmentId);
+                }
+
                 var policy = this.GetActivePolicy();
+                if (policy.PolicyVersionId == null)
+                {
+                    return (false, "The borrowing policy is not configured. Please contact the administrator.", form.EquipmentId);
+                }
 
                 // Rule a) quantity bounds.
                 if (form.Quantity is null || form.Quantity < 1)
@@ -194,6 +203,11 @@ namespace ASI.Basecode.Services.Services
                 if (requestedStart == default || expectedReturn == default)
                 {
                     return (false, ErrorMessages.ReservationScheduleMissing, form.EquipmentId);
+                }
+
+                if (expectedReturn <= requestedStart)
+                {
+                    return (false, "Expected return must be after the borrowing start.", form.EquipmentId);
                 }
 
                 var now = DateTime.UtcNow;
@@ -230,6 +244,11 @@ namespace ASI.Basecode.Services.Services
                     return (false, "Your account verification was rejected. Submit an appeal from your dashboard.", form.EquipmentId);
                 }
 
+                if (!string.Equals(borrower.AccountStatus?.Code, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                {
+                    return (false, "Your account is not active yet. Please wait for administrator approval before reserving equipment.", form.EquipmentId);
+                }
+
                 var isFaculty = string.Equals(borrower.Role?.RoleCode, "FACULTY", StringComparison.OrdinalIgnoreCase);
                 var maxBorrowDays = isFaculty ? policy.FacultyMaxBorrowDays : policy.MaxBorrowDays;
                 var durationDays = (expectedReturn - requestedStart).TotalDays;
@@ -245,6 +264,14 @@ namespace ASI.Basecode.Services.Services
                     statusIds["PENDING"],
                     statusIds["APPROVED"],
                 };
+                if (statusIds.TryGetValue("READY_FOR_RELEASE", out var readyId))
+                {
+                    activeStatusIds.Add(readyId);
+                }
+                if (statusIds.TryGetValue("PARTIALLY_RELEASED", out var partialId))
+                {
+                    activeStatusIds.Add(partialId);
+                }
                 var activeCount = this.DbContext.Reservations
                     .Count(r => r.BorrowerUserId == actorUserId.Value
                         && activeStatusIds.Contains(r.StatusId));
@@ -275,6 +302,20 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ReservationPickupLocationInvalid, form.EquipmentId);
                 }
 
+                // Load the tracked balance and re-check availability immediately before holding the
+                // units. This closes the gap between the no-tracking snapshot above and the write.
+                var balanceToUpdate = this.DbContext.EquipmentInventoryBalances
+                    .FirstOrDefault(b => b.EquipmentId == equipment.EquipmentId);
+                if (balanceToUpdate == null)
+                {
+                    return (false, "This equipment has no inventory record. Please contact the administrator.", form.EquipmentId);
+                }
+
+                if (form.Quantity.Value > this.ComputeAvailableUnits(balanceToUpdate))
+                {
+                    return (false, ErrorMessages.ReservationQuantityAboveAvailable, form.EquipmentId);
+                }
+
                 // Persist: hold the requested units, insert the PENDING reservation, audit.
                 var pendingStatusId = statusIds["PENDING"];
                 var submittedAt = DateTime.UtcNow;
@@ -299,9 +340,7 @@ namespace ASI.Basecode.Services.Services
 
                 this.DbContext.Reservations.Add(reservation);
 
-                // Hold the units on the balance row (tracked) so no one else can promise them.
-                var balanceToUpdate = this.DbContext.EquipmentInventoryBalances
-                    .First(b => b.EquipmentId == equipment.EquipmentId);
+                // Hold the units on the tracked balance row so no one else can promise them.
                 balanceToUpdate.ReservedQuantity += form.Quantity.Value;
 
                 this._unitOfWork.SaveChanges();
@@ -457,11 +496,13 @@ namespace ASI.Basecode.Services.Services
 
         public PolicySettings GetActivePolicy()        {
             // Latest version wins (per plan: new policy row = new version, history is never edited).
+            var now = DateTime.UtcNow;
             var latest = this.DbContext.BorrowingPolicyVersions
                 .AsNoTracking()
+                .Where(p => p.EffectiveFromUtc <= now)
                 .OrderByDescending(p => p.IsCurrent)
-                .ThenByDescending(p => p.PolicyVersionId)
                 .ThenByDescending(p => p.EffectiveFromUtc)
+                .ThenByDescending(p => p.PolicyVersionId)
                 .FirstOrDefault();
 
             // Defaults from the implementation plan — used verbatim when no policy row exists yet.

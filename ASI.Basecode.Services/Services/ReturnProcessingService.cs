@@ -137,6 +137,11 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.CustodianNotAssigned, 0);
                 }
 
+                if (borrowing.Status?.Code == "RETURNED" || borrowing.Status?.Code == "LOST")
+                {
+                    return (false, "This borrowing is already closed; no further returns can be recorded.", 0);
+                }
+
                 var alreadyReturned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
                 var remaining = borrowing.ReleasedQuantity - alreadyReturned;
                 if (form.ReturnedQuantity > remaining)
@@ -144,16 +149,18 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ServerError, 0);
                 }
 
-                var now = form.ReturnedAtUtc == default ? DateTime.UtcNow : DateTime.SpecifyKind(form.ReturnedAtUtc, DateTimeKind.Utc);
+                // The timestamp and receiving officer are server-owned: never trust posted values.
+                var now = DateTime.UtcNow;
                 var wasLate = now > borrowing.DueAtUtc;
                 var daysOverdue = wasLate ? (int)Math.Floor((now - borrowing.DueAtUtc).TotalDays) : 0;
+                var receivedBy = this._currentUser.GetActorUserId() ?? borrowing.ReleasedByUserId;
 
                 var returnEntity = new BorrowingReturn
                 {
                     BorrowingId = borrowing.BorrowingId,
                     ReturnedQuantity = form.ReturnedQuantity,
                     ReturnedAtUtc = now,
-                    ReceivedByUserId = form.ReceivedByUserId > 0 ? form.ReceivedByUserId : (this._currentUser.GetActorUserId() ?? borrowing.ReleasedByUserId),
+                    ReceivedByUserId = receivedBy,
                     WasReturnedLate = wasLate,
                     DaysOverdue = daysOverdue,
                 };
@@ -237,6 +244,8 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.CustodianNotAssigned, 0);
                 }
 
+                using var transaction = this.DbContext.Database.BeginTransaction();
+
                 var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.StatusId == form.InspectionStatusId);
                 if (inspectionStatus == null)
                 {
@@ -251,6 +260,12 @@ namespace ASI.Basecode.Services.Services
                         .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionStatus.Code == "COMPLETED")
                         .Sum(i => (int?)i.InspectedQuantity) ?? 0;
                     if (form.InspectedQuantity > returned - alreadyFinalized)
+                    {
+                        return (false, ErrorMessages.InspectionQuantityInvalid, 0);
+                    }
+
+                    var awaiting = borrowing.Equipment?.EquipmentInventoryBalance?.AwaitingInspectionQuantity ?? 0;
+                    if (form.InspectedQuantity > awaiting)
                     {
                         return (false, ErrorMessages.InspectionQuantityInvalid, 0);
                     }
@@ -341,6 +356,8 @@ namespace ASI.Basecode.Services.Services
                 this.WriteAudit("INSPECT", "ConditionInspection", inspection.InspectionId, borrowing.TransactionNumber,
                     $"Inspected {form.InspectedQuantity} unit(s) of {borrowing.Equipment.AssetCode}: condition={form.CurrentConditionId}, status={inspectionStatus?.Code}." +
                     (string.IsNullOrWhiteSpace(form.InspectionNotes) ? string.Empty : " Notes: " + form.InspectionNotes.Trim()));
+
+                transaction.Commit();
 
                 return (true, null, inspection.InspectionId);
             }

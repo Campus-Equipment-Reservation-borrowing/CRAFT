@@ -38,28 +38,46 @@ namespace ASI.Basecode.Services.Services
 
         // ---------------------------------------------------------------- announcements
 
-        public AnnouncementIndexViewModel GetAnnouncements()
+        public AnnouncementIndexViewModel GetAnnouncements(int page = 1, int pageSize = 10)
         {
+            const int DefaultPageSize = 10;
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? DefaultPageSize : pageSize;
+
             var now = DateTime.UtcNow;
+            var query = this.DbContext.Announcements.AsNoTracking();
+            var totalCount = query.Count();
+
+            var items = query
+                .OrderByDescending(a => a.CreatedAtUtc)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new AnnouncementRowViewModel
+                {
+                    AnnouncementId = a.AnnouncementId,
+                    Title = a.Title,
+                    Body = a.Body,
+                    TargetRoles = a.TargetRoles,
+                    Category = a.Category,
+                    CreatedByName = a.CreatedByUser == null ? null : a.CreatedByUser.FirstName + " " + a.CreatedByUser.LastName,
+                    CreatedAtUtc = a.CreatedAtUtc,
+                    ExpiresAtUtc = a.ExpiresAtUtc,
+                    IsActive = a.ExpiresAtUtc == null || a.ExpiresAtUtc > now,
+                })
+                .ToList()
+                .Select(WithAudienceLabel)
+                .ToList();
+
             return new AnnouncementIndexViewModel
             {
-                Items = this.DbContext.Announcements.AsNoTracking()
-                    .OrderByDescending(a => a.CreatedAtUtc)
-                    .Take(50)
-                    .Select(a => new AnnouncementRowViewModel
-                    {
-                        AnnouncementId = a.AnnouncementId,
-                        Title = a.Title,
-                        Body = a.Body,
-                        TargetRoles = a.TargetRoles,
-                        CreatedByName = a.CreatedByUser == null ? null : a.CreatedByUser.FirstName + " " + a.CreatedByUser.LastName,
-                        CreatedAtUtc = a.CreatedAtUtc,
-                        ExpiresAtUtc = a.ExpiresAtUtc,
-                        IsActive = a.ExpiresAtUtc == null || a.ExpiresAtUtc > now,
-                    })
-                    .ToList()
-                    .Select(WithAudienceLabel)
-                    .ToList(),
+                Items = items,
+                Page = new PagedResult<AnnouncementRowViewModel>
+                {
+                    Items = items,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                },
             };
         }
 
@@ -79,11 +97,18 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.AnnouncementInvalid);
                 }
 
+                var category = (form.Category ?? "GENERAL").Trim().ToUpperInvariant();
+                if (category != "MAINTENANCE" && category != "RULE_CHANGE" && category != "GENERAL")
+                {
+                    category = "GENERAL";
+                }
+
                 var entity = new Announcement
                 {
                     Title = title.Length > 200 ? title.Substring(0, 200) : title,
                     Body = body.Length > 2000 ? body.Substring(0, 2000) : body,
                     TargetRoles = string.Join(",", roles),
+                    Category = category,
                     CreatedByUserId = this._currentUser.GetActorUserId(),
                     CreatedAtUtc = DateTime.UtcNow,
                     // ExpiresOn is the last local day it shows; keep it through the end of that day.
@@ -138,9 +163,11 @@ namespace ASI.Basecode.Services.Services
 
             var now = DateTime.UtcNow;
             var code = roleCode.ToUpperInvariant();
-            // target_roles is a short comma list; match whole codes only.
+            // Only maintenance notices stay as dashboard banners; everything else is delivered
+            // through the Notifications page.
             return this.DbContext.Announcements.AsNoTracking()
                 .Where(a => a.ExpiresAtUtc == null || a.ExpiresAtUtc > now)
+                .Where(a => a.Category == "MAINTENANCE")
                 .Where(a => ("," + a.TargetRoles + ",").Contains("," + code + ","))
                 .OrderByDescending(a => a.CreatedAtUtc)
                 .Take(take)
@@ -157,47 +184,106 @@ namespace ASI.Basecode.Services.Services
                 .ToList();
         }
 
+        public AnnouncementRowViewModel GetActiveMaintenanceAnnouncement()
+        {
+            var now = DateTime.UtcNow;
+            return this.DbContext.Announcements.AsNoTracking()
+                .Where(a => a.Category == "MAINTENANCE")
+                .Where(a => a.ExpiresAtUtc == null || a.ExpiresAtUtc > now)
+                .OrderByDescending(a => a.CreatedAtUtc)
+                .Select(a => new AnnouncementRowViewModel
+                {
+                    AnnouncementId = a.AnnouncementId,
+                    Title = a.Title,
+                    Body = a.Body,
+                    Category = a.Category,
+                    CreatedAtUtc = a.CreatedAtUtc,
+                    ExpiresAtUtc = a.ExpiresAtUtc,
+                    IsActive = true,
+                })
+                .FirstOrDefault();
+        }
+
         // ---------------------------------------------------------------- support tickets
 
-        public SupportTicketIndexViewModel GetTickets(string status)
+        public SupportTicketIndexViewModel GetTickets(string status, string view = null)
         {
-            var isStaff = this.IsStaff();
+            var role = this._currentUser.GetActorRoleCode();
             var actorId = this._currentUser.GetActorUserId() ?? -1;
+            var isBorrower = string.Equals(role, RoleCodes.Student, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(role, RoleCodes.Faculty, StringComparison.OrdinalIgnoreCase);
+            var isAdmin = string.Equals(role, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase);
+            var isTechnician = string.Equals(role, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase);
+
             var query = this.DbContext.SupportTickets.AsNoTracking().AsQueryable();
-            if (!isStaff)
+            if (isBorrower)
             {
                 query = query.Where(t => t.RequesterUserId == actorId);
             }
-
-            var openCount = query.Count(t => t.Status == SupportTicketStatuses.Open);
-            var filter = status?.Trim().ToUpperInvariant();
-            if (filter == SupportTicketStatuses.Open || filter == SupportTicketStatuses.Resolved)
+            else if (isAdmin)
             {
-                query = query.Where(t => t.Status == filter);
+                // Admins only handle tickets a custodian forwarded.
+                query = query.Where(t => t.TargetRoleCode == RoleCodes.Admin);
             }
+            else if (isTechnician)
+            {
+                if (string.Equals(view, "mine", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Tickets the custodian raised for the administrator.
+                    query = query.Where(t => t.RequesterUserId == actorId);
+                }
+                else if (string.Equals(view, "forwarded", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Borrower tickets this custodian escalated.
+                    query = query.Where(t => t.EscalatedByUserId == actorId);
+                }
+                else
+                {
+                    query = query.Where(t => t.TargetRoleCode == RoleCodes.Technician);
+                }
+            }
+
+            var openCount = query.Count(t => t.Status != SupportTicketStatuses.Resolved);
+            var filter = status?.Trim().ToUpperInvariant();
+            if (filter == "OPEN")
+            {
+                query = query.Where(t => t.Status != SupportTicketStatuses.Resolved);
+            }
+            else if (filter == SupportTicketStatuses.Resolved)
+            {
+                query = query.Where(t => t.Status == SupportTicketStatuses.Resolved);
+            }
+
+            var items = query
+                .OrderBy(t => t.Status == SupportTicketStatuses.Resolved ? 1 : 0)
+                .ThenByDescending(t => t.Replies.Max(r => (DateTime?)r.CreatedAtUtc) ?? t.CreatedAtUtc)
+                .Select(t => new SupportTicketRowViewModel
+                {
+                    TicketId = t.TicketId,
+                    Category = t.Category,
+                    Subject = t.Subject,
+                    Status = t.Status,
+                    TargetRoleCode = t.TargetRoleCode,
+                    RequesterName = t.RequesterUser.FirstName + " " + t.RequesterUser.LastName,
+                    RequesterIdentifier = t.RequesterUser.AccountIdentifier,
+                    CreatedAtUtc = t.CreatedAtUtc,
+                    LastActivityUtc = t.Replies.Max(r => (DateTime?)r.CreatedAtUtc) ?? t.CreatedAtUtc,
+                    ReplyCount = t.Replies.Count,
+                })
+                .Take(100)
+                .ToList();
 
             return new SupportTicketIndexViewModel
             {
-                IsStaffView = isStaff,
+                IsStaffView = isAdmin || isTechnician,
+                IsCustodian = isTechnician,
+                IsAdmin = isAdmin,
+                View = string.Equals(view, "mine", StringComparison.OrdinalIgnoreCase) ? "mine"
+                    : string.Equals(view, "forwarded", StringComparison.OrdinalIgnoreCase) ? "forwarded"
+                    : "inbox",
                 Status = filter,
                 OpenCount = openCount,
-                Items = query
-                    .OrderBy(t => t.Status == SupportTicketStatuses.Open ? 0 : 1)
-                    .ThenByDescending(t => t.Replies.Max(r => (DateTime?)r.CreatedAtUtc) ?? t.CreatedAtUtc)
-                    .Take(100)
-                    .Select(t => new SupportTicketRowViewModel
-                    {
-                        TicketId = t.TicketId,
-                        Category = t.Category,
-                        Subject = t.Subject,
-                        Status = t.Status,
-                        RequesterName = t.RequesterUser.FirstName + " " + t.RequesterUser.LastName,
-                        RequesterIdentifier = t.RequesterUser.AccountIdentifier,
-                        CreatedAtUtc = t.CreatedAtUtc,
-                        LastActivityUtc = t.Replies.Max(r => (DateTime?)r.CreatedAtUtc) ?? t.CreatedAtUtc,
-                        ReplyCount = t.Replies.Count,
-                    })
-                    .ToList(),
+                Items = items,
             };
         }
 
@@ -206,6 +292,7 @@ namespace ASI.Basecode.Services.Services
             try
             {
                 var actorId = this._currentUser.GetActorUserId();
+                var actorRole = this._currentUser.GetActorRoleCode();
                 var category = form?.Category?.Trim().ToUpperInvariant();
                 var subject = form?.Subject?.Trim();
                 var body = form?.Body?.Trim();
@@ -215,6 +302,23 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.TicketInvalid, 0);
                 }
 
+                // Borrowers raise tickets for custodians; custodians raise/forward to admins.
+                // Administrators resolve tickets and cannot create their own.
+                string targetRole;
+                if (string.Equals(actorRole, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase))
+                {
+                    targetRole = RoleCodes.Admin;
+                }
+                else if (string.Equals(actorRole, RoleCodes.Student, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(actorRole, RoleCodes.Faculty, StringComparison.OrdinalIgnoreCase))
+                {
+                    targetRole = RoleCodes.Technician;
+                }
+                else
+                {
+                    return (false, "Administrators cannot create support tickets.", 0);
+                }
+
                 var ticket = new SupportTicket
                 {
                     RequesterUserId = actorId.Value,
@@ -222,6 +326,7 @@ namespace ASI.Basecode.Services.Services
                     Subject = subject.Length > 200 ? subject.Substring(0, 200) : subject,
                     Body = body.Length > 4000 ? body.Substring(0, 4000) : body,
                     Status = SupportTicketStatuses.Open,
+                    TargetRoleCode = targetRole,
                     CreatedAtUtc = DateTime.UtcNow,
                 };
                 this.DbContext.SupportTickets.Add(ticket);
@@ -230,7 +335,7 @@ namespace ASI.Basecode.Services.Services
                 this.WriteAudit("CREATE", "SupportTicket", ticket.TicketId, $"TKT-{ticket.TicketId}",
                     $"Opened {category.ToLowerInvariant()} ticket '{ticket.Subject}'.");
 
-                this._notifications.Notify(this._notifications.GetActiveUserIdsInRoles(RoleCodes.Admin),
+                this._notifications.Notify(this._notifications.GetActiveUserIdsInRoles(targetRole),
                     NotificationTypes.Support,
                     $"New {category.ToLowerInvariant()} ticket",
                     $"{this._currentUser.GetActorName()} opened ticket TKT-{ticket.TicketId}: {ticket.Subject}");
@@ -247,9 +352,28 @@ namespace ASI.Basecode.Services.Services
         public SupportTicketDetailsViewModel GetTicket(long ticketId)
         {
             var isStaff = this.IsStaff();
+            var role = this._currentUser.GetActorRoleCode();
             var actorId = this._currentUser.GetActorUserId() ?? -1;
-            var ticket = this.DbContext.SupportTickets.AsNoTracking()
-                .Where(t => t.TicketId == ticketId && (isStaff || t.RequesterUserId == actorId))
+            var isBorrower = string.Equals(role, RoleCodes.Student, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(role, RoleCodes.Faculty, StringComparison.OrdinalIgnoreCase);
+            var isAdmin = string.Equals(role, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase);
+
+            var query = this.DbContext.SupportTickets.AsNoTracking().Where(t => t.TicketId == ticketId);
+            if (isBorrower)
+            {
+                query = query.Where(t => t.RequesterUserId == actorId);
+            }
+            else if (isAdmin)
+            {
+                query = query.Where(t => t.TargetRoleCode == RoleCodes.Admin);
+            }
+            else if (isStaff)
+            {
+                query = query.Where(t => t.TargetRoleCode == RoleCodes.Technician
+                    || t.RequesterUserId == actorId || t.EscalatedByUserId == actorId);
+            }
+
+            var ticket = query
                 .Select(t => new SupportTicketDetailsViewModel
                 {
                     TicketId = t.TicketId,
@@ -257,12 +381,14 @@ namespace ASI.Basecode.Services.Services
                     Subject = t.Subject,
                     Body = t.Body,
                     Status = t.Status,
+                    TargetRoleCode = t.TargetRoleCode,
                     RequesterUserId = t.RequesterUserId,
                     RequesterName = t.RequesterUser.FirstName + " " + t.RequesterUser.LastName,
                     RequesterIdentifier = t.RequesterUser.AccountIdentifier,
                     RequesterStatus = t.RequesterUser.AccountStatus.Description,
                     CreatedAtUtc = t.CreatedAtUtc,
                     ResolvedAtUtc = t.ResolvedAtUtc,
+                    EscalatedAtUtc = t.EscalatedAtUtc,
                     Replies = t.Replies
                         .OrderBy(r => r.CreatedAtUtc)
                         .Select(r => new SupportReplyViewModel
@@ -278,8 +404,18 @@ namespace ASI.Basecode.Services.Services
 
             if (ticket != null)
             {
-                ticket.CanReply = ticket.Status == SupportTicketStatuses.Open;
-                ticket.CanResolve = isStaff && ticket.Status == SupportTicketStatuses.Open;
+                var isTechnician = string.Equals(role, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase);
+                var isOwnTicket = ticket.RequesterUserId == actorId;
+                ticket.CanResolve = ticket.Status != SupportTicketStatuses.Resolved
+                    && ((isAdmin && ticket.TargetRoleCode == RoleCodes.Admin)
+                        || (isTechnician && ticket.TargetRoleCode == RoleCodes.Technician && !isOwnTicket));
+
+                // Only the receiving staff replies; the creator can read but not post follow-ups.
+                ticket.CanReply = ticket.CanResolve;
+                ticket.CanEscalate = isTechnician
+                    && ticket.TargetRoleCode == RoleCodes.Technician
+                    && !isOwnTicket
+                    && ticket.Status != SupportTicketStatuses.Resolved;
             }
 
             return ticket;
@@ -297,16 +433,40 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 var isStaff = this.IsStaff();
-                var ticket = this.DbContext.SupportTickets
-                    .FirstOrDefault(t => t.TicketId == ticketId && (isStaff || t.RequesterUserId == actorId.Value));
+                var role = this._currentUser.GetActorRoleCode();
+                var isAdmin = string.Equals(role, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase);
+                var isTechnician = string.Equals(role, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase);
+
+                var ticketQuery = this.DbContext.SupportTickets.Where(t => t.TicketId == ticketId);
+                if (isAdmin)
+                {
+                    ticketQuery = ticketQuery.Where(t => t.TargetRoleCode == RoleCodes.Admin);
+                }
+                else if (isTechnician)
+                {
+                    ticketQuery = ticketQuery.Where(t => t.TargetRoleCode == RoleCodes.Technician
+                        || t.RequesterUserId == actorId.Value || t.EscalatedByUserId == actorId.Value);
+                }
+                else
+                {
+                    ticketQuery = ticketQuery.Where(t => t.RequesterUserId == actorId.Value);
+                }
+
+                var ticket = ticketQuery.FirstOrDefault();
                 if (ticket == null)
                 {
                     return (false, ErrorMessages.TicketNotFound);
                 }
 
-                if (ticket.Status != SupportTicketStatuses.Open)
+                if (ticket.Status == SupportTicketStatuses.Resolved)
                 {
                     return (false, ErrorMessages.TicketClosed);
+                }
+
+                // The person who opened a ticket cannot reply to it; only the receiving staff can.
+                if (ticket.RequesterUserId == actorId.Value)
+                {
+                    return (false, "You cannot reply to your own ticket. Please create a new ticket if you need more help.");
                 }
 
                 this.DbContext.SupportTicketReplies.Add(new SupportTicketReply
@@ -323,12 +483,12 @@ namespace ASI.Basecode.Services.Services
 
                 this._unitOfWork.SaveChanges();
 
-                // Staff reply → requester; requester reply → the staff member handling it (or all admins).
+                // Staff reply → requester; requester reply → the handler, else the target role queue.
                 var recipients = isStaff
                     ? new List<long> { ticket.RequesterUserId }
                     : ticket.AssignedToUserId.HasValue
                         ? new List<long> { ticket.AssignedToUserId.Value }
-                        : this._notifications.GetActiveUserIdsInRoles(RoleCodes.Admin);
+                        : this._notifications.GetActiveUserIdsInRoles(ticket.TargetRoleCode ?? RoleCodes.Technician);
                 this._notifications.Notify(recipients, NotificationTypes.Support,
                     $"New reply on TKT-{ticket.TicketId}",
                     $"{this._currentUser.GetActorName()} replied to \"{ticket.Subject}\".");
@@ -351,8 +511,19 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.TicketNotFound);
                 }
 
+                var role = this._currentUser.GetActorRoleCode();
                 var ticket = this.DbContext.SupportTickets.FirstOrDefault(t => t.TicketId == ticketId);
                 if (ticket == null)
+                {
+                    return (false, ErrorMessages.TicketNotFound);
+                }
+
+                // Custodians resolve borrower tickets; administrators resolve forwarded ones.
+                var canResolve = string.Equals(role, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase)
+                    ? ticket.TargetRoleCode == RoleCodes.Admin
+                    : string.Equals(role, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase)
+                        && ticket.TargetRoleCode == RoleCodes.Technician;
+                if (!canResolve)
                 {
                     return (false, ErrorMessages.TicketNotFound);
                 }
@@ -378,6 +549,54 @@ namespace ASI.Basecode.Services.Services
             catch (Exception ex)
             {
                 this._logger.LogError(ex, "Failed to resolve ticket {TicketId}.", ticketId);
+                return (false, ErrorMessages.ServerError);
+            }
+        }
+
+        public (bool Success, string Error) Escalate(long ticketId)
+        {
+            try
+            {
+                var role = this._currentUser.GetActorRoleCode();
+                if (!string.Equals(role, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase))
+                {
+                    return (false, ErrorMessages.TicketNotFound);
+                }
+
+                var actorId = this._currentUser.GetActorUserId();
+                var ticket = this.DbContext.SupportTickets.FirstOrDefault(t => t.TicketId == ticketId);
+                if (ticket == null)
+                {
+                    return (false, ErrorMessages.TicketNotFound);
+                }
+
+                if (ticket.Status == SupportTicketStatuses.Resolved
+                    || ticket.TargetRoleCode == RoleCodes.Admin)
+                {
+                    return (false, "This ticket has already been forwarded or resolved.");
+                }
+
+                ticket.TargetRoleCode = RoleCodes.Admin;
+                ticket.Status = SupportTicketStatuses.Escalated;
+                ticket.EscalatedAtUtc = DateTime.UtcNow;
+                ticket.EscalatedByUserId = actorId;
+                this._unitOfWork.SaveChanges();
+
+                this.WriteAudit("ESCALATE", "SupportTicket", ticket.TicketId, $"TKT-{ticket.TicketId}",
+                    $"Forwarded ticket '{ticket.Subject}' to the administrator.");
+                this._notifications.Notify(this._notifications.GetActiveUserIdsInRoles(RoleCodes.Admin),
+                    NotificationTypes.Support,
+                    $"Ticket TKT-{ticket.TicketId} forwarded",
+                    $"{this._currentUser.GetActorName()} forwarded \"{ticket.Subject}\" for administrator review.");
+                this._notifications.Notify(ticket.RequesterUserId, NotificationTypes.Support,
+                    $"Ticket TKT-{ticket.TicketId} forwarded",
+                    "Your ticket was forwarded to the administrator for further review.");
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogError(ex, "Failed to escalate ticket {TicketId}.", ticketId);
                 return (false, ErrorMessages.ServerError);
             }
         }

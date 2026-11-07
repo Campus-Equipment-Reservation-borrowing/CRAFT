@@ -83,7 +83,7 @@ namespace ASI.Basecode.WebApp.Controllers
 
         public IActionResult Create()
         {
-            this.ViewBag.RoleOptions = this.ToSelectList(this._userService.GetRoleOptions(), null, "-- Select role --");
+            this.ViewBag.RoleOptions = this.ToSelectList(this._userService.GetAssignableRoleOptions(), null, "-- Select role --");
             this.ViewBag.DepartmentOptions = this.ToSelectList(this._userService.GetDepartmentOptions(), null, "-- None --");
             this.ViewBag.StatusOptions = this.ToSelectList(this._userService.GetAccountStatusOptions(), null, "-- Select status --");
 
@@ -96,7 +96,7 @@ namespace ASI.Basecode.WebApp.Controllers
         {
             if (!this.ModelState.IsValid)
             {
-                this.PopulateFormSelectLists(form.RoleId, form.DepartmentId, form.AccountStatusId);
+                this.PopulateFormSelectLists(form.RoleId, form.DepartmentId, form.AccountStatusId, includeAdmin: false);
                 return this.View(form);
             }
 
@@ -105,7 +105,7 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 form.TemporaryPassword = null;
                 this.ModelState.AddModelError(string.Empty, error);
-                this.PopulateFormSelectLists(form.RoleId, form.DepartmentId, form.AccountStatusId);
+                this.PopulateFormSelectLists(form.RoleId, form.DepartmentId, form.AccountStatusId, includeAdmin: false);
                 return this.View(form);
             }
 
@@ -282,9 +282,12 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.RedirectToAction(nameof(this.Verifications));
         }
 
-        private void PopulateFormSelectLists(long? roleId, long? departmentId, long? accountStatusId)
+        private void PopulateFormSelectLists(long? roleId, long? departmentId, long? accountStatusId, bool includeAdmin = true)
         {
-            this.ViewBag.RoleOptions = this.ToSelectList(this._userService.GetRoleOptions(), roleId, "-- Select role --");
+            var roles = includeAdmin
+                ? this._userService.GetRoleOptions()
+                : this._userService.GetAssignableRoleOptions();
+            this.ViewBag.RoleOptions = this.ToSelectList(roles, roleId, "-- Select role --");
             this.ViewBag.DepartmentOptions = this.ToSelectList(this._userService.GetDepartmentOptions(), departmentId, "-- None --");
             this.ViewBag.StatusOptions = this.ToSelectList(this._userService.GetAccountStatusOptions(), accountStatusId, "-- Select status --");
         }

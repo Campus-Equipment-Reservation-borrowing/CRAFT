@@ -7,8 +7,14 @@
 <div class="cp-page-header">
     <div>
         <h1 class="cp-page-title">Scan</h1>
-        <p class="cp-page-subtitle">Scan an equipment label or a borrower's pickup slip to open the matching release or return.</p>
+        <p class="cp-page-subtitle">Scan or type a code, review what it resolves to, then choose the correct action.</p>
     </div>
+</div>
+
+<div class="cp-alert" style="margin-bottom:16px;">
+    <strong>Accepted codes:</strong> pickup slip reservation number (<span class="cp-mono">RSV-…</span>),
+    borrowing receipt transaction number (<span class="cp-mono">TXN-…</span>), or equipment asset code.
+    One code may match several releases or returns — pick the row that matches the person in front of you.
 </div>
 
 <div class="cp-grid-2">
@@ -48,7 +54,7 @@
     <div class="cp-card cp-card-flush">
         <div class="cp-card-header">
             @(Model.EquipmentName ?? "Results")
-            <span class="cp-cell-sub">Code “@Model.Code”</span>
+            <span class="cp-cell-sub">Code “@Model.Code” · @Model.Matches.Count match@(Model.Matches.Count == 1 ? "" : "es")</span>
         </div>
         @if (Model.Matches.Count == 0)
         {

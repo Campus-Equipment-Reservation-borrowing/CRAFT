@@ -15,6 +15,9 @@ public partial class Announcement
     /// <summary>Comma-separated role codes, or ALL.</summary>
     public string TargetRoles { get; set; }
 
+    /// <summary>MAINTENANCE | RULE_CHANGE | GENERAL.</summary>
+    public string Category { get; set; }
+
     public long? CreatedByUserId { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
@@ -41,11 +44,18 @@ public partial class SupportTicket
     /// <summary>OPEN | RESOLVED.</summary>
     public string Status { get; set; }
 
+    /// <summary>Role that should handle the ticket: TECHNICIAN (borrower-raised) or ADMIN (escalated).</summary>
+    public string TargetRoleCode { get; set; }
+
     public long? AssignedToUserId { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
 
     public DateTime? ResolvedAtUtc { get; set; }
+
+    public DateTime? EscalatedAtUtc { get; set; }
+
+    public long? EscalatedByUserId { get; set; }
 
     public virtual User RequesterUser { get; set; }
 

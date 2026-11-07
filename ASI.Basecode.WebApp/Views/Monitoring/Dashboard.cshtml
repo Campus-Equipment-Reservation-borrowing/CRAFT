@@ -118,7 +118,7 @@
                 {
                     <tr><td colspan="6"><div class="cp-empty-state compact"><div class="cp-empty-state-text">No activity yet.</div></div></td></tr>
                 }
-                @foreach (var a in Model.RecentAudit)
+                @foreach (var a in Model.RecentAudit.Take(5))
                 {
                     <tr>
                         <td>@a.OccurredAtUtc.ToLocalTime().ToString("dd MMM HH:mm")</td>

@@ -69,15 +69,19 @@ namespace ASI.Basecode.Services.Services
                 if (previous != null)
                 {
                     previous.IsCurrent = false;
+                    // Persist the clear before inserting the new current row so the filtered unique
+                    // index on is_current never sees two current rows in one batch.
+                    this._unitOfWork.SaveChanges();
                 }
 
                 var nextVersion = "v1.0";
                 if (previous != null && !string.IsNullOrWhiteSpace(previous.VersionNumber))
                 {
                     var v = previous.VersionNumber.TrimStart('v', 'V');
-                    if (decimal.TryParse(v, out var n))
+                    var parts = v.Split('.');
+                    if (parts.Length == 2 && int.TryParse(parts[0], out var major) && int.TryParse(parts[1], out var minor))
                     {
-                        nextVersion = "v" + (n + 0.1m).ToString("0.0");
+                        nextVersion = $"v{major}.{minor + 1}";
                     }
                 }
 
@@ -209,13 +213,51 @@ namespace ASI.Basecode.Services.Services
             }
         }
 
-        public NotificationsIndexViewModel GetNotifications(long userId)
+        public NotificationsIndexViewModel GetNotifications(
+            long userId,
+            string search = null,
+            string status = null,
+            string type = null,
+            int page = 1,
+            int pageSize = 10)
         {
-            var items = this.DbContext.Notifications
+            const int DefaultPageSize = 10;
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? DefaultPageSize : pageSize;
+
+            var query = this.DbContext.Notifications
                 .AsNoTracking()
-                .Where(n => n.RecipientUserId == userId)
+                .Where(n => n.RecipientUserId == userId);
+
+            var unreadCount = query.Count(n => !n.IsRead);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(n => n.Title.Contains(term) || n.Message.Contains(term));
+            }
+
+            if (string.Equals(status, "unread", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(n => !n.IsRead);
+            }
+            else if (string.Equals(status, "read", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(n => n.IsRead);
+            }
+
+            if (!string.IsNullOrWhiteSpace(type) && !string.Equals(type, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                var typeCode = type.Trim().ToUpperInvariant();
+                query = query.Where(n => n.NotificationType == typeCode);
+            }
+
+            var totalCount = query.Count();
+
+            var items = query
                 .OrderByDescending(n => n.CreatedAtUtc)
-                .Take(100)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(n => new NotificationRowViewModel
                 {
                     NotificationId = n.NotificationId,
@@ -230,7 +272,18 @@ namespace ASI.Basecode.Services.Services
             return new NotificationsIndexViewModel
             {
                 Notifications = items,
-                UnreadCount = items.Count(n => !n.IsRead),
+                Page = new PagedResult<NotificationRowViewModel>
+                {
+                    Items = items,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                },
+                UnreadCount = unreadCount,
+                Search = search,
+                Status = string.IsNullOrWhiteSpace(status) ? "all" : status,
+                Type = string.IsNullOrWhiteSpace(type) ? "all" : type,
+                TypeOptions = ASI.Basecode.Resources.Constants.NotificationTypes.All.ToList(),
             };
         }
 

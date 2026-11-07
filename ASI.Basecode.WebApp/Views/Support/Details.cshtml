@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = $"TKT-{Model.TicketId}";
     var isStaff = User.IsInRole("ADMIN") || User.IsInRole("TECHNICIAN");
+    var statusLabel = Model.Status == "ESCALATED" ? "Forwarded to administrator" : Model.Status == "RESOLVED" ? "Resolved" : "Open";
 }
 
 <div class="cp-page-header">
@@ -11,7 +12,7 @@
         <h1 class="cp-page-title">@Model.Subject</h1>
         <p class="cp-page-subtitle">
             @Model.Category.ToLowerInvariant() ticket &middot;
-            <span class="@StatusBadge.Css(Model.Status)">@(Model.Status == "OPEN" ? "Open" : "Resolved")</span>
+            <span class="@StatusBadge.Css(Model.Status)">@statusLabel</span>
         </p>
     </div>
     <div class="cp-page-actions">
@@ -20,6 +21,14 @@
             <form method="post" asp-action="Resolve" asp-route-id="@Model.TicketId">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="cp-btn cp-btn-success">Mark resolved</button>
+            </form>
+        }
+        @if (Model.CanEscalate)
+        {
+            <form method="post" asp-action="Escalate" asp-route-id="@Model.TicketId"
+                  onsubmit="return confirm('Forward this ticket to the administrator?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="cp-btn cp-btn-secondary">Forward to admin</button>
             </form>
         }
     </div>
@@ -57,9 +66,13 @@
                 </form>
             </div>
         }
-        else
+        else if (Model.Status == "RESOLVED")
         {
             <p class="cp-cell-sub">This ticket was resolved@(Model.ResolvedAtUtc.HasValue ? " on " + Model.ResolvedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy") : ""). <a asp-action="Create">Open a new ticket</a> if you need more help.</p>
+        }
+        else
+        {
+            <p class="cp-cell-sub">Only the receiving Property Office staff can reply to this ticket. <a asp-action="Create">Open a new ticket</a> if you need more help.</p>
         }
     </div>
 

@@ -43,9 +43,14 @@ namespace ASI.Basecode.Services.Interfaces
         (bool Success, string Error) Delete(long userId);
 
         /// <summary>
-        /// Role dropdown options.
+        /// Role dropdown options (includes Administrator — use for filters only).
         /// </summary>
         List<LookupViewModel> GetRoleOptions();
+
+        /// <summary>
+        /// Role options allowed when creating/editing accounts (Administrator excluded).
+        /// </summary>
+        List<LookupViewModel> GetAssignableRoleOptions();
 
         /// <summary>
         /// Active department dropdown options.

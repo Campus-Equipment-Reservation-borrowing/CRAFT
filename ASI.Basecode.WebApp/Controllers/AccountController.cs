@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -24,16 +25,22 @@ namespace ASI.Basecode.WebApp.Controllers
     public class AccountController : ControllerBase<AccountController>
     {
         private readonly IAuthService _authService;
+        private readonly IEmailSender _emailSender;
+        private readonly IHostEnvironment _environment;
 
         public AccountController(
             IHttpContextAccessor httpContextAccessor,
             ILoggerFactory loggerFactory,
             IConfiguration configuration,
             IMapper mapper,
-            IAuthService authService)
+            IAuthService authService,
+            IEmailSender emailSender,
+            IHostEnvironment environment)
             : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
             this._authService = authService;
+            this._emailSender = emailSender;
+            this._environment = environment;
         }
 
         [HttpGet]
@@ -53,7 +60,7 @@ namespace ASI.Basecode.WebApp.Controllers
         {
             if (string.IsNullOrWhiteSpace(model.UserId) || string.IsNullOrEmpty(model.Password))
             {
-                this.ModelState.AddModelError(string.Empty, "Please enter your username and password.");
+                this.ModelState.AddModelError(string.Empty, "Please enter your school email and password.");
                 return this.View(model);
             }
 
@@ -130,19 +137,29 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.View(model);
             }
 
-            var (success, error, token) = this._authService.CreatePasswordResetToken(model.Email);
-            if (!success)
+            // Always answer generically so the page cannot be used to enumerate accounts or
+            // harvest reset tokens. The link is delivered out of band (email).
+            var (success, _, token) = this._authService.CreatePasswordResetToken(model.Email);
+            if (success && !string.IsNullOrWhiteSpace(token))
             {
-                this.ModelState.AddModelError(string.Empty, error);
-                return this.View(model);
+                var resetUrl = this.Url.Action(
+                    nameof(ResetPassword), "Account",
+                    new { token },
+                    this.Request.Scheme);
+
+                this._emailSender.Send(
+                    model.Email,
+                    "Reset your CRAFT password",
+                    $"Open this link to choose a new password. It is valid for 24 hours: {resetUrl}");
+
+                // Local development has no mail transport, so surface the link there only.
+                if (this._environment.IsDevelopment())
+                {
+                    model.GeneratedResetUrl = resetUrl;
+                }
             }
 
             model.LinkSent = true;
-            model.GeneratedResetUrl = this.Url.Action(
-                nameof(ResetPassword), "Account",
-                new { token },
-                this.Request.Scheme);
-
             return this.View(model);
         }
 

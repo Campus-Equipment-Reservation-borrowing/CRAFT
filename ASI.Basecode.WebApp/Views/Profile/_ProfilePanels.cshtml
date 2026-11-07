@@ -11,22 +11,24 @@
 <div class="cp-stack">
     <div class="cp-card">
         <div class="cp-profile-header">
-            <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
-            <div class="cp-stack">
-                <div>
-                    <div class="cp-profile-name">@Model.FullName</div>
-                    <div class="cp-profile-meta">@Model.SchoolEmail</div>
+            <div class="cp-profile-idblock">
+                <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+                <div class="cp-stack">
+                    <div>
+                        <div class="cp-profile-name">@Model.FullName</div>
+                        <div class="cp-profile-meta">@Model.SchoolEmail</div>
+                    </div>
+                    <div>
+                        <span class="cp-badge cp-badge-info">@Model.RoleName</span>
+                        <span class="@StatusBadge.AccountCss(Model.AccountStatusCode)">@Model.AccountStatusDescription</span>
+                    </div>
                 </div>
-                <div>
-                    <span class="cp-badge cp-badge-info">@Model.RoleName</span>
-                    <span class="@StatusBadge.AccountCss(Model.AccountStatusCode)">@Model.AccountStatusDescription</span>
-                </div>
-                <div class="cp-profile-stats">
-                    <div><div class="cp-profile-stat-value">@Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</div><div class="cp-profile-stat-label">Member since</div></div>
-                    <div><div class="cp-profile-stat-value">@Model.ActiveBorrowings</div><div class="cp-profile-stat-label">Active borrowings</div></div>
-                    <div><div class="cp-profile-stat-value">@Model.CompletedBorrowings</div><div class="cp-profile-stat-label">Completed</div></div>
-                    <div><div class="cp-profile-stat-value" style="@(Model.OverdueItems > 0 ? "color:var(--color-error)" : null)">@Model.OverdueItems</div><div class="cp-profile-stat-label">Overdue</div></div>
-                </div>
+            </div>
+            <div class="cp-profile-stats">
+                <div><div class="cp-profile-stat-value">@Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</div><div class="cp-profile-stat-label">Member since</div></div>
+                <div><div class="cp-profile-stat-value">@Model.ActiveBorrowings</div><div class="cp-profile-stat-label">Active borrowings</div></div>
+                <div><div class="cp-profile-stat-value">@Model.CompletedBorrowings</div><div class="cp-profile-stat-label">Completed</div></div>
+                <div><div class="cp-profile-stat-value" style="@(Model.OverdueItems > 0 ? "color:var(--color-error)" : null)">@Model.OverdueItems</div><div class="cp-profile-stat-label">Overdue</div></div>
             </div>
         </div>
     </div>

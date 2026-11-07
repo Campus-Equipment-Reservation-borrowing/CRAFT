@@ -9,7 +9,7 @@
 
     <form method="post" action="/Account/Register">
         @Html.AntiForgeryToken()
-        <div asp-validation-summary="ModelOnly" class="cp-alert cp-alert-error"></div>
+        <div asp-validation-summary="All" class="cp-alert cp-alert-error"></div>
 
         <div class="row">
             <div class="col-md-6">
@@ -65,8 +65,13 @@
         <div class="cp-form-group">
             <label class="cp-form-hint" style="display:flex;gap:8px;align-items:flex-start;">
                 <input asp-for="PrivacyConsent" />
-                <span>I accept the Data Privacy notice and consent to the processing of my information for equipment borrowing.</span>
+                <span>
+                    I accept the
+                    <a href="#" class="cp-auth-link" id="privacyOpen">Data Privacy notice</a>
+                    and consent to the processing of my information for equipment borrowing.
+                </span>
             </label>
+            <span asp-validation-for="PrivacyConsent" class="cp-form-error"></span>
         </div>
         <button type="submit" class="cp-btn cp-btn-primary" style="width:100%;justify-content:center;">Create Account</button>
     </form>
@@ -77,3 +82,58 @@
         Already have an account? <a href="/Account/Login" class="cp-auth-link">Sign In</a>
     </p>
 </div>
+
+<div class="cp-modal-overlay" id="privacyModal" style="display:none;">
+    <div class="cp-modal" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <h2 class="cp-modal-title" id="privacyTitle" style="margin:0;">Data Privacy Notice</h2>
+            <button type="button" id="privacyClose" aria-label="Close"
+                    style="border:0;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:var(--color-text-gray);">&times;</button>
+        </div>
+        <div style="max-height:46vh;overflow:auto;font-size:12.5px;line-height:1.65;margin:12px 0;">
+            <p>CRAFT collects the personal information you provide at registration — your name, school ID,
+            school email, department and contact details — to manage equipment reservations, releases,
+            returns and account notifications.</p>
+            <p>Your information is used only for Property Office operations, is visible to authorized
+            custodians and administrators, and is retained for as long as your account and borrowing
+            records are required by the university.</p>
+            <p>You may request access, correction or deletion of your data, subject to record-keeping
+            requirements, by opening a support ticket. By selecting Accept you confirm that you have
+            read this notice and consent to the processing described above.</p>
+        </div>
+        <div class="cp-page-actions">
+            <button type="button" class="cp-btn cp-btn-secondary" id="privacyClose2">Close</button>
+            <button type="button" class="cp-btn cp-btn-success" id="privacyAccept">Accept</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var modal = document.getElementById('privacyModal');
+            var checkbox = document.getElementById('PrivacyConsent');
+            if (!modal) return;
+
+            function open() { modal.style.display = 'flex'; }
+            function close() { modal.style.display = 'none'; }
+
+            document.getElementById('privacyOpen').addEventListener('click', function (e) {
+                e.preventDefault();
+                open();
+            });
+            document.getElementById('privacyClose').addEventListener('click', close);
+            document.getElementById('privacyClose2').addEventListener('click', close);
+            document.getElementById('privacyAccept').addEventListener('click', function () {
+                if (checkbox) checkbox.checked = true;
+                close();
+            });
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) close();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && modal.style.display === 'flex') close();
+            });
+        })();
+    </script>
+}

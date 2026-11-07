@@ -1,0 +1,52 @@
+@model ASI.Basecode.WebApp.Models.PaginationModel
+@using Microsoft.AspNetCore.Routing
+@{
+    if (Model == null || Model.TotalPages <= 1)
+    {
+        return;
+    }
+
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+
+    string PageUrl(int number)
+    {
+        var values = new RouteValueDictionary();
+        foreach (var pair in ViewContext.HttpContext.Request.Query)
+        {
+            values[pair.Key] = pair.Value.ToString();
+        }
+        values["page"] = number.ToString();
+        return Url.Action(action, controller, values);
+    }
+
+    // Keep the window to five buttons and centre it on the current page.
+    var start = System.Math.Max(1, Model.Page - 2);
+    var end = System.Math.Min(Model.TotalPages, start + 4);
+    start = System.Math.Max(1, end - 4);
+}
+<div class="cp-pagination">
+    <span class="cp-pagination-info">@Model.Info</span>
+    <ul class="cp-pagination-list">
+        <li class="@(Model.Page > 1 ? string.Empty : "disabled")">
+            <a href="@PageUrl(System.Math.Max(1, Model.Page - 1))" aria-label="Previous page">&lsaquo;</a>
+        </li>
+        @if (start > 1)
+        {
+            <li><span>&hellip;</span></li>
+        }
+        @for (var p = start; p <= end; p++)
+        {
+            <li class="@(p == Model.Page ? "active" : string.Empty)">
+                <a href="@PageUrl(p)">@p</a>
+            </li>
+        }
+        @if (end < Model.TotalPages)
+        {
+            <li><span>&hellip;</span></li>
+        }
+        <li class="@(Model.Page < Model.TotalPages ? string.Empty : "disabled")">
+            <a href="@PageUrl(System.Math.Min(Model.TotalPages, Model.Page + 1))" aria-label="Next page">&rsaquo;</a>
+        </li>
+    </ul>
+</div>

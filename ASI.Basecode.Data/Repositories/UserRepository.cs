@@ -136,7 +136,13 @@ namespace ASI.Basecode.Data.Repositories
             var referencesSupport = this.Context.SupportTickets.Any(t => t.RequesterUserId == userId)
                 || this.Context.SupportTicketReplies.Any(r => r.AuthorUserId == userId);
 
-            return referencesBorrowing || referencesReservation || referencesMovement || referencesSupport;
+            // Audit-critical relations that must keep pointing at a real user. Notifications,
+            // audit-log actors and "verified by" references are detached in UserService.Delete.
+            var referencesReturns = this.Context.BorrowingReturns.Any(r => r.ReceivedByUserId == userId);
+            var referencesInspections = this.Context.ConditionInspections.Any(i => i.InspectedByUserId == userId);
+
+            return referencesBorrowing || referencesReservation || referencesMovement || referencesSupport
+                || referencesReturns || referencesInspections;
         }
 
         public UserTotals GetTotals()

@@ -126,6 +126,7 @@ public partial class AllianceDbContext
             entity.Property(e => e.Title).HasMaxLength(200).HasColumnName("title");
             entity.Property(e => e.Body).HasMaxLength(2000).HasColumnName("body");
             entity.Property(e => e.TargetRoles).HasMaxLength(100).HasColumnName("target_roles");
+            entity.Property(e => e.Category).HasMaxLength(20).HasColumnName("category");
             entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id");
             entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("(sysutcdatetime())").HasColumnName("created_at_utc");
             entity.Property(e => e.ExpiresAtUtc).HasColumnName("expires_at_utc");
@@ -145,9 +146,12 @@ public partial class AllianceDbContext
             entity.Property(e => e.Subject).HasMaxLength(200).HasColumnName("subject");
             entity.Property(e => e.Body).HasMaxLength(4000).HasColumnName("body");
             entity.Property(e => e.Status).HasMaxLength(20).HasColumnName("status");
+            entity.Property(e => e.TargetRoleCode).HasMaxLength(20).HasColumnName("target_role_code");
             entity.Property(e => e.AssignedToUserId).HasColumnName("assigned_to_user_id");
             entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("(sysutcdatetime())").HasColumnName("created_at_utc");
             entity.Property(e => e.ResolvedAtUtc).HasColumnName("resolved_at_utc");
+            entity.Property(e => e.EscalatedAtUtc).HasColumnName("escalated_at_utc");
+            entity.Property(e => e.EscalatedByUserId).HasColumnName("escalated_by_user_id");
             entity.HasOne(d => d.RequesterUser).WithMany()
                 .HasForeignKey(d => d.RequesterUserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

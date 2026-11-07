@@ -11,7 +11,10 @@
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var displayName = User.Identity?.Name ?? "Guest";
     var initials = displayName.Length > 0 ? displayName.Substring(0, 1).ToUpperInvariant() : "U";
-    var roleLabel = isBorrower ? "Student" : (isAdmin ? "Administrator" : "Custodian");
+    var roleLabel = string.Equals(role, "STUDENT", StringComparison.OrdinalIgnoreCase) ? "Student"
+                  : string.Equals(role, "FACULTY", StringComparison.OrdinalIgnoreCase) ? "Faculty"
+                  : isAdmin ? "Administrator"
+                  : "Custodian";
     var crumb = ViewData["Title"]?.ToString() ?? "Dashboard";
 }
 <!DOCTYPE html>
@@ -171,13 +174,16 @@
             }
         </div>
         <div class="spacer"></div>
-        <div class="sys-card">
-            <div class="sys-row"><div class="live"></div><div class="sys-t">System Online</div></div>
-            <div class="sys-row">
-                <svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                <div>Property Office - Main Campus</div>
+        @if (!isBorrower)
+        {
+            <div class="sys-card">
+                <div class="sys-row"><div class="live"></div><div class="sys-t">System Online</div></div>
+                <div class="sys-row">
+                    <svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                    <div>Property Office - Main Campus</div>
+                </div>
             </div>
-        </div>
+        }
         @if (User.Identity?.IsAuthenticated == true)
         {
             <form method="post" action="/Account/Logout" class="craft-logout">

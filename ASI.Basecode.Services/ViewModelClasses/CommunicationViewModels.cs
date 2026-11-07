@@ -1,3 +1,4 @@
+using ASI.Basecode.Data;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -10,6 +11,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string Title { get; set; }
         public string Body { get; set; }
         public string TargetRoles { get; set; }
+        public string Category { get; set; }
         public string AudienceLabel { get; set; }
         public string CreatedByName { get; set; }
         public DateTime CreatedAtUtc { get; set; }
@@ -32,11 +34,16 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         /// <summary>Optional local date after which the banner stops showing.</summary>
         public DateTime? ExpiresOn { get; set; }
+
+        /// <summary>MAINTENANCE | RULE_CHANGE | GENERAL.</summary>
+        [Required(ErrorMessage = "Choose an announcement type.")]
+        public string Category { get; set; } = "GENERAL";
     }
 
     public class AnnouncementIndexViewModel
     {
         public List<AnnouncementRowViewModel> Items { get; set; } = new();
+        public PagedResult<AnnouncementRowViewModel> Page { get; set; } = new PagedResult<AnnouncementRowViewModel>();
         public AnnouncementFormViewModel Form { get; set; } = new();
     }
 
@@ -46,6 +53,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string Category { get; set; }
         public string Subject { get; set; }
         public string Status { get; set; }
+        public string TargetRoleCode { get; set; }
         public string RequesterName { get; set; }
         public string RequesterIdentifier { get; set; }
         public DateTime CreatedAtUtc { get; set; }
@@ -56,8 +64,11 @@ namespace ASI.Basecode.Services.ViewModelClasses
     public class SupportTicketIndexViewModel
     {
         public List<SupportTicketRowViewModel> Items { get; set; } = new();
-        /// <summary>Staff see every ticket; borrowers see their own.</summary>
+        /// <summary>Staff see tickets routed to their role; borrowers see their own.</summary>
         public bool IsStaffView { get; set; }
+        public bool IsCustodian { get; set; }
+        public bool IsAdmin { get; set; }
+        public string View { get; set; } = "inbox";
         public string Status { get; set; }
         public int OpenCount { get; set; }
     }
@@ -91,15 +102,18 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string Subject { get; set; }
         public string Body { get; set; }
         public string Status { get; set; }
+        public string TargetRoleCode { get; set; }
         public long RequesterUserId { get; set; }
         public string RequesterName { get; set; }
         public string RequesterIdentifier { get; set; }
         public string RequesterStatus { get; set; }
         public DateTime CreatedAtUtc { get; set; }
         public DateTime? ResolvedAtUtc { get; set; }
+        public DateTime? EscalatedAtUtc { get; set; }
         public List<SupportReplyViewModel> Replies { get; set; } = new();
         public bool CanResolve { get; set; }
         public bool CanReply { get; set; }
+        public bool CanEscalate { get; set; }
     }
 
     /// <summary>Admin: one borrower's reservation and borrowing history.</summary>

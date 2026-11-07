@@ -19,11 +19,12 @@
     <form method="post" action="/Account/Login">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="ReturnUrl" />
-        <div asp-validation-summary="ModelOnly" class="cp-alert cp-alert-error"></div>
+        <div asp-validation-summary="All" class="cp-alert cp-alert-error"></div>
 
         <div class="cp-form-group">
-            <label class="cp-form-label" asp-for="UserId">Username <span class="required">*</span></label>
-            <input asp-for="UserId" class="cp-input" placeholder="e.g. 2023-104857 or maria.santos@university.edu.ph" autocomplete="username" required />
+            <label class="cp-form-label" asp-for="UserId">School Email <span class="required">*</span></label>
+            <input asp-for="UserId" type="email" class="cp-input" placeholder="Enter your school email" autocomplete="username" required />
+            <span asp-validation-for="UserId" class="cp-form-error"></span>
         </div>
         <div class="cp-form-group">
             <label class="cp-form-label" asp-for="Password">Password <span class="required">*</span></label>

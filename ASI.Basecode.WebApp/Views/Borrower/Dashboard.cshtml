@@ -126,7 +126,7 @@ else if (Model.AccountStatus == "REJECTED")
                 {
                     <div class="cp-empty-state compact"><div class="cp-empty-state-text">No upcoming due dates.</div></div>
                 }
-                @foreach (var due in Model.UpcomingDue)
+                @foreach (var due in Model.UpcomingDue.Take(5))
                 {
                     var dueToday = due.IsDueToday && !due.IsOverdue;
                     <div class="cp-list-row">

@@ -102,19 +102,9 @@ namespace ASI.Basecode.WebApp.Controllers
         [HttpGet]
         public IActionResult Scan(string code)
         {
-            var result = this._custodianService.ResolveScan(code);
-            if (result.Matches.Count == 1)
-            {
-                var match = result.Matches[0];
-                return match.Kind switch
-                {
-                    "RELEASE" => this.RedirectToAction(nameof(this.Release), new { id = match.Id }),
-                    "RETURN" => this.RedirectToAction("Create", "Returns", new { id = match.Id }),
-                    _ => this.RedirectToAction(nameof(this.Review), new { id = match.Id }),
-                };
-            }
-
-            return this.View(result);
+            // Always show the result/confirm screen so the custodian sees what the code resolved to
+            // (and can choose the right action) instead of being jumped to a page silently.
+            return this.View(this._custodianService.ResolveScan(code));
         }
 
         /// <summary>
@@ -202,6 +192,12 @@ namespace ASI.Basecode.WebApp.Controllers
             if (!this.ModelState.IsValid)
             {
                 var ctx = this._custodianService.GetReleaseContext(form.ReservationId);
+                if (ctx == null)
+                {
+                    this.TempData["ErrorMessage"] = ASI.Basecode.Resources.Messages.Errors.CustodianReservationNotFound;
+                    return this.RedirectToAction(nameof(this.Reservations));
+                }
+
                 this.ViewBag.ConditionOptions = this.ToSelectList(ctx.ConditionOptions, form.ReleaseConditionId, "-- Select condition --");
                 this.ViewBag.Context = ctx;
                 return this.View(form);
@@ -212,6 +208,12 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 this.ModelState.AddModelError(string.Empty, error);
                 var ctx = this._custodianService.GetReleaseContext(form.ReservationId);
+                if (ctx == null)
+                {
+                    this.TempData["ErrorMessage"] = ASI.Basecode.Resources.Messages.Errors.CustodianReservationNotFound;
+                    return this.RedirectToAction(nameof(this.Reservations));
+                }
+
                 this.ViewBag.ConditionOptions = this.ToSelectList(ctx.ConditionOptions, form.ReleaseConditionId, "-- Select condition --");
                 this.ViewBag.Context = ctx;
                 return this.View(form);

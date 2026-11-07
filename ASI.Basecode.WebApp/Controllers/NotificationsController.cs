@@ -32,7 +32,7 @@ namespace ASI.Basecode.WebApp.Controllers
             this._currentUser = currentUser;
         }
 
-        public IActionResult Index(string search, string status, string type)
+        public IActionResult Index(string search, string status, string type, int page = 1)
         {
             var id = this._currentUser.GetActorUserId();
             if (!id.HasValue)
@@ -41,35 +41,10 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.RedirectToAction("Login", "Account");
             }
 
-            var model = this._service.GetNotifications(id.Value);
-            var items = model.Notifications.AsEnumerable();
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var term = search.Trim();
-                items = items.Where(n =>
-                    (n.Title ?? string.Empty).Contains(term, StringComparison.OrdinalIgnoreCase) ||
-                    (n.Message ?? string.Empty).Contains(term, StringComparison.OrdinalIgnoreCase));
-            }
-
-            if (string.Equals(status, "unread", StringComparison.OrdinalIgnoreCase))
-            {
-                items = items.Where(n => !n.IsRead);
-            }
-            else if (string.Equals(status, "read", StringComparison.OrdinalIgnoreCase))
-            {
-                items = items.Where(n => n.IsRead);
-            }
-
-            if (!string.IsNullOrWhiteSpace(type) && !string.Equals(type, "all", StringComparison.OrdinalIgnoreCase))
-            {
-                items = items.Where(n => string.Equals(n.NotificationType, type, StringComparison.OrdinalIgnoreCase));
-            }
-
-            model.Notifications = items.ToList();
+            var model = this._service.GetNotifications(id.Value, search, status, type, page, 10);
             this.ViewBag.Search = search;
-            this.ViewBag.Status = string.IsNullOrWhiteSpace(status) ? "all" : status;
-            this.ViewBag.Type = string.IsNullOrWhiteSpace(type) ? "all" : type;
+            this.ViewBag.Status = model.Status;
+            this.ViewBag.Type = model.Type;
 
             return this.View(model);
         }

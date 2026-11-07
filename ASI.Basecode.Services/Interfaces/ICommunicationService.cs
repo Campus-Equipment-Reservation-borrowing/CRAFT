@@ -8,7 +8,7 @@ namespace ASI.Basecode.Services.Interfaces
     /// </summary>
     public interface ICommunicationService
     {
-        AnnouncementIndexViewModel GetAnnouncements();
+        AnnouncementIndexViewModel GetAnnouncements(int page = 1, int pageSize = 10);
 
         /// <summary>Publishes an announcement and notifies every active user in the target roles (respecting preferences).</summary>
         (bool Success, string Error) PublishAnnouncement(AnnouncementFormViewModel form);
@@ -18,7 +18,10 @@ namespace ASI.Basecode.Services.Interfaces
         /// <summary>Unexpired announcements addressed to <paramref name="roleCode"/> (newest first).</summary>
         List<AnnouncementRowViewModel> GetActiveAnnouncementsFor(string roleCode, int take = 3);
 
-        SupportTicketIndexViewModel GetTickets(string status);
+        /// <summary>Newest active MAINTENANCE announcement, or null when the system is not in maintenance.</summary>
+        AnnouncementRowViewModel GetActiveMaintenanceAnnouncement();
+
+        SupportTicketIndexViewModel GetTickets(string status, string view = null);
 
         /// <summary>Opens a ticket for the signed-in user and notifies administrators.</summary>
         (bool Success, string Error, long TicketId) CreateTicket(SupportTicketFormViewModel form);
@@ -29,6 +32,9 @@ namespace ASI.Basecode.Services.Interfaces
         (bool Success, string Error) Reply(long ticketId, string body);
 
         (bool Success, string Error) Resolve(long ticketId);
+
+        /// <summary>Custodian forwards a borrower ticket to the administrator when it cannot be resolved locally.</summary>
+        (bool Success, string Error) Escalate(long ticketId);
 
         VerificationStatsViewModel GetVerificationStats();
 

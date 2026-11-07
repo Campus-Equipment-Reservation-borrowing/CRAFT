@@ -59,6 +59,12 @@ namespace ASI.Basecode.Resources.Constants
 
         /// <summary>Support ticket activity — always delivered.</summary>
         public const string Support = "SUPPORT";
+
+        /// <summary>All notification type codes, for filter dropdowns.</summary>
+        public static readonly string[] All =
+        {
+            Reservation, DueReminder, Overdue, Return, Announcement, Account, Alert, Support,
+        };
     }
 
     /// <summary>
@@ -86,6 +92,7 @@ namespace ASI.Basecode.Resources.Constants
     public static class SupportTicketStatuses
     {
         public const string Open = "OPEN";
+        public const string Escalated = "ESCALATED";
         public const string Resolved = "RESOLVED";
     }
 
