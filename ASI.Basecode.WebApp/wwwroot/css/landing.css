@@ -324,6 +324,19 @@ body {
     padding-top: 24px;
 }
 
+.lp-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.lp-section-heading .lp-btn {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
 .lp-section-title {
     font-size: 22px;
     font-weight: 700;
@@ -335,7 +348,7 @@ body {
     font-size: 13px;
     font-weight: 400;
     color: var(--lp-text-gray);
-    margin: 0 0 32px;
+    margin: 0;
 }
 
 /* How it works */
@@ -524,6 +537,18 @@ body {
     }
     .lp-section {
         padding: 40px 24px;
+    }
+
+    .lp-section-heading {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .lp-section-heading .lp-btn {
+        align-self: flex-start;
+        margin-top: 0;
     }
 }
 
