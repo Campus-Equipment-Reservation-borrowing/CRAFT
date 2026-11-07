@@ -12,7 +12,22 @@
     <div class="cp-card">
         <div class="cp-profile-header">
             <div class="cp-profile-idblock">
-                <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+                <div class="cp-profile-photo">
+                    @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
+                    {
+                        <img src="@Model.ProfileImagePath" alt="Profile photo for @Model.FullName" class="cp-avatar-lg cp-avatar-photo" />
+                    }
+                    else
+                    {
+                        <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+                    }
+                    <form method="post" action="/Profile/UploadPhoto" enctype="multipart/form-data" class="cp-profile-photo-form">
+                        @Html.AntiForgeryToken()
+                        <input id="profilePhoto" name="profilePhoto" type="file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" aria-label="Choose profile photo" required />
+                        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Upload</button>
+                        <span class="cp-form-hint">JPG, PNG, WEBP or GIF, up to 5 MB.</span>
+                    </form>
+                </div>
                 <div class="cp-stack">
                     <div>
                         <div class="cp-profile-name">@Model.FullName</div>

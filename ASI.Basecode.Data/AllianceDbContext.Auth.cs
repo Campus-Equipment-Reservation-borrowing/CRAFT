@@ -35,6 +35,9 @@ public partial class AllianceDbContext
             entity.Property(e => e.AlternateContact)
                 .HasMaxLength(100)
                 .HasColumnName("alternate_contact");
+            entity.Property(e => e.ProfileImagePath)
+                .HasMaxLength(500)
+                .HasColumnName("profile_image_path");
             entity.Property(e => e.VerificationNote)
                 .HasMaxLength(500)
                 .HasColumnName("verification_note");

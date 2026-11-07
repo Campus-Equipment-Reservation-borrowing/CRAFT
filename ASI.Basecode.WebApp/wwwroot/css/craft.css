@@ -58,19 +58,19 @@ html, body {
     flex-shrink: 0;
 }
 
-.craft-burger span {
-    display: block;
-    width: 16px;
-    height: 2px;
-    border-radius: 2px;
-    background: #42504A;
-    transition: background 0.15s;
-}
+    .craft-burger span {
+        display: block;
+        width: 16px;
+        height: 2px;
+        border-radius: 2px;
+        background: #42504A;
+        transition: background 0.15s;
+    }
 
-.craft-burger:hover {
-    background: #F7FAF8;
-    border-color: #C4D6CB;
-}
+    .craft-burger:hover {
+        background: #F7FAF8;
+        border-color: #C4D6CB;
+    }
 
 .craft-header .brand {
     padding: 0;
@@ -100,15 +100,16 @@ html, body {
     align-items: stretch;
 }
 
-.craft-body .craft-sidebar {
-    flex: 0 0 270px;
-    width: 270px;
-    min-height: 0 !important;
-    height: auto;
-    position: relative;
-    top: 0;
-    overflow-y: auto;
-}
+    .craft-body .craft-sidebar {
+        flex: 0 0 270px;
+        width: 270px;
+        min-height: 0 !important;
+        height: auto;
+        position: relative;
+        top: 0;
+        overflow-y: auto;
+        transition: flex-basis .2s ease, width .2s ease;
+    }
 
 /* Footer lives inside the scroll area: it follows the content on long pages and is
    pushed to the bottom of the viewport on short ones. */
@@ -122,14 +123,37 @@ html, body {
     flex-direction: column;
 }
 
-.craft-main > .content {
-    flex: 1 0 auto;
+    .craft-main > .content {
+        flex: 1 0 auto;
+    }
+
+/* Collapsed sidebar = icon rail (desktop only) */
+@media (min-width: 901px) {
+    .craft-shell.sidebar-collapsed .craft-sidebar {
+        flex: 0 0 72px;
+        width: 72px;
+        padding-left: 8px;
+        padding-right: 8px;
+        overflow-x: hidden;
+    }
+
+        /* hide the text, keep the icons */
+        .craft-shell.sidebar-collapsed .craft-sidebar .nav-label,
+        .craft-shell.sidebar-collapsed .craft-sidebar .nav-item > div,
+        .craft-shell.sidebar-collapsed .craft-sidebar .sys-card {
+            display: none;
+        }
+
+        /* center the icons */
+        .craft-shell.sidebar-collapsed .craft-sidebar .nav-item {
+            justify-content: center;
+            gap: 0;
+            padding-left: 0;
+            padding-right: 0;
+        }
 }
 
-.craft-shell.sidebar-collapsed .craft-sidebar {
-    display: none;
-}
-
+/* Mobile: overlay sidebar, hidden until the burger opens it */
 @media (max-width: 900px) {
     .craft-body .craft-sidebar {
         position: absolute;
@@ -140,8 +164,17 @@ html, body {
         height: 100%;
         box-shadow: 12px 0 30px -18px rgba(16, 45, 32, 0.35);
     }
+
     .craft-header .brand-sub {
         display: none;
+    }
+
+    .craft-shell .craft-sidebar {
+        display: none;
+    }
+
+    .craft-shell.sidebar-open .craft-sidebar {
+        display: flex;
     }
 }
 
@@ -152,20 +185,23 @@ html, body {
     justify-content: space-between;
     gap: 12px;
 }
-.metrics .metric > div:not(.metric-top) {
-    order: 1;
-    min-width: 0;
-}
-.metrics .metric .metric-top {
-    order: 2;
-    margin-left: auto;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-}
-.metrics .metric .m-ic {
-    margin: 0;
-}
+
+    .metrics .metric > div:not(.metric-top) {
+        order: 1;
+        min-width: 0;
+    }
+
+    .metrics .metric .metric-top {
+        order: 2;
+        margin-left: auto;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .metrics .metric .m-ic {
+        margin: 0;
+    }
 
 .name-link {
     color: #168A5B;
@@ -175,10 +211,11 @@ html, body {
     text-underline-offset: 2px;
     transition: color 0.15s, text-decoration-color 0.15s;
 }
-.name-link:hover {
-    color: #0B5D3E;
-    text-decoration-color: #168A5B;
-}
+
+    .name-link:hover {
+        color: #0B5D3E;
+        text-decoration-color: #168A5B;
+    }
 
 /* Footer: last item of .craft-main, see above */
 .craft-footer {
@@ -193,12 +230,14 @@ html, body {
     justify-content: space-between;
     gap: 16px;
 }
+
 .footer-brand {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
 }
+
 .footer-mark {
     width: 28px;
     height: 28px;
@@ -212,6 +251,7 @@ html, body {
     font-weight: 700;
     flex-shrink: 0;
 }
+
 .footer-name {
     font-size: 13.5px;
     font-weight: 700;
@@ -219,16 +259,19 @@ html, body {
     letter-spacing: -0.3px;
     line-height: 1.15;
 }
+
 .footer-copy {
     font-size: 11px;
     color: #7C8A83;
     font-weight: 500;
     flex-shrink: 0;
 }
+
 @media (max-width: 600px) {
     .craft-footer {
         padding: 10px 14px;
     }
+
     .footer-copy {
         font-size: 10.5px;
     }
@@ -259,36 +302,64 @@ html, body {
     margin: 0 auto;
 }
 
-.craft-header .icon-btn { position: relative; }
-.craft-header .uinfo.end { align-items: flex-end; }
-.craft-header .avatar.accent { background: #FDECE2; color: #99441A; }
-.craft-header .brand-mark { width: 38px; height: 38px; }
-
-.craft-logout { margin: 0; }
-.craft-logout .nav-item {
-    background: none;
-    border: 0;
-    width: 100%;
-    font-family: inherit;
-    cursor: pointer;
-    text-align: left;
+.craft-header .icon-btn {
+    position: relative;
 }
 
+.craft-header .uinfo.end {
+    align-items: flex-end;
+}
+
+.craft-header .avatar.accent {
+    background: #FDECE2;
+    color: #99441A;
+}
+
+.craft-header .brand-mark {
+    width: 38px;
+    height: 38px;
+}
+
+.craft-logout {
+    margin: 0;
+}
+
+    .craft-logout .nav-item {
+        background: none;
+        border: 0;
+        width: 100%;
+        font-family: inherit;
+        cursor: pointer;
+        text-align: left;
+    }
+
 @media (max-width: 600px) {
-    .craft-header .uinfo { display: none; }
-    .craft-main > .content { padding: 14px 12px 20px; }
+    .craft-header .uinfo {
+        display: none;
+    }
+
+    .craft-main > .content {
+        padding: 14px 12px 20px;
+    }
 }
 
 /* campuspulse.css makes every <a> a block; links inside running text must stay inline */
-p a, li a, dd a, span a, label a, .banner-b a, .cp-cell-sub a, .cp-page-subtitle a { display: inline; }
-.cp-page-subtitle a { color: var(--color-primary); font-weight: 600; }
+p a, li a, dd a, span a, label a, .banner-b a, .cp-cell-sub a, .cp-page-subtitle a {
+    display: inline;
+}
 
-@media (max-width: 900px) {
-    /* Overlay sidebar: hidden until the burger opens it, regardless of the desktop collapsed state */
-    .craft-shell .craft-sidebar { display: none; }
-    .craft-shell.sidebar-open .craft-sidebar { display: flex; }
+.cp-page-subtitle a {
+    color: var(--color-primary);
+    font-weight: 600;
 }
 
 /* Tab strips scroll sideways instead of running off narrow screens */
-.tabs { overflow-x: auto; scrollbar-width: thin; }
-.tabs .tab { flex-shrink: 0; white-space: nowrap; }
+.tabs {
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+    .tabs .tab {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }

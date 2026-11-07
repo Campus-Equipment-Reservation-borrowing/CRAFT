@@ -23,6 +23,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         public string ContactNumber { get; set; }
         public string AlternateContact { get; set; }
+        public string ProfileImagePath { get; set; }
 
         public int ActiveBorrowings { get; set; }
         public int CompletedBorrowings { get; set; }

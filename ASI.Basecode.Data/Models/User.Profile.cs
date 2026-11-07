@@ -14,5 +14,8 @@ public partial class User
     /// <summary>Optional alternate contact (guardian, landline).</summary>
     public string AlternateContact { get; set; }
 
+    /// <summary>Web-relative path to the user's profile photo.</summary>
+    public string ProfileImagePath { get; set; }
+
     public virtual UserPreference Preference { get; set; }
 }

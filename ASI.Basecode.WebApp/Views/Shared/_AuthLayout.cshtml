@@ -1,5 +1,14 @@
 @{
     Layout = null;
+
+    var routeValues = ViewContext.RouteData.Values;
+    var controller = routeValues["controller"]?.ToString() ?? "";
+    var action = routeValues["action"]?.ToString() ?? "";
+
+    var isAccount = controller.Equals("Account", StringComparison.OrdinalIgnoreCase);
+    var isRegisterPage = isAccount &&
+        (action.Equals("Register", StringComparison.OrdinalIgnoreCase) ||
+         action.Equals("CreateAccount", StringComparison.OrdinalIgnoreCase));
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -27,7 +36,14 @@
             </a>
             <div class="cp-auth-nav-links">
                 <a href="/">Home</a>
-                <a href="/Account/Register">Create Account</a>
+                @if (isRegisterPage)
+                {
+                    <a href="/Account/Login">Log in</a>
+                }
+                else
+                {
+                    <a href="/Account/Register">Create account</a>
+                }
             </div>
         </nav>
 

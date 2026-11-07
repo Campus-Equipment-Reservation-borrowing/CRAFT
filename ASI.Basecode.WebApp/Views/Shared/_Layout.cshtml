@@ -174,6 +174,7 @@
             }
         </div>
         <div class="spacer"></div>
+        @*
         @if (!isBorrower)
         {
             <div class="sys-card">
@@ -184,13 +185,14 @@
                 </div>
             </div>
         }
+        *@
         @if (User.Identity?.IsAuthenticated == true)
         {
             <form method="post" action="/Account/Logout" class="craft-logout">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="nav-item">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 21H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/><path d="M17 16l4-4-4-4M21 12H9"/></svg>
-                    <div>Sign Out</div>
+                    <div>Log Out</div>
                 </button>
             </form>
         }
@@ -237,6 +239,10 @@
         var shell = document.getElementById('craftShell');
         var toggle = document.getElementById('sidebarToggle');
         if (!shell || !toggle) return;
+        document.querySelectorAll('#appSidebar .nav-item').forEach(function (item) {
+            var text = item.querySelector('div');
+            if (text && !item.title) item.title = text.textContent.trim();
+        });
         var key = 'craft.sidebar.collapsed';
         // On narrow screens the sidebar is an overlay: closed on every page load, opened on demand.
         var narrow = window.matchMedia('(max-width: 900px)');
