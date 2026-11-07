@@ -558,9 +558,20 @@ END;");
                     new Condition { Code = "MISSING_PARTS", Description = "Missing Parts", AffectsAvailability = true },
                     new Condition { Code = "LOST", Description = "Lost", AffectsAvailability = true },
                     new Condition { Code = "AVAILABLE", Description = "Available", AffectsAvailability = false },
+                     new Condition { Code = "UNAVAILABLE", Description = "Unavailable", AffectsAvailability = true },
                     new Condition { Code = "UNDER_MAINTENANCE", Description = "Under Maintenance", AffectsAvailability = true });
                 changed = true;
             }
+             else if (!db.Conditions.Any(c => c.Code == "UNAVAILABLE"))
+             {
+                 db.Conditions.Add(new Condition
+                 {
+                     Code = "UNAVAILABLE",
+                     Description = "Unavailable",
+                     AffectsAvailability = true,
+                 });
+                 changed = true;
+             }
 
             if (!db.Departments.Any())
             {

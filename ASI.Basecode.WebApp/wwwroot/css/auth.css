@@ -99,6 +99,52 @@
     text-decoration: underline;
 }
 
+.cp-password-field {
+    position: relative;
+}
+
+.cp-password-field .cp-input {
+    padding-right: 68px;
+}
+
+.cp-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    border: 0;
+    padding: 4px;
+    background: transparent;
+    color: var(--color-primary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cp-password-toggle:hover {
+    color: var(--color-primary-light);
+}
+
+.cp-password-toggle:focus-visible {
+    outline: 2px solid rgba(22, 138, 91, 0.35);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.cp-login-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.cp-forgot-link {
+    flex-shrink: 0;
+    font-size: 12px;
+}
+
 .cp-auth-divider {
     display: flex;
     align-items: center;

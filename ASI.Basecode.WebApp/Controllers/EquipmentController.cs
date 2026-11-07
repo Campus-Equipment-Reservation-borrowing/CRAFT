@@ -65,9 +65,9 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.ViewBag.LocationOptions = this.ToSelectList(
                     this._equipmentService.GetLocationOptions(), model.LocationId, "All Locations");
                 this.ViewBag.ConditionOptions = this.ToSelectList(
-                    this._equipmentService.GetConditionOptions(), model.ConditionId, "All Conditions");
+                    this.GetConditionClassificationOptions(), model.ConditionId, "All Conditions");
                 this.ViewBag.OperationalStatusOptions = this.ToSelectList(
-                    this._equipmentService.GetConditionOptions(), model.OperationalStatusId, "All Statuses");
+                    this.GetOperationalStatusOptions(), model.OperationalStatusId, "All Statuses");
 
                 return this.View(model);
             }
@@ -83,8 +83,8 @@ namespace ASI.Basecode.WebApp.Controllers
         {
             this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), null, "-- Select category --");
             this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), null, "-- Select location --");
-            this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), null, "-- Select condition --");
-            this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), null, "-- Select status --");
+            this.ViewBag.ConditionOptions = this.ToSelectList(this.GetConditionClassificationOptions(), null, "-- Select condition --");
+            this.ViewBag.OperationalStatusOptions = this.ToSelectList(this.GetOperationalStatusOptions(), null, "-- Select status --");
 
             return this.View(new EquipmentFormViewModel());
         }
@@ -110,8 +110,8 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), form.EquipmentCategoryId, "-- Select category --");
                 this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), form.LocationId, "-- Select location --");
-                this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.OperationalStatusId, "-- Select status --");
+                this.ViewBag.ConditionOptions = this.ToSelectList(this.GetConditionClassificationOptions(), form.CurrentConditionId, "-- Select condition --");
+                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this.GetOperationalStatusOptions(), form.OperationalStatusId, "-- Select status --");
                 return this.View(form);
             }
 
@@ -121,8 +121,8 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.ModelState.AddModelError(string.Empty, error);
                 this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), form.EquipmentCategoryId, "-- Select category --");
                 this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), form.LocationId, "-- Select location --");
-                this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.OperationalStatusId, "-- Select status --");
+                this.ViewBag.ConditionOptions = this.ToSelectList(this.GetConditionClassificationOptions(), form.CurrentConditionId, "-- Select condition --");
+                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this.GetOperationalStatusOptions(), form.OperationalStatusId, "-- Select status --");
                 return this.View(form);
             }
 
@@ -141,8 +141,8 @@ namespace ASI.Basecode.WebApp.Controllers
 
             this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), form.EquipmentCategoryId, "-- Select category --");
             this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), form.LocationId, "-- Select location --");
-            this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-            this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.OperationalStatusId, "-- Select status --");
+            this.ViewBag.ConditionOptions = this.ToSelectList(this.GetConditionClassificationOptions(), form.CurrentConditionId, "-- Select condition --");
+            this.ViewBag.OperationalStatusOptions = this.ToSelectList(this.GetOperationalStatusOptions(), form.OperationalStatusId, "-- Select status --");
 
             return this.View(form);
         }
@@ -174,8 +174,8 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), form.EquipmentCategoryId, "-- Select category --");
                 this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), form.LocationId, "-- Select location --");
-                this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.OperationalStatusId, "-- Select status --");
+                this.ViewBag.ConditionOptions = this.ToSelectList(this.GetConditionClassificationOptions(), form.CurrentConditionId, "-- Select condition --");
+                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this.GetOperationalStatusOptions(), form.OperationalStatusId, "-- Select status --");
                 return this.View(form);
             }
 
@@ -281,6 +281,22 @@ namespace ASI.Basecode.WebApp.Controllers
                 this._logger.LogError(ex, "Failed to save equipment image.");
                 return (null, "Unable to save the uploaded image. Please try again.");
             }
+        }
+
+        private List<LookupViewModel> GetConditionClassificationOptions()
+        {
+            return this._equipmentService.GetConditionOptions()
+                .Where(o => !string.Equals(o.Text, "Available", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(o.Text, "Unavailable", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        private List<LookupViewModel> GetOperationalStatusOptions()
+        {
+            return this._equipmentService.GetConditionOptions()
+                .Where(o => string.Equals(o.Text, "Available", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(o.Text, "Unavailable", StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
 
         private SelectList ToSelectList(System.Collections.Generic.IEnumerable<LookupViewModel> options, long? selected, string emptyText)
