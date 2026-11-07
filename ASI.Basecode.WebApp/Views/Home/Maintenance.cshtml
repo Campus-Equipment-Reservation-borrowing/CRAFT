@@ -1,0 +1,18 @@
+@model ASI.Basecode.Services.ViewModelClasses.AnnouncementRowViewModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "System Maintenance";
+}
+<div class="cp-auth-card">
+    <h1 class="cp-auth-title">System under maintenance</h1>
+    <p class="cp-auth-subtitle">CRAFT is temporarily unavailable while the Property Office performs maintenance.</p>
+
+    <div class="cp-alert cp-alert-error">
+        <strong>@Model.Title</strong>
+        <div style="white-space:pre-line;margin-top:6px;">@Model.Body</div>
+    </div>
+
+    <p class="text-center" style="font-size:12.5px;color:var(--color-text-gray);margin:16px 0 0;">
+        Administrators can <a href="/Account/Login" class="cp-auth-link">sign in</a> to manage this notice.
+    </p>
+</div>

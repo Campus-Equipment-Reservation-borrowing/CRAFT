@@ -47,6 +47,7 @@ namespace ASI.Basecode.Services.Services
             this.RunSchemaStep("custodian assignments", this.EnsureCustodianAssignmentSchema);
             this.RunSchemaStep("reservation lifecycle", this.EnsureLifecycleSchema);
             this.RunSchemaStep("announcements and support", this.EnsureCommunicationSchema);
+            this.RunSchemaStep("demo announcement cleanup", this.RemoveLegacyDemoAnnouncements);
 
             try
             {
@@ -59,6 +60,18 @@ namespace ASI.Basecode.Services.Services
                 // Never take the app down on seeding failure — surface it in the log instead.
                 this._logger.LogError(ex, "Database seeding failed.");
             }
+        }
+
+        /// <summary>Removes the old hand-inserted demo announcements and their notifications.</summary>
+        private void RemoveLegacyDemoAnnouncements()
+        {
+            this.DbContext.Database.ExecuteSqlRaw(@"
+DELETE FROM dbo.notifications
+WHERE notification_type = 'ANNOUNCEMENT'
+  AND title IN (N'Smoke test announcement', N'Preference gating test');
+
+DELETE FROM dbo.announcements
+WHERE title IN (N'Smoke test announcement', N'Preference gating test');");
         }
 
         private void RunSchemaStep(string name, Action step)
@@ -96,9 +109,14 @@ IF COL_LENGTH('dbo.users', 'lockout_until_utc') IS NULL
     ALTER TABLE dbo.users ADD lockout_until_utc datetime2 NULL;");
         }
 
-        /// <summary>Announcements, support tickets and ticket replies.</summary>
+        /// <summary>
+        /// Announcements, support tickets and replies. Older databases shipped these tables under
+        /// different column names (message/audience_role_code/user_id/status_code/...), so this
+        /// upgrades them to the names the EF model expects before anything queries them.
+        /// </summary>
         private void EnsureCommunicationSchema()
         {
+            // ---- announcements -------------------------------------------------------
             this.DbContext.Database.ExecuteSqlRaw(@"
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'announcements')
 BEGIN
@@ -106,7 +124,8 @@ BEGIN
         announcement_id bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_announcements PRIMARY KEY,
         title nvarchar(200) NOT NULL,
         body nvarchar(2000) NOT NULL,
-        target_roles nvarchar(100) NOT NULL,
+        target_roles nvarchar(100) NULL,
+        category nvarchar(20) NOT NULL CONSTRAINT DF_announcements_category DEFAULT ('GENERAL'),
         created_by_user_id bigint NULL,
         created_at_utc datetime2 NOT NULL CONSTRAINT DF_announcements_created DEFAULT (sysutcdatetime()),
         expires_at_utc datetime2 NULL,
@@ -114,6 +133,21 @@ BEGIN
     );
 END;
 
+IF COL_LENGTH('dbo.announcements', 'message') IS NOT NULL AND COL_LENGTH('dbo.announcements', 'body') IS NULL
+    EXEC sp_rename N'dbo.announcements.message', N'body', 'COLUMN';
+
+IF COL_LENGTH('dbo.announcements', 'audience_role_code') IS NOT NULL AND COL_LENGTH('dbo.announcements', 'target_roles') IS NULL
+    EXEC sp_rename N'dbo.announcements.audience_role_code', N'target_roles', 'COLUMN';
+
+IF COL_LENGTH('dbo.announcements', 'expires_at_utc') IS NULL
+    ALTER TABLE dbo.announcements ADD expires_at_utc datetime2 NULL;
+
+IF COL_LENGTH('dbo.announcements', 'category') IS NULL
+    ALTER TABLE dbo.announcements ADD category nvarchar(20) NOT NULL CONSTRAINT DF_announcements_category DEFAULT ('GENERAL');
+");
+
+            // ---- support tickets -----------------------------------------------------
+            this.DbContext.Database.ExecuteSqlRaw(@"
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'support_tickets')
 BEGIN
     CREATE TABLE dbo.support_tickets (
@@ -123,16 +157,58 @@ BEGIN
         subject nvarchar(200) NOT NULL,
         body nvarchar(4000) NOT NULL,
         status nvarchar(20) NOT NULL CONSTRAINT DF_support_tickets_status DEFAULT ('OPEN'),
+        target_role_code nvarchar(20) NOT NULL CONSTRAINT DF_support_tickets_target DEFAULT ('TECHNICIAN'),
         assigned_to_user_id bigint NULL,
         created_at_utc datetime2 NOT NULL CONSTRAINT DF_support_tickets_created DEFAULT (sysutcdatetime()),
         resolved_at_utc datetime2 NULL,
+        escalated_at_utc datetime2 NULL,
+        escalated_by_user_id bigint NULL,
         CONSTRAINT FK_support_tickets_requester FOREIGN KEY (requester_user_id) REFERENCES dbo.users(user_id),
-        CONSTRAINT FK_support_tickets_assignee FOREIGN KEY (assigned_to_user_id) REFERENCES dbo.users(user_id)
+        CONSTRAINT FK_support_tickets_assignee FOREIGN KEY (assigned_to_user_id) REFERENCES dbo.users(user_id),
+        CONSTRAINT FK_support_tickets_escalated_by FOREIGN KEY (escalated_by_user_id) REFERENCES dbo.users(user_id)
     );
-    CREATE INDEX IX_support_tickets_requester ON dbo.support_tickets(requester_user_id);
-    CREATE INDEX IX_support_tickets_status ON dbo.support_tickets(status);
 END;
 
+IF COL_LENGTH('dbo.support_tickets', 'support_ticket_id') IS NOT NULL AND COL_LENGTH('dbo.support_tickets', 'ticket_id') IS NULL
+    EXEC sp_rename N'dbo.support_tickets.support_ticket_id', N'ticket_id', 'COLUMN';
+
+IF COL_LENGTH('dbo.support_tickets', 'user_id') IS NOT NULL AND COL_LENGTH('dbo.support_tickets', 'requester_user_id') IS NULL
+    EXEC sp_rename N'dbo.support_tickets.user_id', N'requester_user_id', 'COLUMN';
+
+IF COL_LENGTH('dbo.support_tickets', 'message') IS NOT NULL AND COL_LENGTH('dbo.support_tickets', 'body') IS NULL
+    EXEC sp_rename N'dbo.support_tickets.message', N'body', 'COLUMN';
+
+IF COL_LENGTH('dbo.support_tickets', 'status_code') IS NOT NULL AND COL_LENGTH('dbo.support_tickets', 'status') IS NULL
+    EXEC sp_rename N'dbo.support_tickets.status_code', N'status', 'COLUMN';
+
+IF COL_LENGTH('dbo.support_tickets', 'responded_by_user_id') IS NOT NULL AND COL_LENGTH('dbo.support_tickets', 'assigned_to_user_id') IS NULL
+    EXEC sp_rename N'dbo.support_tickets.responded_by_user_id', N'assigned_to_user_id', 'COLUMN';
+
+IF COL_LENGTH('dbo.support_tickets', 'responded_at_utc') IS NOT NULL AND COL_LENGTH('dbo.support_tickets', 'resolved_at_utc') IS NULL
+    EXEC sp_rename N'dbo.support_tickets.responded_at_utc', N'resolved_at_utc', 'COLUMN';
+
+IF COL_LENGTH('dbo.support_tickets', 'target_role_code') IS NULL
+    ALTER TABLE dbo.support_tickets ADD target_role_code nvarchar(20) NOT NULL CONSTRAINT DF_support_tickets_target DEFAULT ('TECHNICIAN');
+
+IF COL_LENGTH('dbo.support_tickets', 'escalated_at_utc') IS NULL
+    ALTER TABLE dbo.support_tickets ADD escalated_at_utc datetime2 NULL;
+
+IF COL_LENGTH('dbo.support_tickets', 'escalated_by_user_id') IS NULL
+    ALTER TABLE dbo.support_tickets ADD escalated_by_user_id bigint NULL;
+");
+
+            // Indexes are a separate batch: the names above must be bound only after the
+            // legacy-column renames above have actually executed.
+            this.DbContext.Database.ExecuteSqlRaw(@"
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_support_tickets_requester' AND object_id = OBJECT_ID('dbo.support_tickets'))
+    CREATE INDEX IX_support_tickets_requester ON dbo.support_tickets(requester_user_id);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_support_tickets_status' AND object_id = OBJECT_ID('dbo.support_tickets'))
+    CREATE INDEX IX_support_tickets_status ON dbo.support_tickets(status);
+");
+
+            // ---- ticket replies ------------------------------------------------------
+            this.DbContext.Database.ExecuteSqlRaw(@"
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'support_ticket_replies')
 BEGIN
     CREATE TABLE dbo.support_ticket_replies (
@@ -180,6 +256,7 @@ IF COL_LENGTH('dbo.condition_inspections', 'penalty_note') IS NULL
         /// <summary>Custodian ownership (borrower / location / category) and reservation routing.</summary>
         private void EnsureCustodianAssignmentSchema()
         {
+            // Fresh installs create the full table in one go.
             this.DbContext.Database.ExecuteSqlRaw(@"
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'custodian_assignments')
 BEGIN
@@ -191,29 +268,84 @@ BEGIN
         location_id bigint NULL,
         equipment_category_id bigint NULL,
         assigned_by_user_id bigint NULL,
-        assigned_at_utc datetime2 NOT NULL CONSTRAINT DF_custodian_assignments_assigned DEFAULT (sysutcdatetime()),
-        CONSTRAINT FK_custodian_assignments_custodian FOREIGN KEY (custodian_user_id) REFERENCES dbo.users(user_id),
-        CONSTRAINT FK_custodian_assignments_borrower FOREIGN KEY (borrower_user_id) REFERENCES dbo.users(user_id),
-        CONSTRAINT FK_custodian_assignments_location FOREIGN KEY (location_id) REFERENCES dbo.locations(location_id),
-        CONSTRAINT FK_custodian_assignments_category FOREIGN KEY (equipment_category_id) REFERENCES dbo.equipment_categories(equipment_category_id),
-        CONSTRAINT CK_custodian_assignments_scope CHECK (
-            (scope_type = 'BORROWER' AND borrower_user_id IS NOT NULL AND location_id IS NULL AND equipment_category_id IS NULL) OR
-            (scope_type = 'LOCATION' AND location_id IS NOT NULL AND borrower_user_id IS NULL AND equipment_category_id IS NULL) OR
-            (scope_type = 'CATEGORY' AND equipment_category_id IS NOT NULL AND borrower_user_id IS NULL AND location_id IS NULL))
+        assigned_at_utc datetime2 NOT NULL CONSTRAINT DF_custodian_assignments_assigned DEFAULT (sysutcdatetime())
     );
-    CREATE UNIQUE INDEX UQ_custodian_assignments_borrower ON dbo.custodian_assignments(borrower_user_id) WHERE borrower_user_id IS NOT NULL;
-    CREATE UNIQUE INDEX UQ_custodian_assignments_location ON dbo.custodian_assignments(location_id) WHERE location_id IS NOT NULL;
-    CREATE UNIQUE INDEX UQ_custodian_assignments_category ON dbo.custodian_assignments(equipment_category_id) WHERE equipment_category_id IS NOT NULL;
-    CREATE INDEX IX_custodian_assignments_custodian ON dbo.custodian_assignments(custodian_user_id);
-END;
+END;");
 
+            // Upgrade the older scaffold table (custodian_assignment_id / no scope columns).
+            this.DbContext.Database.ExecuteSqlRaw(@"
+IF COL_LENGTH('dbo.custodian_assignments', 'custodian_assignment_id') IS NOT NULL AND COL_LENGTH('dbo.custodian_assignments', 'assignment_id') IS NULL
+    EXEC sp_rename N'dbo.custodian_assignments.custodian_assignment_id', N'assignment_id', 'COLUMN';
+
+IF COL_LENGTH('dbo.custodian_assignments', 'scope_type') IS NULL
+    ALTER TABLE dbo.custodian_assignments ADD scope_type nvarchar(20) NULL;
+
+IF COL_LENGTH('dbo.custodian_assignments', 'borrower_user_id') IS NULL
+    ALTER TABLE dbo.custodian_assignments ADD borrower_user_id bigint NULL;
+
+IF COL_LENGTH('dbo.custodian_assignments', 'assigned_by_user_id') IS NULL
+    ALTER TABLE dbo.custodian_assignments ADD assigned_by_user_id bigint NULL;
+
+IF COL_LENGTH('dbo.custodian_assignments', 'assigned_at_utc') IS NULL
+    ALTER TABLE dbo.custodian_assignments ADD assigned_at_utc datetime2 NULL;
+");
+
+            // Backfill, then tighten scope_type now that every row has a value.
+            this.DbContext.Database.ExecuteSqlRaw(@"
+UPDATE dbo.custodian_assignments
+SET scope_type = CASE
+    WHEN location_id IS NOT NULL THEN 'LOCATION'
+    WHEN equipment_category_id IS NOT NULL THEN 'CATEGORY'
+    ELSE 'BORROWER' END
+WHERE scope_type IS NULL;
+
+UPDATE dbo.custodian_assignments
+SET assigned_at_utc = SYSUTCDATETIME()
+WHERE assigned_at_utc IS NULL;
+
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.custodian_assignments') AND name = 'scope_type' AND is_nullable = 1)
+    ALTER TABLE dbo.custodian_assignments ALTER COLUMN scope_type nvarchar(20) NOT NULL;
+");
+
+            // FKs + indexes reference the new column names, so they run in their own batch.
+            this.DbContext.Database.ExecuteSqlRaw(@"
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_custodian_assignments_custodian')
+    ALTER TABLE dbo.custodian_assignments ADD CONSTRAINT FK_custodian_assignments_custodian
+        FOREIGN KEY (custodian_user_id) REFERENCES dbo.users(user_id);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_custodian_assignments_borrower')
+    ALTER TABLE dbo.custodian_assignments ADD CONSTRAINT FK_custodian_assignments_borrower
+        FOREIGN KEY (borrower_user_id) REFERENCES dbo.users(user_id);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_custodian_assignments_location')
+    ALTER TABLE dbo.custodian_assignments ADD CONSTRAINT FK_custodian_assignments_location
+        FOREIGN KEY (location_id) REFERENCES dbo.locations(location_id);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_custodian_assignments_category')
+    ALTER TABLE dbo.custodian_assignments ADD CONSTRAINT FK_custodian_assignments_category
+        FOREIGN KEY (equipment_category_id) REFERENCES dbo.equipment_categories(equipment_category_id);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_custodian_assignments_borrower' AND object_id = OBJECT_ID('dbo.custodian_assignments'))
+    CREATE UNIQUE INDEX UQ_custodian_assignments_borrower ON dbo.custodian_assignments(borrower_user_id) WHERE borrower_user_id IS NOT NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_custodian_assignments_location' AND object_id = OBJECT_ID('dbo.custodian_assignments'))
+    CREATE UNIQUE INDEX UQ_custodian_assignments_location ON dbo.custodian_assignments(location_id) WHERE location_id IS NOT NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_custodian_assignments_category' AND object_id = OBJECT_ID('dbo.custodian_assignments'))
+    CREATE UNIQUE INDEX UQ_custodian_assignments_category ON dbo.custodian_assignments(equipment_category_id) WHERE equipment_category_id IS NOT NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_custodian_assignments_custodian' AND object_id = OBJECT_ID('dbo.custodian_assignments'))
+    CREATE INDEX IX_custodian_assignments_custodian ON dbo.custodian_assignments(custodian_user_id);
+");
+
+            // Reservation → custodian routing column.
+            this.DbContext.Database.ExecuteSqlRaw(@"
 IF COL_LENGTH('dbo.reservations', 'assigned_custodian_user_id') IS NULL
 BEGIN
     ALTER TABLE dbo.reservations ADD assigned_custodian_user_id bigint NULL;
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_reservations_assigned_custodian')
     ALTER TABLE dbo.reservations ADD CONSTRAINT FK_reservations_assigned_custodian
         FOREIGN KEY (assigned_custodian_user_id) REFERENCES dbo.users(user_id);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_reservations_assigned_custodian' AND object_id = OBJECT_ID('dbo.reservations'))
     CREATE INDEX IX_reservations_assigned_custodian ON dbo.reservations(assigned_custodian_user_id);
-END;");
+");
         }
 
         /// <summary>

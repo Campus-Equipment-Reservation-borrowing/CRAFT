@@ -30,9 +30,9 @@ namespace ASI.Basecode.WebApp.Controllers
             this._communication = communication;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int page = 1)
         {
-            return this.View(this._communication.GetAnnouncements());
+            return this.View(this._communication.GetAnnouncements(page, 10));
         }
 
         [HttpPost]
@@ -42,7 +42,7 @@ namespace ASI.Basecode.WebApp.Controllers
             var (success, error) = this._communication.PublishAnnouncement(form);
             if (!success)
             {
-                var model = this._communication.GetAnnouncements();
+                var model = this._communication.GetAnnouncements(1, 10);
                 model.Form = form;
                 this.ModelState.AddModelError(string.Empty, error);
                 return this.View(nameof(this.Index), model);

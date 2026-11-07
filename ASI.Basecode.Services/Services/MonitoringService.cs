@@ -149,15 +149,15 @@ namespace ASI.Basecode.Services.Services
                     t.Status.Contains(term));
             }
 
-            var ordered = combined.OrderByDescending(t => t.Date).ToList();
-
             const int DefaultPage = 1;
             const int DefaultPageSize = 15;
             page = page < 1 ? DefaultPage : page;
             pageSize = pageSize < 1 ? DefaultPageSize : pageSize;
 
+            // Keep ordering and paging on the database side so large histories do not load into memory.
+            var ordered = combined.OrderByDescending(t => t.Date);
+            var totalCount = ordered.Count();
             var paged = ordered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-            var totalCount = ordered.Count;
 
             return new TransactionMonitoringViewModel
             {

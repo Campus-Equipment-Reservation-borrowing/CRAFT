@@ -86,7 +86,7 @@
                     {
                         <tr><td colspan="4"><div class="cp-empty-state compact"><div class="cp-empty-state-text">No tasks scheduled for today.</div></div></td></tr>
                     }
-                    @foreach (var task in Model.Tasks)
+                    @foreach (var task in Model.Tasks.Take(5))
                     {
                         <tr>
                             <td>
@@ -115,7 +115,7 @@
             {
                 <div class="cp-empty-state compact"><div class="cp-empty-state-text">No inventory alerts.</div></div>
             }
-            @foreach (var alert in Model.InventoryAlerts)
+            @foreach (var alert in Model.InventoryAlerts.Take(5))
             {
                 <div class="cp-list-row">
                     <div class="cp-list-main">

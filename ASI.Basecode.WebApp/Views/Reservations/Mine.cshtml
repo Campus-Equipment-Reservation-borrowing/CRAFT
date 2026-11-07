@@ -2,6 +2,10 @@
 @{
     ViewData["Title"] = "My Reservations";
     var search = ViewBag.Search as string;
+    var pageNumber = int.TryParse(Context.Request.Query["page"], out var pn) && pn > 0 ? pn : 1;
+    const int pageSize = 10;
+    var totalCount = Model.Reservations.Count;
+    var pageItems = Model.Reservations.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 }
 
 <div class="cp-page-header">
@@ -39,7 +43,7 @@
             {
                 <tr><td colspan="6"><div class="cp-empty-state compact"><div class="cp-empty-state-text">You have no reservation requests yet.</div></div></td></tr>
             }
-            @foreach (var r in Model.Reservations)
+            @foreach (var r in pageItems)
             {
                 <tr>
                     <td class="cp-mono">@r.ReservationNumber</td>
@@ -65,3 +69,11 @@
         </tbody>
     </table>
 </div>
+
+@await Html.PartialAsync("_Pagination", new ASI.Basecode.WebApp.Models.PaginationModel
+{
+    Page = pageNumber,
+    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+    TotalCount = totalCount,
+    Info = $"Page {pageNumber} of {(int)Math.Ceiling(totalCount / (double)pageSize)} ({totalCount} records)",
+})

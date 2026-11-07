@@ -36,8 +36,14 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult SavePolicy(PolicyFormViewModel form)
+        public IActionResult SavePolicy([Bind(Prefix = "Policy")] PolicyFormViewModel form)
         {
+            if (!this.ModelState.IsValid)
+            {
+                this.TempData["ErrorMessage"] = "Please enter valid policy values.";
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
             var (success, error) = this._service.SavePolicy(form);
             if (success)
             {

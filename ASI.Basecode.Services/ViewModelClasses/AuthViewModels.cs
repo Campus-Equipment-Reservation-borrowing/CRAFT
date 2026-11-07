@@ -4,12 +4,13 @@ using System.ComponentModel.DataAnnotations;
 namespace ASI.Basecode.Services.ViewModelClasses
 {
     /// <summary>
-    /// [1.2 Login] — accepts either the school email or the account identifier.
+    /// [1.2 Login] — school email only (account identifiers are not accepted).
     /// </summary>
     public class LoginViewModel
     {
-        [Display(Name = "School Email or Account ID")]
-        [Required(ErrorMessage = "Please enter your username and password.")]
+        [Display(Name = "School Email")]
+        [Required(ErrorMessage = "Please enter your school email and password.")]
+        [EmailAddress(ErrorMessage = "Please enter a valid school email address.")]
         public string UserId { get; set; }
 
         [Display(Name = "Password")]

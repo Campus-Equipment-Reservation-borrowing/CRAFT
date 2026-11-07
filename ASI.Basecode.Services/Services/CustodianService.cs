@@ -250,6 +250,17 @@ namespace ASI.Basecode.Services.Services
                 {
                     return (false, ErrorMessages.CustodianReleaseNotApproved, 0);
                 }
+
+                if (!string.Equals(entity.BorrowerUser?.AccountStatus?.Code, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                {
+                    return (false, "This borrower's account is not active; equipment cannot be released.", 0);
+                }
+
+                if (entity.ExpectedReturnAtUtc <= DateTime.UtcNow)
+                {
+                    return (false, "The requested return window has already passed. Ask the borrower to submit a new reservation.", 0);
+                }
+
                 this.ClaimIfPooled(entity);
 
                 var maxQty = this.RemainingHold(entity);
@@ -444,10 +455,12 @@ namespace ASI.Basecode.Services.Services
             var term = result.Code.ToUpperInvariant();
             var scope = this._currentUser.GetCustodianScope();
 
-            // 1) Reservation number (printed on the pickup slip).
+            // 1) Reservation number (printed on the pickup slip). Only actionable states are returned.
             var reservation = this.DbContext.Reservations.AsNoTracking()
                 .Where(r => r.ReservationNumber.ToUpper() == term)
                 .Where(r => scope == null || r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == scope)
+                .Where(r => r.Status.Code == "PENDING" || r.Status.Code == "APPROVED"
+                    || r.Status.Code == "READY_FOR_RELEASE" || r.Status.Code == "PARTIALLY_RELEASED")
                 .Select(r => new { r.ReservationId, r.ReservationNumber, Status = r.Status.Code, StatusText = r.Status.Description, r.Equipment.EquipmentName, Borrower = r.BorrowerUser.FirstName + " " + r.BorrowerUser.LastName })
                 .FirstOrDefault();
             if (reservation != null)
@@ -455,10 +468,32 @@ namespace ASI.Basecode.Services.Services
                 result.EquipmentName = reservation.EquipmentName;
                 result.Matches.Add(new ScanMatchViewModel
                 {
-                    Kind = reservation.Status == "APPROVED" || reservation.Status == "PARTIALLY_RELEASED" ? "RELEASE" : "REVIEW",
+                    Kind = reservation.Status == "APPROVED" || reservation.Status == "PARTIALLY_RELEASED" || reservation.Status == "READY_FOR_RELEASE"
+                        ? "RELEASE"
+                        : "REVIEW",
                     Id = reservation.ReservationId,
                     Title = reservation.ReservationNumber,
-                    Subtitle = $"{reservation.Borrower} · {reservation.StatusText}",
+                    Subtitle = $"{reservation.Borrower} · {reservation.StatusText} · {reservation.EquipmentName}",
+                });
+                return result;
+            }
+
+            // 2) Transaction number (printed on the borrowing receipt) → record a return.
+            var borrowing = this.DbContext.Borrowings.AsNoTracking()
+                .Where(b => b.TransactionNumber.ToUpper() == term)
+                .Where(b => scope == null || b.Reservation == null || b.Reservation.AssignedCustodianUserId == null || b.Reservation.AssignedCustodianUserId == scope)
+                .Where(b => b.Status.Code == "ACTIVE" || b.Status.Code == "PARTIALLY_RETURNED" || b.Status.Code == "OVERDUE")
+                .Select(b => new { b.BorrowingId, b.TransactionNumber, b.Status.Description, b.Equipment.EquipmentName, Borrower = b.BorrowerUser.FirstName + " " + b.BorrowerUser.LastName })
+                .FirstOrDefault();
+            if (borrowing != null)
+            {
+                result.EquipmentName = borrowing.EquipmentName;
+                result.Matches.Add(new ScanMatchViewModel
+                {
+                    Kind = "RETURN",
+                    Id = borrowing.BorrowingId,
+                    Title = borrowing.TransactionNumber,
+                    Subtitle = $"{borrowing.Borrower} · {borrowing.Description} · {borrowing.EquipmentName}",
                 });
                 return result;
             }

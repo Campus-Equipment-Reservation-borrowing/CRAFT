@@ -431,7 +431,7 @@
 .lp-footer {
     background: var(--lp-primary);
     color: #fff;
-    padding: 24px 48px;
+    padding: 24px 0 0;
     text-align: center;
     font-size: 11.6px;
     font-weight: 400;

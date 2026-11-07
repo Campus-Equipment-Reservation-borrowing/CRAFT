@@ -25,6 +25,17 @@ namespace ASI.Basecode.Services.Services
         private static readonly TimeSpan ResetTokenLifetime = TimeSpan.FromHours(24);
         private const string LockedOutMessage = "Too many failed attempts. Please try again in 15 minutes.";
 
+        /// <summary>Only school-issued accounts may sign in; the login form is email-only.</summary>
+        private const string SchoolEmailDomain = "@university.edu.ph";
+
+        private static bool IsSchoolEmail(string value)
+        {
+            var email = value?.Trim();
+            return !string.IsNullOrWhiteSpace(email)
+                && email.Length > SchoolEmailDomain.Length
+                && email.EndsWith(SchoolEmailDomain, StringComparison.OrdinalIgnoreCase);
+        }
+
         private readonly IUnitOfWork _unitOfWork;
 
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
@@ -39,7 +50,13 @@ namespace ASI.Basecode.Services.Services
         {
             if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrEmpty(password))
             {
-                return (SignInResult.UserNotFound, null, "Please enter your username and password.");
+                return (SignInResult.UserNotFound, null, "Please enter your school email and password.");
+            }
+
+            // School email only — account identifiers are no longer accepted for sign-in.
+            if (!IsSchoolEmail(userId))
+            {
+                return (SignInResult.UserNotFound, null, "Please sign in with your school email address.");
             }
 
             var key = userId.Trim().ToLowerInvariant();
@@ -47,13 +64,11 @@ namespace ASI.Basecode.Services.Services
                 .Include(u => u.Role)
                 .Include(u => u.Department)
                 .Include(u => u.AccountStatus)
-                .FirstOrDefault(u =>
-                    u.SchoolEmail.ToLower() == key ||
-                    u.AccountIdentifier.ToLower() == key);
+                .FirstOrDefault(u => u.SchoolEmail.ToLower() == key);
 
             if (user == null)
             {
-                return (SignInResult.UserNotFound, null, "User Account does not exist.");
+                return (SignInResult.UserNotFound, null, "Invalid email or password.");
             }
 
             var now = DateTime.UtcNow;
@@ -80,7 +95,7 @@ namespace ASI.Basecode.Services.Services
 
                 return lockedNow
                     ? (SignInResult.LockedOut, null, LockedOutMessage)
-                    : (SignInResult.InvalidPassword, null, "Invalid username or password.");
+                    : (SignInResult.InvalidPassword, null, "Invalid email or password.");
             }
 
             var statusCode = user.AccountStatus?.Code;
@@ -156,6 +171,11 @@ namespace ASI.Basecode.Services.Services
                 if (!form.PrivacyConsent)
                 {
                     return (false, "You must accept the Data Privacy consent to continue.", 0);
+                }
+
+                if (!IsSchoolEmail(form.SchoolEmail))
+                {
+                    return (false, "Please use your school-issued email address.", 0);
                 }
 
                 if (!PasswordManager.MeetsPolicy(form.Password))

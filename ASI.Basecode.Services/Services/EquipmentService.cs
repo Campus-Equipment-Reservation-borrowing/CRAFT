@@ -251,7 +251,8 @@ namespace ASI.Basecode.Services.Services
                 this.DbContext.EquipmentInventoryBalances.Add(balance);
             }
 
-            var committed = balance.ReservedQuantity + balance.ReleasedQuantity + balance.AwaitingInspectionQuantity;
+            var committed = balance.ReservedQuantity + balance.ReleasedQuantity + balance.AwaitingInspectionQuantity
+                + balance.MaintenanceQuantity + balance.UnreconciledQuantity;
             if (form.TotalQuantity < committed)
             {
                 return (false, ErrorMessages.EquipmentQuantityBelowCommitted, form.EquipmentId);

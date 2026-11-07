@@ -74,23 +74,4 @@ else
     </div>
 }
 
-@if (Model.Page != null && Model.Page.TotalPages > 1)
-{
-    <div class="cp-pagination">
-        <span class="cp-pagination-info">Page @Model.Page.Page of @Model.Page.TotalPages (@Model.Page.TotalCount records)</span>
-        <ul class="cp-pagination-list">
-            <li class="@(Model.Page.HasPrevious ? "" : "disabled")">
-                <a asp-action="Borrowings" asp-route-search="@Model.Search" asp-route-page="@(Model.Page.Page - 1)">‹</a>
-            </li>
-            @for (var p = 1; p <= Model.Page.TotalPages; p++)
-            {
-                <li class="@(p == Model.Page.Page ? "active" : "")">
-                    <a asp-action="Borrowings" asp-route-search="@Model.Search" asp-route-page="@p">@p</a>
-                </li>
-            }
-            <li class="@(Model.Page.HasNext ? "" : "disabled")">
-                <a asp-action="Borrowings" asp-route-search="@Model.Search" asp-route-page="@(Model.Page.Page + 1)">›</a>
-            </li>
-        </ul>
-    </div>
-}
+@await Html.PartialAsync("_Pagination", ASI.Basecode.WebApp.Models.PaginationModel.From(Model.Page))

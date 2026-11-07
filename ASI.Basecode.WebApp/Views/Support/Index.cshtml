@@ -1,17 +1,24 @@
 @using ASI.Basecode.Services.ViewModelClasses
 @model SupportTicketIndexViewModel
 @{
-    ViewData["Title"] = Model.IsStaffView ? "Support Tickets" : "Support";
+    ViewData["Title"] = Model.IsAdmin ? "Forwarded Tickets" : (Model.IsStaffView ? "Support Tickets" : "Support");
     string CategoryLabel(string c) => c switch { "VERIFICATION" => "Verification", "APPEAL" => "Appeal", "FEEDBACK" => "Feedback", _ => "Other" };
+    string StatusLabel(string s) => s switch { "ESCALATED" => "Forwarded", "RESOLVED" => "Resolved", _ => "Open" };
+    var pageNumber = int.TryParse(Context.Request.Query["page"], out var pn) && pn > 0 ? pn : 1;
+    const int pageSize = 10;
+    var totalCount = Model.Items.Count;
+    var pageItems = Model.Items.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 }
 
 <div class="cp-page-header">
     <div>
         <h1 class="cp-page-title">@ViewData["Title"]</h1>
         <p class="cp-page-subtitle">
-            @(Model.IsStaffView
-                ? "Questions, verification follow-ups and appeals from borrowers."
-                : "Ask the Property Office for help, follow up on your verification, or appeal a decision.")
+            @(Model.IsAdmin
+                ? "Tickets forwarded by custodians for administrator review."
+                : Model.IsCustodian
+                    ? "Borrower questions and requests. Reply, resolve, or forward to the administrator."
+                    : "Ask the Property Office for help, follow up on your verification, or appeal a decision.")
         </p>
     </div>
     @if (!Model.IsStaffView)
@@ -20,13 +27,31 @@
             <a asp-action="Create" class="cp-btn cp-btn-primary">New ticket</a>
         </div>
     }
+    else if (Model.IsCustodian)
+    {
+        <div class="cp-page-actions">
+            <a asp-action="Create" class="cp-btn cp-btn-primary">Create ticket</a>
+        </div>
+    }
 </div>
 
-<div class="tabs" role="tablist" style="margin-bottom:12px">
+@if (Model.IsCustodian)
+{
+    <div class="tabs" role="tablist" style="margin-bottom:12px">
+        <a class="tab @(Model.View == "inbox" && Model.Status == null ? "on" : "")" asp-action="Index">Borrower tickets</a>
+        <a class="tab @(Model.View == "mine" ? "on" : "")" asp-action="Index" asp-route-view="mine">My tickets</a>
+        <a class="tab @(Model.View == "forwarded" ? "on" : "")" asp-action="Index" asp-route-view="forwarded">Forwarded</a>
+        <a class="tab @(Model.Status == "RESOLVED" ? "on" : "")" asp-action="Index" asp-route-status="resolved">Resolved</a>
+    </div>
+}
+else
+{
+    <div class="tabs" role="tablist" style="margin-bottom:12px">
         <a class="tab @(Model.Status == null ? "on" : "")" asp-action="Index">All</a>
         <a class="tab @(Model.Status == "OPEN" ? "on" : "")" asp-action="Index" asp-route-status="open">Open <span class="cp-badge cp-badge-warning">@Model.OpenCount</span></a>
         <a class="tab @(Model.Status == "RESOLVED" ? "on" : "")" asp-action="Index" asp-route-status="resolved">Resolved</a>
-</div>
+    </div>
+}
 
 <div class="cp-card cp-card-flush">
     @if (Model.Items.Count == 0)
@@ -49,10 +74,11 @@
                         <th>Category</th>
                         <th>Status</th>
                         <th>Last activity</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var t in Model.Items)
+                    @foreach (var t in pageItems)
                     {
                         <tr>
                             <td>
@@ -64,8 +90,11 @@
                                 <td>@t.RequesterName<div class="cp-cell-sub cp-mono">@t.RequesterIdentifier</div></td>
                             }
                             <td><span class="cp-badge @(t.Category == "APPEAL" ? "cp-badge-error" : t.Category == "VERIFICATION" ? "cp-badge-warning" : "cp-badge-info")">@CategoryLabel(t.Category)</span></td>
-                            <td><span class="@StatusBadge.Css(t.Status)">@(t.Status == "OPEN" ? "Open" : "Resolved")</span></td>
+                            <td><span class="@StatusBadge.Css(t.Status)">@StatusLabel(t.Status)</span></td>
                             <td>@t.LastActivityUtc.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")</td>
+                            <td class="text-center">
+                                <a asp-action="Details" asp-route-id="@t.TicketId" class="cp-btn cp-btn-secondary cp-btn-sm">View</a>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -73,3 +102,11 @@
         </div>
     }
 </div>
+
+@await Html.PartialAsync("_Pagination", new ASI.Basecode.WebApp.Models.PaginationModel
+{
+    Page = pageNumber,
+    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+    TotalCount = totalCount,
+    Info = $"Page {pageNumber} of {(int)Math.Ceiling(totalCount / (double)pageSize)} ({totalCount} tickets)",
+})

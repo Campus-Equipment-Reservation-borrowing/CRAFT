@@ -22,6 +22,7 @@ namespace ASI.Basecode.WebApp.Mvc
         public static string Tone(string code) => code?.ToUpperInvariant() switch
         {
             "PENDING" or "PARTIALLY_RETURNED" or "DUE_TODAY" or "OPEN" => "warning",
+            "ESCALATED" => "info",
             "APPROVED" or "READY_FOR_RELEASE" or "PARTIALLY_RELEASED" or "ACTIVE" => "info",
             "COMPLETED" or "RETURNED" or "RESOLVED" or "AVAILABLE" or "GOOD" => "success",
             "REJECTED" or "OVERDUE" or "LOST" or "DAMAGED" or "UNDER_MAINTENANCE" or "OUT_OF_STOCK" => "error",

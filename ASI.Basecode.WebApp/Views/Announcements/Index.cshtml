@@ -4,6 +4,8 @@
     ViewData["Title"] = "Announcements";
     var audiences = new[] { ("STUDENT", "Students"), ("FACULTY", "Faculty"), ("TECHNICIAN", "Custodians"), ("ADMIN", "Administrators") };
     var chosen = Model.Form?.TargetRoles ?? new List<string>();
+    var items = Model.Page?.Items ?? Model.Items;
+    var categories = new[] { ("GENERAL", "General"), ("MAINTENANCE", "Maintenance"), ("RULE_CHANGE", "Rule change") };
 }
 
 <div class="cp-page-header">
@@ -16,14 +18,14 @@
 <div class="cp-grid-2">
     <div class="cp-card">
         <div class="cp-card-header">Published</div>
-        @if (Model.Items.Count == 0)
+        @if (items.Count == 0)
         {
             <div class="cp-empty-state compact"><div class="cp-empty-state-text">No announcements yet.</div></div>
         }
         else
         {
             <div class="cp-stack">
-                @foreach (var a in Model.Items)
+                @foreach (var a in items)
                 {
                     <article class="cp-card">
                         <div class="cp-row-between">
@@ -32,6 +34,7 @@
                                 <div class="cp-cell-sub">@a.AudienceLabel &middot; @a.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy") @(a.CreatedByName == null ? "" : "· " + a.CreatedByName)</div>
                             </div>
                             <div class="cp-page-actions">
+                                <span class="cp-badge cp-badge-info">@(a.Category == "RULE_CHANGE" ? "Rule change" : a.Category == "MAINTENANCE" ? "Maintenance" : "General")</span>
                                 <span class="@StatusBadge.Css(a.IsActive ? "ACTIVE" : "EXPIRED")">@(a.IsActive ? (a.ExpiresAtUtc.HasValue ? "Until " + a.ExpiresAtUtc.Value.ToLocalTime().AddDays(-1).ToString("dd MMM") : "Active") : "Expired")</span>
                                 <form method="post" asp-action="Delete" asp-route-id="@a.AnnouncementId" onsubmit="return confirm('Delete this announcement?');">
                                     @Html.AntiForgeryToken()
@@ -50,7 +53,16 @@
         <div class="cp-card-header">New announcement</div>
         <form method="post" asp-action="Publish">
             @Html.AntiForgeryToken()
-            <div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
+            <div asp-validation-summary="All" class="cp-validation-summary"></div>
+            <div class="cp-form-group">
+                <label class="cp-form-label" for="annCategory">Type <span class="required">*</span></label>
+                <select id="annCategory" name="Category" class="cp-select" required>
+                    @foreach (var (code, label) in categories)
+                    {
+                        <option value="@code" selected="@(Model.Form?.Category == code)">@label</option>
+                    }
+                </select>
+            </div>
             <div class="cp-form-group">
                 <label class="cp-form-label" for="annTitle">Title <span class="required">*</span></label>
                 <input id="annTitle" name="Title" value="@Model.Form?.Title" class="cp-input" maxlength="200" required placeholder="e.g. Property Office closed on Friday" />
@@ -79,3 +91,5 @@
         </form>
     </div>
 </div>
+
+@await Html.PartialAsync("_Pagination", ASI.Basecode.WebApp.Models.PaginationModel.From(Model.Page))

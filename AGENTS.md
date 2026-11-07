@@ -23,11 +23,11 @@ Four projects, dependency flow: `WebApp → Services → Data → Resources` (Se
 - New controllers derive from `ASI.Basecode.WebApp.Mvc.ControllerBase<T>` (constructor needs `IHttpContextAccessor`, `ILoggerFactory`, `IConfiguration`, `IMapper`) — see `HomeController` for the pattern.
 - `AsiBasecodeDBContext` is `partial`; keep entity config in `OnModelCreating` and don't fight the `OnModelCreatingPartial` hook.
 - Cookie authentication is wired in `Startup.cs` (scheme `CampusPulse.Auth`), with role authorization via `[Authorize(Roles = RoleCodes.*)]` from `ASI.Basecode.Resources/Constants/RoleCodes.cs`. Role codes are `STUDENT`, `FACULTY`, `TECHNICIAN` (custodian) and `ADMIN`.
-- `AccountController` implements 1.1-1.4 (register/login/forgot/reset). Passwords are PBKDF2 via `Services/Manager/PasswordManager.cs`; reset tokens live in `password_reset_tokens` (mapped in `AllianceDbContext.Auth.cs`). No mail transport is configured, so the forgot-password screen surfaces the reset link directly.
+- `AccountController` implements 1.1-1.4 (register/login/forgot/reset). Passwords are PBKDF2 via `Services/Manager/PasswordManager.cs`; reset tokens live in `password_reset_tokens` (mapped in `AllianceDbContext.Auth.cs`). Reset links are emailed via `IEmailSender`; because the default transport only logs, the link is surfaced on the forgot-password screen **in Development only**. Login accepts school email only (no account IDs).
 - `CurrentUserService` reads the cookie principal (falls back to legacy session keys). Dashboard routing lives in `HomeController.Index`; nav is role-aware in `Views/Shared/_Layout.cshtml`.
 - Role dashboards: `BorrowerController.Dashboard` (`/Borrower/Dashboard`, screen 2.0), `CustodianController.Dashboard` (`/Custodian/Dashboard`, screen 3.0), `MonitoringController.Dashboard` (`/Monitoring/Dashboard`, screen 4.0). Data comes from `IDashboardService` / `IMonitoringService`.
 - `ProfileController` (`/Profile`) serves screens 2.10 / 3.10 / 4.8 through one shared partial with role-specific views. Contact details and notification preferences persist in `users.contact_number` / `users.alternate_contact` and `user_preferences` (created by the seeder); password changes go through `IAuthService.ChangePassword`.
-- Demo accounts (password `Campus123`): `ADMIN-0001` (admin), `EMP-1001` (custodian), `2023-104857` (student), `EMP-2001` (faculty), `2024-118002` (unverified student).
+- Sign-in is **school email only** (account IDs are rejected). Demo accounts (password `Campus123`): `ana.reyes@university.edu.ph` (admin), `carlos.diaz@university.edu.ph` (custodian), `maria.santos@university.edu.ph` (student), `jose.cruz@university.edu.ph` (faculty), `liza.mendoza@university.edu.ph` (unverified student).
 
 ## Notes
 

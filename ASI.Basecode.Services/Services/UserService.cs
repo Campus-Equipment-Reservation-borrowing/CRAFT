@@ -243,6 +243,11 @@ namespace ASI.Basecode.Services.Services
                 form.AccountIdentifier = form.AccountIdentifier?.Trim();
                 form.SchoolEmail = form.SchoolEmail?.Trim();
 
+                if (form.UserId == 0 && this.IsAdminRole(form.RoleId))
+                {
+                    return (false, "Administrator accounts cannot be created from User Management.", 0);
+                }
+
                 if (this._userRepository.IdentifierExists(form.AccountIdentifier, form.UserId))
                 {
                     return (false, ErrorMessages.UserIdentifierDuplicate, form.UserId);
@@ -300,7 +305,8 @@ namespace ASI.Basecode.Services.Services
                     .ToList();
                 this.DbContext.CustodianAssignments.RemoveRange(assignments);
 
-                // Keep announcements and tickets; just detach them from the deleted account.
+                // Detach nullable references and drop personal notifications so the delete does
+                // not hit NO ACTION foreign keys.
                 foreach (var a in this.DbContext.Announcements.Where(a => a.CreatedByUserId == userId))
                 {
                     a.CreatedByUserId = null;
@@ -309,6 +315,17 @@ namespace ASI.Basecode.Services.Services
                 {
                     t.AssignedToUserId = null;
                 }
+                foreach (var log in this.DbContext.AuditLogs.Where(a => a.ActorUserId == userId))
+                {
+                    log.ActorUserId = null;
+                }
+                foreach (var verified in this.DbContext.Users.Where(u => u.VerifiedByUserId == userId))
+                {
+                    verified.VerifiedByUserId = null;
+                }
+
+                var notifications = this.DbContext.Notifications.Where(n => n.RecipientUserId == userId);
+                this.DbContext.Notifications.RemoveRange(notifications);
 
                 this.DbContext.Users.Remove(entity);
                 this._unitOfWork.SaveChanges();
@@ -334,6 +351,16 @@ namespace ASI.Basecode.Services.Services
         {
             return this.DbContext.Roles
                 .AsNoTracking()
+                .OrderBy(r => r.RoleName)
+                .Select(r => new LookupViewModel { Id = r.RoleId, Text = r.RoleName })
+                .ToList();
+        }
+
+        public List<LookupViewModel> GetAssignableRoleOptions()
+        {
+            return this.DbContext.Roles
+                .AsNoTracking()
+                .Where(r => r.RoleCode != RoleCodes.Admin)
                 .OrderBy(r => r.RoleName)
                 .Select(r => new LookupViewModel { Id = r.RoleId, Text = r.RoleName })
                 .ToList();
@@ -434,6 +461,11 @@ namespace ASI.Basecode.Services.Services
                 return (false, ErrorMessages.UserNotFound, form.UserId);
             }
 
+            if (this.IsAdminRole(form.RoleId) && !this.IsAdminRole(entity.RoleId))
+            {
+                return (false, "Accounts cannot be promoted to Administrator from User Management.", form.UserId);
+            }
+
             var roleOrStatusChanged = form.RoleId != entity.RoleId || form.AccountStatusId != entity.AccountStatusId;
             if (roleOrStatusChanged && entity.UserId == this._currentUser.GetActorUserId())
             {
@@ -457,6 +489,12 @@ namespace ASI.Basecode.Services.Services
                 $"Updated user account '{entity.FirstName} {entity.LastName}' ({entity.AccountIdentifier}).");
 
             return (true, null, entity.UserId);
+        }
+
+        private bool IsAdminRole(long? roleId)
+        {
+            return roleId.HasValue
+                && this.DbContext.Roles.Any(r => r.RoleId == roleId.Value && r.RoleCode == RoleCodes.Admin);
         }
 
         private bool IsActiveAdmin(long roleId, long accountStatusId)

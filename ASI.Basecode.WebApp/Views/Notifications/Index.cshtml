@@ -2,9 +2,10 @@
 @model NotificationsIndexViewModel
 @{
     ViewData["Title"] = "Notifications";
-    var search = ViewBag.Search as string;
-    var status = (ViewBag.Status as string) ?? "all";
-    var type = (ViewBag.Type as string) ?? "all";
+    var search = Model.Search;
+    var status = Model.Status ?? "all";
+    var type = Model.Type ?? "all";
+    var items = Model.Page?.Items ?? Model.Notifications;
 }
 
 <div class="cp-page-header">
@@ -30,9 +31,10 @@
         </select>
         <select name="type" class="cp-select">
             <option value="all" selected="@(type == "all")">All types</option>
-            <option value="RESERVATION" selected="@(type == "RESERVATION")">Reservations</option>
-            <option value="BORROWING" selected="@(type == "BORROWING")">Borrowings</option>
-            <option value="ACCOUNT" selected="@(type == "ACCOUNT")">Account</option>
+            @foreach (var option in Model.TypeOptions)
+            {
+                <option value="@option" selected="@(type == option)">@option.Replace('_', ' ')</option>
+            }
         </select>
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a href="/Notifications" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
@@ -40,12 +42,12 @@
 </div>
 
 <div class="cp-card">
-    @if (!Model.Notifications.Any())
+    @if (!items.Any())
     {
         <div class="cp-empty-state compact"><div class="cp-empty-state-text">No notifications match your search or filters.</div></div>
     }
 
-    @foreach (var n in Model.Notifications)
+    @foreach (var n in items)
     {
         <div class="cp-notif @(n.IsRead ? "" : "unread")">
             @if (!n.IsRead)
@@ -67,3 +69,5 @@
         </div>
     }
 </div>
+
+@await Html.PartialAsync("_Pagination", ASI.Basecode.WebApp.Models.PaginationModel.From(Model.Page))

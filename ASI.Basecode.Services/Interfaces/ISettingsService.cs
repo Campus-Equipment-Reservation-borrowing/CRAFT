@@ -24,7 +24,13 @@ namespace ASI.Basecode.Services.Interfaces
 
         (bool Success, string Error) DeleteLocation(long locationId);
 
-        NotificationsIndexViewModel GetNotifications(long userId);
+        NotificationsIndexViewModel GetNotifications(
+            long userId,
+            string search = null,
+            string status = null,
+            string type = null,
+            int page = 1,
+            int pageSize = 10);
 
         void MarkNotificationRead(long notificationId, long userId);
 

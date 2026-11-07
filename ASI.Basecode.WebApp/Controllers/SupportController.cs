@@ -31,14 +31,20 @@ namespace ASI.Basecode.WebApp.Controllers
             this._communication = communication;
         }
 
-        public IActionResult Index(string status = null)
+        public IActionResult Index(string status = null, string view = null)
         {
-            return this.View(this._communication.GetTickets(status));
+            return this.View(this._communication.GetTickets(status, view));
         }
 
         [HttpGet]
         public IActionResult Create(string category = null)
         {
+            if (this.User.IsInRole(RoleCodes.Admin))
+            {
+                this.TempData["ErrorMessage"] = "Administrators resolve forwarded tickets and cannot create new ones.";
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
             return this.View(new SupportTicketFormViewModel { Category = category?.ToUpperInvariant() });
         }
 
@@ -80,6 +86,16 @@ namespace ASI.Basecode.WebApp.Controllers
         {
             var (success, error) = this._communication.Reply(id, body);
             this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Reply sent." : error;
+            return this.RedirectToAction(nameof(this.Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleCodes.Technician)]
+        public IActionResult Escalate(long id)
+        {
+            var (success, error) = this._communication.Escalate(id);
+            this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Ticket forwarded to the administrator." : error;
             return this.RedirectToAction(nameof(this.Details), new { id });
         }
 
