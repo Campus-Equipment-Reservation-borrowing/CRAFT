@@ -56,9 +56,7 @@
             <thead>
                 <tr>
                     <th>Equipment</th>
-                    <th>Asset Code</th>
-                    <th>Category</th>
-                    <th>Location</th>
+                    <th>Category / Location</th>
                     <th>Available / Total</th>
                     <th>Condition</th>
                     <th>Status</th>
@@ -68,24 +66,25 @@
             <tbody>
                 @if (!Model.Page.Items.Any())
                 {
-                    <tr><td colspan="8"><div class="cp-empty-state compact"><div class="cp-empty-state-text">No equipment records found.</div></div></td></tr>
+                    <tr><td colspan="6"><div class="cp-empty-state compact"><div class="cp-empty-state-text">No equipment records found.</div></div></td></tr>
                 }
                 @foreach (var eq in Model.Page.Items)
                 {
                     var statusCode = eq.OperationalStatusName?.Trim().ToUpperInvariant().Replace(' ', '_');
                     <tr class="@(eq.IsActive ? "" : "cp-muted-row")">
                         <td>
-                            <div style="display:flex;align-items:center;gap:8px">
+                            <div class="cp-cell-media">
                                 @if (!string.IsNullOrWhiteSpace(eq.ImagePath))
                                 {
-                                    <img src="@eq.ImagePath" alt="@eq.EquipmentName" class="cp-avatar cp-avatar-sm" />
+                                    <img src="@eq.ImagePath" alt="" class="cp-avatar cp-avatar-sm" />
                                 }
-                                <a asp-action="Details" asp-route-id="@eq.EquipmentId" class="cp-cell-name">@eq.EquipmentName</a>
+                                <div>
+                                    <a asp-action="Details" asp-route-id="@eq.EquipmentId" class="cp-cell-name">@eq.EquipmentName</a>
+                                    <div class="cp-cell-sub cp-mono">@eq.AssetCode</div>
+                                </div>
                             </div>
                         </td>
-                        <td><span class="cp-mono">@eq.AssetCode</span></td>
-                        <td>@eq.CategoryName</td>
-                        <td>@(eq.LocationName ?? "-")</td>
+                        <td>@eq.CategoryName<div class="cp-cell-sub">@(eq.LocationName ?? "No location")</div></td>
                         <td><span class="cp-mono">@eq.AvailableUnits / @eq.TotalQuantity</span></td>
                         <td>@(eq.ConditionName ?? "-")</td>
                         <td>
@@ -98,9 +97,9 @@
                                 <span class="cp-badge cp-badge-neutral">Inactive</span>
                             }
                         </td>
-                        <td>
+                        <td class="cp-cell-actions">
                             <a asp-action="Edit" asp-route-id="@eq.EquipmentId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
-                            <form method="post" asp-action="Delete" asp-route-id="@eq.EquipmentId" style="display:inline" onsubmit="return confirm('Delete this equipment record?');">
+                            <form method="post" asp-action="Delete" asp-route-id="@eq.EquipmentId" onsubmit="return confirm('Delete this equipment record?');">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
                             </form>

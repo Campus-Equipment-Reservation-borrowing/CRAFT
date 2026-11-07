@@ -662,3 +662,12 @@
 @media (max-width: 700px) { .cp-form-row { grid-template-columns: 1fr; } }
 /* ModelOnly summaries render even with no errors; hide them until they have content */
 .cp-validation-summary.validation-summary-valid, .validation-summary-valid.banner { display: none; }
+/* Tables scroll instead of clipping when they are wider than the card */
+.cp-table-wrap { overflow-x: auto; }
+.cp-cell-media { display: flex; align-items: center; gap: 8px; }
+.cp-cell-actions { white-space: nowrap; }
+.cp-cell-actions form { display: inline; }
+.cp-filter-bar form { display: contents; }
+.cp-filter-bar .cp-input { flex: 1 1 200px; width: auto; min-width: 0; }
+.cp-filter-bar .cp-select { flex: 0 1 160px; width: auto; min-width: 0; }
+.cp-filter-bar .cp-btn { flex-shrink: 0; }

@@ -278,3 +278,17 @@ html, body {
     .craft-header .uinfo { display: none; }
     .craft-main > .content { padding: 14px 12px 20px; }
 }
+
+/* campuspulse.css makes every <a> a block; links inside running text must stay inline */
+p a, li a, dd a, span a, label a, .banner-b a, .cp-cell-sub a, .cp-page-subtitle a { display: inline; }
+.cp-page-subtitle a { color: var(--color-primary); font-weight: 600; }
+
+@media (max-width: 900px) {
+    /* Overlay sidebar: hidden until the burger opens it, regardless of the desktop collapsed state */
+    .craft-shell .craft-sidebar { display: none; }
+    .craft-shell.sidebar-open .craft-sidebar { display: flex; }
+}
+
+/* Tab strips scroll sideways instead of running off narrow screens */
+.tabs { overflow-x: auto; scrollbar-width: thin; }
+.tabs .tab { flex-shrink: 0; white-space: nowrap; }

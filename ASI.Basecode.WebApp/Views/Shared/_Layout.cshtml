@@ -68,11 +68,11 @@
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
                     <div>Dashboard</div>
                 </a>
-                <a class="nav-item @(controller == "Reservations" && action == "Available" ? "active" : "")" href="/Reservations/Available">
+                <a class="nav-item @(controller == "Reservations" && action is "Available" or "EquipmentDetails" or "New" ? "active" : "")" href="/Reservations/Available">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
                     <div>Equipment</div>
                 </a>
-                <a class="nav-item @(controller == "Reservations" && action != "Available" ? "active" : "")" href="/Reservations/Mine">
+                <a class="nav-item @(controller == "Reservations" && action is not ("Available" or "EquipmentDetails" or "New") ? "active" : "")" href="/Reservations/Mine">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
                     <div>My Reservations</div>
                 </a>
@@ -232,14 +232,29 @@
         var toggle = document.getElementById('sidebarToggle');
         if (!shell || !toggle) return;
         var key = 'craft.sidebar.collapsed';
+        // On narrow screens the sidebar is an overlay: closed on every page load, opened on demand.
+        var narrow = window.matchMedia('(max-width: 900px)');
+        function sync() {
+            var open = narrow.matches ? shell.classList.contains('sidebar-open') : !shell.classList.contains('sidebar-collapsed');
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
         try {
             if (localStorage.getItem(key) === '1') shell.classList.add('sidebar-collapsed');
         } catch (e) { }
+        sync();
         toggle.addEventListener('click', function () {
-            var collapsed = shell.classList.toggle('sidebar-collapsed');
-            toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-            try { localStorage.setItem(key, collapsed ? '1' : '0'); } catch (e) { }
+            if (narrow.matches) {
+                shell.classList.toggle('sidebar-open');
+            } else {
+                var collapsed = shell.classList.toggle('sidebar-collapsed');
+                try { localStorage.setItem(key, collapsed ? '1' : '0'); } catch (e) { }
+            }
+            sync();
         });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && shell.classList.contains('sidebar-open')) { shell.classList.remove('sidebar-open'); sync(); }
+        });
+        if (narrow.addEventListener) narrow.addEventListener('change', sync);
     })();
 </script>
 @RenderSection("Scripts", required: false)
