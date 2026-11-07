@@ -25,11 +25,29 @@
 }
 
 /* Base */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--lp-bg-light);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
 .lp-page {
     font-family: var(--lp-font);
     color: var(--lp-text);
-    background: #fff;
+    background: var(--lp-bg-light);
     min-height: 100vh;
+    overflow: hidden;
 }
 
 /* Top navigation bar */
@@ -37,7 +55,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 48px;
+    gap: 24px;
+    padding: 14px max(24px, calc((100vw - 1184px) / 2));
     background: #fff;
     border-bottom: 1px solid var(--lp-border);
     position: sticky;
@@ -49,6 +68,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: max-content;
 }
 
 .lp-nav-logo {
@@ -82,7 +102,8 @@
 .lp-nav-links {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: clamp(16px, 2.4vw, 32px);
+    margin-left: auto;
 }
 
 .lp-nav-links a {
@@ -114,6 +135,14 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    white-space: nowrap;
+}
+
+.lp-btn:focus-visible,
+.lp-nav-links a:focus-visible,
+.lp-footer a:focus-visible {
+    outline: 3px solid rgba(22, 138, 91, 0.3);
+    outline-offset: 3px;
 }
 
 .lp-btn-primary {
@@ -148,10 +177,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 60px 48px 40px;
-    max-width: 1280px;
+    padding: clamp(56px, 7vw, 88px) 24px clamp(48px, 6vw, 72px);
+    max-width: 1232px;
     margin: 0 auto;
-    gap: 40px;
+    gap: clamp(40px, 7vw, 96px);
 }
 
 .lp-hero-content {
@@ -171,7 +200,7 @@
 }
 
 .lp-hero h1 {
-    font-size: 38px;
+    font-size: clamp(34px, 4vw, 52px);
     font-weight: 700;
     color: var(--lp-text);
     line-height: 1.15;
@@ -179,7 +208,8 @@
 }
 
 .lp-hero-desc {
-    font-size: 16px;
+    max-width: 590px;
+    font-size: 15px;
     font-weight: 400;
     color: var(--lp-text-muted);
     line-height: 1.6;
@@ -216,12 +246,13 @@
 
 /* Availability snapshot card */
 .lp-availability-card {
-    width: 340px;
+    flex: 0 1 380px;
+    width: min(100%, 380px);
     background: #fff;
     border: 1px solid var(--lp-border);
     border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(16, 45, 32, 0.08);
 }
 
 .lp-availability-header {
@@ -284,9 +315,13 @@
 
 /* Section */
 .lp-section {
-    padding: 60px 48px;
-    max-width: 1280px;
+    padding: clamp(48px, 6vw, 76px) 24px;
+    max-width: 1232px;
     margin: 0 auto;
+}
+
+.lp-section + .lp-section {
+    padding-top: 24px;
 }
 
 .lp-section-title {
@@ -315,6 +350,16 @@
     border: 1px solid var(--lp-border);
     border-radius: 12px;
     padding: 24px;
+    min-height: 164px;
+    box-shadow: 0 1px 2px rgba(16, 45, 32, 0.03);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lp-step:hover,
+.lp-feature-card:hover,
+.lp-category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(16, 45, 32, 0.08);
 }
 
 .lp-step-number {
@@ -358,6 +403,9 @@
     border: 1px solid var(--lp-border);
     border-radius: 12px;
     padding: 24px;
+    min-height: 182px;
+    box-shadow: 0 1px 2px rgba(16, 45, 32, 0.03);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .lp-feature-icon {
@@ -400,9 +448,13 @@
     border: 1px solid var(--lp-border);
     border-radius: 12px;
     padding: 20px;
+    min-height: 86px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+    box-shadow: 0 1px 2px rgba(16, 45, 32, 0.03);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .lp-category-name {
@@ -431,7 +483,8 @@
 .lp-footer {
     background: var(--lp-primary);
     color: #fff;
-    padding: 24px 48px;
+    padding: 28px 24px;
+    line-height: 1.8;
     text-align: center;
     font-size: 11.6px;
     font-weight: 400;
@@ -450,7 +503,8 @@
 @media (max-width: 900px) {
     .lp-hero {
         flex-direction: column;
-        padding: 40px 24px 20px;
+        align-items: stretch;
+        padding: 48px 24px 32px;
     }
     .lp-availability-card {
         width: 100%;
@@ -474,16 +528,71 @@
 }
 
 @media (max-width: 600px) {
+    .lp-nav {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+    }
+
+    .lp-nav-actions {
+        width: 100%;
+        margin-top: 4px;
+    }
+
+    .lp-nav-actions .lp-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .lp-hero,
+    .lp-section {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
     .lp-steps,
     .lp-features,
     .lp-categories {
         grid-template-columns: 1fr;
     }
     .lp-hero h1 {
-        font-size: 28px;
+        font-size: 32px;
     }
+
+    .lp-hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .lp-hero-actions .lp-btn {
+        justify-content: center;
+    }
+
     .lp-hero-stats {
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
         gap: 16px;
+    }
+
+    .lp-stat-value {
+        font-size: 20px;
+    }
+
+    .lp-stat-label {
+        font-size: 10px;
+    }
+
+    .lp-availability-card {
+        padding: 20px;
+    }
+
+    .lp-availability-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .lp-category-card {
+        padding: 16px;
     }
 }
