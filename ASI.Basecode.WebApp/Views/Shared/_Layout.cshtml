@@ -38,7 +38,7 @@
                 <span></span><span></span><span></span>
             </button>
             <div class="brand">
-                <div class="brand-mark" style="width:38px;height:38px">
+                <div class="brand-mark">
                     <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
                 </div>
                 <div class="brand-txt">
@@ -50,11 +50,11 @@
         <div class="craft-header-right">
             @await Component.InvokeAsync("NotificationBadge")
             <a class="user" href="/Profile" title="Profile &amp; Settings">
-                <div class="uinfo" style="align-items:flex-end">
+                <div class="uinfo end">
                     <div class="uname">@displayName</div>
                     <div class="urole">@roleLabel</div>
                 </div>
-                <div class="avatar" style="background:#FDECE2;color:#99441A">@initials</div>
+                <div class="avatar accent">@initials</div>
             </a>
         </div>
     </header>
@@ -180,9 +180,9 @@
         </div>
         @if (User.Identity?.IsAuthenticated == true)
         {
-            <form method="post" action="/Account/Logout" style="margin:0">
+            <form method="post" action="/Account/Logout" class="craft-logout">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="nav-item" style="background:none;border:0;width:100%;font-family:inherit;cursor:pointer;text-align:left">
+                <button type="submit" class="nav-item">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 21H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/><path d="M17 16l4-4-4-4M21 12H9"/></svg>
                     <div>Sign Out</div>
                 </button>
@@ -206,6 +206,7 @@
 
 <div id="cp-toast-container"></div>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
+<partial name="_ValidationScriptsPartial" />
 <script>
     (function() {
         @* JSON-encode so names/reasons inside messages can't break out of the script. *@
@@ -215,11 +216,9 @@
         function toast(msg, cls) {
             if (!msg) return;
             var t = document.createElement('div');
-            t.className = cls;
+            t.className = 'cp-toast ' + cls;
+            t.setAttribute('role', cls === 'cp-toast-error' ? 'alert' : 'status');
             t.textContent = msg;
-            t.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:3000;padding:10px 18px;border-radius:9px;font-size:12.6px;font-weight:600;box-shadow:0 6px 18px -8px rgba(16,45,32,.3);background:#fff;';
-            t.style.border = '1px solid ' + (cls.indexOf('error') >= 0 ? '#F2D3D3' : '#CEE7D9');
-            t.style.color = cls.indexOf('error') >= 0 ? '#8E2F2F' : '#0B5D3E';
             container.appendChild(t);
             setTimeout(function() { t.remove(); }, 4500);
         }

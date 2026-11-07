@@ -251,3 +251,30 @@ html, body {
     text-align: center;
     box-shadow: 0 0 0 2px #fff;
 }
+
+/* Readable line length on wide screens */
+.craft-main > .content {
+    width: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+}
+
+.craft-header .icon-btn { position: relative; }
+.craft-header .uinfo.end { align-items: flex-end; }
+.craft-header .avatar.accent { background: #FDECE2; color: #99441A; }
+.craft-header .brand-mark { width: 38px; height: 38px; }
+
+.craft-logout { margin: 0; }
+.craft-logout .nav-item {
+    background: none;
+    border: 0;
+    width: 100%;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+@media (max-width: 600px) {
+    .craft-header .uinfo { display: none; }
+    .craft-main > .content { padding: 14px 12px 20px; }
+}
