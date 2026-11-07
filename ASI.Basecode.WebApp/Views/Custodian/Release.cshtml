@@ -9,42 +9,46 @@
 
 <div class="cp-page-header">
     <div>
+        <partial name="_Breadcrumb" model='new[] { ("Reservations", "/Custodian/Reservations") }' />
         <h1 class="cp-page-title">Equipment Release</h1>
         <p class="cp-page-subtitle">Release approved equipment to the borrower.</p>
     </div>
-    <div class="cp-page-actions">
-        <a asp-action="Reservations" class="cp-btn cp-btn-secondary cp-btn-sm">Back to list</a>
-    </div>
 </div>
 
-@if (ctx != null)
-{
-    <div class="cp-card" style="margin-bottom:16px;">
-        <div class="cp-card-header">Reservation Summary</div>
-        <div style="font-size:12.5px;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;">
-            <div style="color:var(--color-text-gray);">Reservation #</div><div>@ctx.ReservationNumber</div>
-            <div style="color:var(--color-text-gray);">Borrower</div><div>@ctx.BorrowerName (@ctx.BorrowerRole)</div>
-            <div style="color:var(--color-text-gray);">Equipment</div><div>@ctx.EquipmentName (@ctx.AssetCode) — @ctx.CategoryName</div>
-            <div style="color:var(--color-text-gray);">Pickup Point</div><div>@(ctx.PickupLocationName ?? "—")</div>
-            <div style="color:var(--color-text-gray);">Remaining to Release</div><div>@ctx.ApprovedQuantity@(ctx.AlreadyReleasedQuantity > 0 ? $" ({ctx.AlreadyReleasedQuantity} already released)" : "")</div>
-            <div style="color:var(--color-text-gray);">Expected Return</div><div>@ctx.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+<div class="cp-stack">
+    @if (ctx != null)
+    {
+        <div class="cp-card">
+            <div class="cp-card-header">Reservation Summary</div>
+            <dl class="cp-kv">
+                <dt>Reservation #</dt><dd class="cp-mono">@ctx.ReservationNumber</dd>
+                <dt>Borrower</dt><dd>@ctx.BorrowerName <span class="cp-cell-sub">@ctx.BorrowerRole</span></dd>
+                <dt>Equipment</dt><dd>@ctx.EquipmentName</dd>
+                <dt>Asset Code</dt><dd class="cp-mono">@ctx.AssetCode</dd>
+                <dt>Category</dt><dd>@ctx.CategoryName</dd>
+                <dt>Pickup Point</dt><dd>@(ctx.PickupLocationName ?? "—")</dd>
+                <dt>Remaining to Release</dt><dd class="cp-mono">@ctx.ApprovedQuantity</dd>
+                @if (ctx.AlreadyReleasedQuantity > 0)
+                {
+                    <dt>Already Released</dt><dd class="cp-mono">@ctx.AlreadyReleasedQuantity</dd>
+                }
+                <dt>Expected Return</dt><dd>@ctx.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+            </dl>
         </div>
-    </div>
-}
+    }
 
-<div class="cp-card">
-    <div class="cp-card-body" style="padding:20px;">
+    <div class="cp-card">
         <form asp-action="Release" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="ReservationId" />
             <div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-                <div class="cp-form-group" style="margin:0;">
+            <div class="cp-grid-2">
+                <div class="cp-form-group">
                     <label asp-for="ReleasedQuantity" class="cp-form-label">Released Quantity <span class="required">*</span></label>
                     <input asp-for="ReleasedQuantity" type="number" min="1" class="cp-input" />
                 </div>
-                <div class="cp-form-group" style="margin:0;">
+                <div class="cp-form-group">
                     <label asp-for="ReleaseConditionId" class="cp-form-label">Condition at Release <span class="required">*</span></label>
                     <select asp-for="ReleaseConditionId" class="cp-select" asp-items="@(ViewBag.ConditionOptions as SelectList)"></select>
                 </div>
@@ -55,9 +59,9 @@
                 <textarea asp-for="ReleaseNotes" class="cp-textarea" rows="3" placeholder="Accessories issued, condition remarks..."></textarea>
             </div>
 
-            <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div class="cp-page-actions">
                 <a asp-action="Reservations" class="cp-btn cp-btn-secondary">Cancel</a>
-                <button type="submit" class="cp-btn cp-btn-success"><i class="fa-solid fa-check"></i> Release Equipment</button>
+                <button type="submit" class="cp-btn cp-btn-success">Release Equipment</button>
             </div>
         </form>
     </div>

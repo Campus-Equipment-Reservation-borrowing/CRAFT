@@ -10,14 +10,12 @@
         <p class="cp-page-subtitle">System activity trail.</p>
     </div>
     <div class="cp-page-actions">
-        <a asp-action="ExportAuditCsv" asp-route-search="@Model.Search" asp-route-entityType="@Model.EntityType" class="cp-btn cp-btn-secondary cp-btn-sm">
-            <i class="fa-solid fa-download"></i> Export CSV
-        </a>
+        <a asp-action="ExportAuditCsv" asp-route-search="@Model.Search" asp-route-entityType="@Model.EntityType" class="cp-btn cp-btn-secondary cp-btn-sm">Export CSV</a>
     </div>
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" asp-action="AuditLogs" style="display:contents;">
+    <form method="get" asp-action="AuditLogs" style="display:contents">
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search details, reference, action..." />
         <select name="entityType" class="cp-select">
             @foreach (var et in Model.EntityTypes)
@@ -25,17 +23,14 @@
                 <option value="@et" selected="@(Model.EntityType == et)">@et</option>
             }
         </select>
-        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="AuditLogs" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
 </div>
 
 @if (!Model.Page.Items.Any())
 {
-    <div class="cp-empty-state">
-        <div class="cp-empty-state-icon"><i class="fa-solid fa-clipboard-list"></i></div>
-        <div class="cp-empty-state-text">No audit entries found.</div>
-    </div>
+    <div class="cp-empty-state compact"><div class="cp-empty-state-text">No audit entries found.</div></div>
 }
 else
 {
@@ -55,12 +50,12 @@ else
                 @foreach (var a in Model.Page.Items)
                 {
                     <tr>
-                        <td style="font-size:11.6px;white-space:nowrap;">@a.OccurredAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
-                        <td style="font-size:11.6px;">@a.ActorName</td>
-                        <td style="font-size:11.6px;">@a.ActionType</td>
-                        <td style="font-size:11.6px;">@a.EntityType</td>
-                        <td style="font-size:11.6px;">@(a.ReferenceNumber ?? "—")</td>
-                        <td style="font-size:11.6px;">@(a.Details ?? "—")</td>
+                        <td class="cp-mono">@a.OccurredAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@a.ActorName</td>
+                        <td>@a.ActionType</td>
+                        <td>@a.EntityType</td>
+                        <td class="cp-mono">@(a.ReferenceNumber ?? "—")</td>
+                        <td>@(a.Details ?? "—")</td>
                     </tr>
                 }
             </tbody>

@@ -9,76 +9,74 @@
 
 <div class="cp-page-header">
     <div>
+        <partial name="_Breadcrumb" model='new[] { ("Returns", "/Returns") }' />
         <h1 class="cp-page-title">Condition Inspection</h1>
         <p class="cp-page-subtitle">Record the condition of returned equipment.</p>
     </div>
-    <div class="cp-page-actions">
-        <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Back to list</a>
-    </div>
 </div>
 
-@if (ctx != null)
-{
-    <div class="cp-card" style="margin-bottom:16px;">
-        <div class="cp-card-header">Borrowing Summary</div>
-        <div style="font-size:12.5px;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;">
-            <div style="color:var(--color-text-gray);">Transaction #</div><div>@ctx.TransactionNumber</div>
-            <div style="color:var(--color-text-gray);">Borrower</div><div>@ctx.BorrowerName</div>
-            <div style="color:var(--color-text-gray);">Equipment</div><div>@ctx.EquipmentName (@ctx.AssetCode)</div>
-            <div style="color:var(--color-text-gray);">Released</div><div>@ctx.ReleasedQuantity (returned: @ctx.AlreadyReturned)</div>
+<div class="cp-stack">
+    @if (ctx != null)
+    {
+        <div class="cp-card">
+            <div class="cp-card-header">Borrowing Summary</div>
+            <dl class="cp-kv">
+                <dt>Transaction #</dt><dd class="cp-mono">@ctx.TransactionNumber</dd>
+                <dt>Borrower</dt><dd>@ctx.BorrowerName</dd>
+                <dt>Equipment</dt><dd>@ctx.EquipmentName</dd>
+                <dt>Asset Code</dt><dd class="cp-mono">@ctx.AssetCode</dd>
+                <dt>Released</dt><dd class="cp-mono">@ctx.ReleasedQuantity</dd>
+                <dt>Returned</dt><dd class="cp-mono">@ctx.AlreadyReturned</dd>
+            </dl>
         </div>
-    </div>
-}
+    }
 
-<div class="cp-card">
-    <div style="padding:20px;">
+    <div class="cp-card">
         <form asp-action="Inspect" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="BorrowingId" />
             <div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
-                <div class="cp-form-group" style="margin:0;">
+            <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:0 16px">
+                <div class="cp-form-group">
                     <label asp-for="InspectedQuantity" class="cp-form-label">Inspected Quantity <span class="required">*</span></label>
                     <input asp-for="InspectedQuantity" type="number" min="1" class="cp-input" />
                 </div>
-                <div class="cp-form-group" style="margin:0;">
+                <div class="cp-form-group">
                     <label asp-for="CurrentConditionId" class="cp-form-label">Current Condition <span class="required">*</span></label>
                     <select asp-for="CurrentConditionId" class="cp-select" asp-items="@(ViewBag.ConditionOptions as SelectList)"></select>
                 </div>
-                <div class="cp-form-group" style="margin:0;">
+                <div class="cp-form-group">
                     <label asp-for="InspectionStatusId" class="cp-form-label">Inspection Status</label>
                     <select asp-for="InspectionStatusId" class="cp-select" asp-items="@(ViewBag.InspectionStatusOptions as SelectList)"></select>
                 </div>
             </div>
 
-            <fieldset class="cp-card" style="margin:0 0 16px;padding:14px 16px;background:var(--color-primary-tint-3);">
-                <legend class="cp-form-label" style="padding:0 6px;">Close-out outcome <span class="cp-cell-sub">(applied when status is Inspection Completed)</span></legend>
-                <p class="cp-cell-sub" style="margin:0 0 10px;">Split the inspected units. Good units become available again, damaged units go to maintenance, and lost units are recorded as unreconciled.</p>
-                <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:12px;margin-bottom:12px;">
-                    <div class="cp-form-group" style="margin:0;">
+            <fieldset class="cp-card cp-form-group">
+                <legend class="cp-form-label">Close-out outcome <span class="cp-cell-sub">(applied when status is Inspection Completed)</span></legend>
+                <p class="cp-form-hint">Split the inspected units. Good units become available again, damaged units go to maintenance, and lost units are recorded as unreconciled.</p>
+                <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:0 16px">
+                    <div class="cp-form-group">
                         <label asp-for="GoodQuantity" class="cp-form-label">Good</label>
                         <input asp-for="GoodQuantity" type="number" min="0" class="cp-input" />
                     </div>
-                    <div class="cp-form-group" style="margin:0;">
+                    <div class="cp-form-group">
                         <label asp-for="DamagedQuantity" class="cp-form-label">Damaged</label>
                         <input asp-for="DamagedQuantity" type="number" min="0" class="cp-input" />
                     </div>
-                    <div class="cp-form-group" style="margin:0;">
+                    <div class="cp-form-group">
                         <label asp-for="LostQuantity" class="cp-form-label">Lost</label>
                         <input asp-for="LostQuantity" type="number" min="0" class="cp-input" />
                     </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:12px;">
-                    <div class="cp-form-group" style="margin:0;">
+                    <div class="cp-form-group">
                         <label asp-for="RepairCost" class="cp-form-label">Repair cost (₱)</label>
                         <input asp-for="RepairCost" type="number" min="0" step="0.01" class="cp-input" />
                     </div>
-                    <div class="cp-form-group" style="margin:0;">
+                    <div class="cp-form-group">
                         <label asp-for="PenaltyAmount" class="cp-form-label">Penalty (₱)</label>
                         <input asp-for="PenaltyAmount" type="number" min="0" step="0.01" class="cp-input" />
                     </div>
-                    <div class="cp-form-group" style="margin:0;">
+                    <div class="cp-form-group">
                         <label asp-for="PenaltyNote" class="cp-form-label">Penalty note</label>
                         <input asp-for="PenaltyNote" maxlength="500" class="cp-input" placeholder="e.g. Cracked lens hood; replacement charged" />
                     </div>
@@ -95,9 +93,9 @@
                 <input type="file" name="photos" multiple accept="image/*" class="cp-input" />
             </div>
 
-            <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div class="cp-page-actions">
                 <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
-                <button type="submit" class="cp-btn cp-btn-success"><i class="fa-solid fa-check"></i> Record Inspection</button>
+                <button type="submit" class="cp-btn cp-btn-success">Record Inspection</button>
             </div>
         </form>
     </div>

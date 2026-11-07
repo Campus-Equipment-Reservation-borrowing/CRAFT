@@ -4,30 +4,20 @@
 @{
     ViewData["Title"] = "Equipment Availability";
     var items = Model.Page?.Items ?? new List<EquipmentAvailabilityRowViewModel>();
-    var totalAvailable = items.Sum(i => i.AvailableUnits);
+    Func<string, string> code = name => (name ?? "").Trim().ToUpperInvariant().Replace(' ', '_');
 }
 
 <div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div class="cur">Equipment Availability</div></div>
-        <div class="cp-page-title">Equipment Availability</div>
-        <div class="cp-page-subtitle">@Model.Page?.TotalCount equipment record@(Model.Page?.TotalCount == 1 ? "" : "s") &middot; @totalAvailable unit@(totalAvailable == 1 ? "" : "s") available on this page. Check live stock before submitting a reservation request.</div>
-    </div>
-    <div class="cp-page-actions">
-        <a class="cp-btn cp-btn-secondary" href="/Borrowings/Mine">
-            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 11h6M9 15h4"/></svg>
-            <div>My Borrowings</div>
-        </a>
+        <h1 class="cp-page-title">Equipment Availability</h1>
+        <p class="cp-page-subtitle">Browse the equipment catalog and check live stock before reserving.</p>
     </div>
 </div>
 
-<div class="card" style="margin-bottom:15px">
-    <form method="get" asp-action="Available" class="toolbar">
-        <div class="search">
-            <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-            <input type="text" name="search" value="@Model.Search" placeholder="Search by equipment name or asset code..." style="border:0;outline:0;background:transparent;flex:1;font:inherit;color:inherit" />
-        </div>
-        <select name="category" class="select" style="flex:0 1 180px;padding:0 12px;font:inherit;color:#42504A">
+<div class="cp-filter-bar">
+    <form method="get" asp-action="Available" style="display:contents">
+        <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by equipment name or asset code..." />
+        <select name="category" class="cp-select">
             <option value="">All categories</option>
             @if (ViewBag.CategoryOptions != null)
             {
@@ -51,61 +41,37 @@
 
 @if (!items.Any())
 {
-    <div class="card">
-        <div class="empty">
-            <svg class="ic" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
-            <div class="empty-t">No equipment found</div>
-            <div class="empty-s">No equipment matches your search or filter. Try a different keyword or clear the filters.</div>
+    <div class="cp-card">
+        <div class="cp-empty-state compact">
+            <div class="cp-empty-state-text">No equipment matches your search or filter. Try a different keyword or clear the filters.</div>
         </div>
     </div>
 }
 else
 {
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px">
         @foreach (var eq in items)
         {
             var pct = eq.TotalQuantity > 0 ? (int)Math.Round(eq.AvailableUnits * 100.0 / eq.TotalQuantity) : 0;
             var isOut = eq.AvailableUnits <= 0;
             <a href="/Reservations/EquipmentDetails/@eq.EquipmentId" class="eq-card @(isOut ? "off" : "")">
-                <div class="eq-img" style="overflow:hidden">
-                    @if (!string.IsNullOrWhiteSpace(eq.ImagePath))
-                    {
+                @if (!string.IsNullOrWhiteSpace(eq.ImagePath))
+                {
+                    <div class="eq-img">
                         <img src="@eq.ImagePath" alt="@eq.EquipmentName" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />
-                    }
-                    else
-                    {
-                        <svg class="ic" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
-                    }
-                    <div class="eq-ov l">
-                        <div class="badge" style="background:#EAF5EF;color:#0B5D3E"><div class="dot"></div>@(eq.ConditionName ?? "Good")</div>
                     </div>
-                    <div class="eq-ov r">
-                        <div class="badge" style="background:@(isOut ? "#FBEAEA" : "#EAF5EF");color:@(isOut ? "#8E2F2F" : "#0B5D3E")"><div class="dot"></div>@(isOut ? "Out of Stock" : "Available")</div>
-                    </div>
-                </div>
+                }
                 <div class="eq-b">
-                    <div>
+                    <div class="cp-row-between">
                         <div class="eq-t">@eq.EquipmentName</div>
-                        <div class="eq-m" style="margin-top:5px">
-                            <svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5V4h8.5L20 12.5 12.5 20 3 12.5z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg>
-                            <div>@eq.AssetCode &middot; @eq.CategoryName</div>
-                        </div>
+                        @if (!string.IsNullOrWhiteSpace(eq.ConditionName))
+                        {
+                            <span class="@StatusBadge.Css(code(eq.ConditionName))">@eq.ConditionName</span>
+                        }
                     </div>
-                    <div class="eq-m">
-                        <svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                        <div>@(eq.LocationName ?? "-")</div>
-                    </div>
-                    <div class="stock">
-                        <div class="stock-top">
-                            <div class="stock-n @(isOut ? "out" : "")">@eq.AvailableUnits <span style="font-size:11px;font-weight:600">available</span></div>
-                            <div class="stock-of">@eq.AvailableUnits of @eq.TotalQuantity units free</div>
-                        </div>
-                        <div class="stock-tr"><div class="stock-f @(pct <= 25 ? "warn" : "")" style="width:@(pct)%"></div></div>
-                    </div>
-                    <div class="eq-cta">
-                        <svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-6.5 10-6.5S22 12 22 12s-4 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                        <div>View Details</div>
-                    </div>
+                    <div class="eq-m">@eq.CategoryName &middot; @(eq.LocationName ?? "No location")</div>
+                    <div class="eq-m">@(isOut ? "Out of stock" : $"{eq.AvailableUnits} of {eq.TotalQuantity} available")</div>
+                    <div class="cp-progress"><span style="width:@(pct)%"></span></div>
                 </div>
             </a>
         }
@@ -113,14 +79,22 @@ else
 
     @if (Model.Page != null && Model.Page.TotalPages > 1)
     {
-        <div class="card" style="margin-top:15px">
-            <div class="pager">
-                <div class="hint">Page @Model.Page.Page of @Model.Page.TotalPages (@Model.Page.TotalCount items)</div>
-                <div class="acts">
-                    <a class="cp-btn cp-btn-secondary cp-btn-sm" href="@Url.Action("Available", new { search = Model.Search, category = Model.CategoryId, page = Model.Page.Page - 1 })">‹ Previous</a>
-                    <a class="cp-btn cp-btn-secondary cp-btn-sm" href="@Url.Action("Available", new { search = Model.Search, category = Model.CategoryId, page = Model.Page.Page + 1 })">Next ›</a>
-                </div>
-            </div>
+        <div class="cp-pagination">
+            <span class="cp-pagination-info">Page @Model.Page.Page of @Model.Page.TotalPages (@Model.Page.TotalCount items)</span>
+            <ul class="cp-pagination-list">
+                <li class="@(Model.Page.HasPrevious ? "" : "disabled")">
+                    <a asp-action="Available" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-page="@(Model.Page.Page - 1)">‹</a>
+                </li>
+                @for (var p = 1; p <= Model.Page.TotalPages; p++)
+                {
+                    <li class="@(p == Model.Page.Page ? "active" : "")">
+                        <a asp-action="Available" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-page="@p">@p</a>
+                    </li>
+                }
+                <li class="@(Model.Page.HasNext ? "" : "disabled")">
+                    <a asp-action="Available" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-page="@(Model.Page.Page + 1)">›</a>
+                </li>
+            </ul>
         </div>
     }
 }

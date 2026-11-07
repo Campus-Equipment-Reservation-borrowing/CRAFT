@@ -22,22 +22,22 @@
     }
 </div>
 
-<div class="cp-card">
-    <div class="tabs" role="tablist" style="padding-left:0;">
+<div class="tabs" role="tablist" style="margin-bottom:12px">
         <a class="tab @(Model.Status == null ? "on" : "")" asp-action="Index">All</a>
         <a class="tab @(Model.Status == "OPEN" ? "on" : "")" asp-action="Index" asp-route-status="open">Open <span class="cp-badge cp-badge-warning">@Model.OpenCount</span></a>
         <a class="tab @(Model.Status == "RESOLVED" ? "on" : "")" asp-action="Index" asp-route-status="resolved">Resolved</a>
-    </div>
+</div>
 
+<div class="cp-card cp-card-flush">
     @if (Model.Items.Count == 0)
     {
-        <div class="cp-empty-state">
+        <div class="cp-empty-state compact">
             <div class="cp-empty-state-text">@(Model.IsStaffView ? "No tickets here." : "You haven't opened any tickets.")</div>
         </div>
     }
     else
     {
-        <div class="cp-table-wrap" style="margin-top:12px;">
+        <div class="cp-table-wrap">
             <table class="cp-table">
                 <thead>
                     <tr>
@@ -57,15 +57,15 @@
                         <tr>
                             <td>
                                 <a asp-action="Details" asp-route-id="@t.TicketId" class="name-link cp-cell-name">@t.Subject</a>
-                                <div class="cp-cell-sub">TKT-@t.TicketId &middot; @t.ReplyCount repl@(t.ReplyCount == 1 ? "y" : "ies")</div>
+                                <div class="cp-cell-sub"><span class="cp-mono">TKT-@t.TicketId</span> &middot; @t.ReplyCount repl@(t.ReplyCount == 1 ? "y" : "ies")</div>
                             </td>
                             @if (Model.IsStaffView)
                             {
-                                <td>@t.RequesterName<div class="cp-cell-sub">@t.RequesterIdentifier</div></td>
+                                <td>@t.RequesterName<div class="cp-cell-sub cp-mono">@t.RequesterIdentifier</div></td>
                             }
                             <td><span class="cp-badge @(t.Category == "APPEAL" ? "cp-badge-error" : t.Category == "VERIFICATION" ? "cp-badge-warning" : "cp-badge-info")">@CategoryLabel(t.Category)</span></td>
-                            <td><span class="cp-badge @(t.Status == "OPEN" ? "cp-badge-warning" : "cp-badge-success")">@(t.Status == "OPEN" ? "Open" : "Resolved")</span></td>
-                            <td style="font-size:11.6px;">@t.LastActivityUtc.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")</td>
+                            <td><span class="@StatusBadge.Css(t.Status)">@(t.Status == "OPEN" ? "Open" : "Resolved")</span></td>
+                            <td>@t.LastActivityUtc.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")</td>
                         </tr>
                     }
                 </tbody>

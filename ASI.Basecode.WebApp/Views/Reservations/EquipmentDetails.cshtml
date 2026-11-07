@@ -1,111 +1,86 @@
 @model EquipmentDetailsViewModel
 @{
-    ViewData["Title"] = "Equipment Details";
+    ViewData["Title"] = Model.EquipmentName;
     var isOut = Model.AvailableUnits <= 0;
+    var statusCode = Model.IsUnderMaintenance ? "UNDER_MAINTENANCE" : (isOut ? "OUT_OF_STOCK" : "AVAILABLE");
     var statusLabel = Model.IsUnderMaintenance ? "Under Maintenance" : (isOut ? "Out of Stock" : "Available");
-    var statusBg = Model.IsUnderMaintenance || isOut ? "#FBEAEA" : "#EAF5EF";
-    var statusFg = Model.IsUnderMaintenance || isOut ? "#8E2F2F" : "#0B5D3E";
     var pct = Model.TotalQuantity > 0 ? (int)Math.Round(Model.AvailableUnits * 100.0 / Model.TotalQuantity) : 0;
 }
 
 <div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div>Equipment</div><div>/</div><div class="cur">@Model.EquipmentName</div></div>
-        <div class="cp-page-title">@Model.EquipmentName</div>
-        <div class="cp-page-subtitle">@Model.AssetCode &middot; @Model.CategoryName &middot; @(Model.LocationName ?? "No location")</div>
-    </div>
-    <div class="cp-page-actions">
-        <a class="cp-btn cp-btn-secondary" href="/Reservations/Available">
-            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
-            <div>Back</div>
-        </a>
+        <partial name="_Breadcrumb" model='new[] { ("Equipment", "/Reservations/Available") }' />
+        <h1 class="cp-page-title">@Model.EquipmentName</h1>
+        <p class="cp-page-subtitle">Check availability and borrowing rules before reserving.</p>
     </div>
 </div>
 
-<div class="row" style="gap:20px;align-items:flex-start">
-    <div style="flex:1.55;min-width:0">
-        <div class="col">
-            <div class="card">
-                <div class="eq-img" style="height:180px;overflow:hidden">
-                    @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
+<div class="cp-grid-2">
+    <div class="cp-stack">
+        <div class="cp-card">
+            @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
+            {
+                <div class="eq-img">
+                    <img src="@Model.ImagePath" alt="@Model.EquipmentName" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />
+                </div>
+            }
+            <div class="cp-card-header">Details</div>
+            <p class="cp-cell-sub">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided for this equipment." : Model.Description)</p>
+            <dl class="cp-kv">
+                <dt>Asset Code</dt><dd class="cp-mono">@Model.AssetCode</dd>
+                <dt>Category</dt><dd>@Model.CategoryName</dd>
+                <dt>Location</dt><dd>@(Model.LocationName ?? "-")</dd>
+                <dt>Condition</dt>
+                <dd>
+                    @if (string.IsNullOrWhiteSpace(Model.ConditionName))
                     {
-                        <img src="@Model.ImagePath" alt="@Model.EquipmentName" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />
+                        <text>-</text>
                     }
                     else
                     {
-                        <svg class="ic" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
+                        <span class="@StatusBadge.Css(Model.ConditionName.Trim().ToUpperInvariant().Replace(' ', '_'))">@Model.ConditionName</span>
                     }
-                    <div class="eq-ov l"><div class="badge" style="background:#EAF5EF;color:#0B5D3E"><div class="dot"></div>@(Model.ConditionName ?? "Good")</div></div>
-                    <div class="eq-ov r"><div class="badge" style="background:@statusBg;color:@statusFg"><div class="dot"></div>@statusLabel</div></div>
-                </div>
-                <div class="card-bd">
-                    <p style="font-size:12.6px;color:#42504A;line-height:1.6;margin:0;">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided for this equipment." : Model.Description)</p>
-                    <div class="frow" style="gap:13px">
-                        <div class="field"><div class="flabel">Asset Code</div><div class="input dis"><div>@Model.AssetCode</div></div></div>
-                        <div class="field"><div class="flabel">Category</div><div class="input dis"><div>@Model.CategoryName</div></div></div>
-                    </div>
-                    <div class="frow" style="gap:13px">
-                        <div class="field"><div class="flabel">Location</div><div class="input dis"><div>@(Model.LocationName ?? "-")</div></div></div>
-                        <div class="field"><div class="flabel">Condition</div><div class="input dis"><div>@(Model.ConditionName ?? "-")</div></div></div>
-                    </div>
-                </div>
-            </div>
+                </dd>
+            </dl>
+        </div>
 
-            <div class="card">
-                <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Borrowing Rules</div><div class="card-sub">From System Settings</div></div></div>
-                <div class="card-bd">
-                    <div class="kv">
-                        <div class="kv-row"><div class="kv-k">Maximum borrowing duration</div><div class="kv-v">@Model.MaxBorrowDays days</div></div>
-                        <div class="kv-row"><div class="kv-k">Faculty maximum duration</div><div class="kv-v">@Model.FacultyMaxBorrowDays days</div></div>
-                        <div class="kv-row"><div class="kv-k">Maximum units per request</div><div class="kv-v">@Model.MaxUnitsPerBorrower unit@(Model.MaxUnitsPerBorrower == 1 ? "" : "s")</div></div>
-                        <div class="kv-row"><div class="kv-k">Reservation lead time</div><div class="kv-v">@Model.ReservationLeadTimeDays day@(Model.ReservationLeadTimeDays == 1 ? "" : "s") in advance</div></div>
-                        <div class="kv-row last"><div class="kv-k">Return policy</div><div class="kv-v">Return by the expected return date; overdue items block new requests.</div></div>
-                    </div>
-                </div>
+        <div class="cp-card">
+            <div class="cp-card-header">
+                Borrowing Rules
+                <span class="cp-cell-sub">From System Settings</span>
             </div>
+            <dl class="cp-kv">
+                <dt>Maximum borrowing duration</dt><dd>@Model.MaxBorrowDays days</dd>
+                <dt>Faculty maximum duration</dt><dd>@Model.FacultyMaxBorrowDays days</dd>
+                <dt>Maximum units per request</dt><dd>@Model.MaxUnitsPerBorrower unit@(Model.MaxUnitsPerBorrower == 1 ? "" : "s")</dd>
+                <dt>Reservation lead time</dt><dd>@Model.ReservationLeadTimeDays day@(Model.ReservationLeadTimeDays == 1 ? "" : "s") in advance</dd>
+                <dt>Return policy</dt><dd>Return by the expected return date; overdue items block new requests.</dd>
+            </dl>
         </div>
     </div>
 
-    <div style="flex:1;min-width:0">
-        <div class="col">
-            <div class="card">
-                <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Availability</div></div></div>
-                <div class="card-bd">
-                    <div class="stock">
-                        <div class="stock-top">
-                            <div class="stock-n @(isOut ? "out" : "")">@Model.AvailableUnits <span style="font-size:11px;font-weight:600">available</span></div>
-                            <div class="stock-of">@Model.AvailableUnits of @Model.TotalQuantity units free</div>
-                            <div class="stock-status"><div class="badge" style="background:@statusBg;color:@statusFg"><div class="dot"></div>@statusLabel</div></div>
-                        </div>
-                        <div class="stock-tr"><div class="stock-f @(pct <= 25 ? "warn" : "")" style="width:@(pct)%"></div></div>
-                    </div>
+    <div class="cp-card">
+        <div class="cp-card-header">
+            Availability
+            <span class="@StatusBadge.Css(statusCode)">@statusLabel</span>
+        </div>
+        <div class="cp-stack">
+            <div>
+                <div class="cp-row-between">
+                    <span class="cp-cell-name">@Model.AvailableUnits of @Model.TotalQuantity available</span>
                 </div>
+                <div class="cp-progress"><span style="width:@(pct)%"></span></div>
             </div>
-
-            <div class="card">
-                <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Reserve this equipment</div><div class="card-sub">Choose your schedule on the next screen</div></div></div>
-                <div class="card-bd">
-                    @if (Model.CanReserve)
-                    {
-                        <div class="banner ok">
-                            <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                            <div class="banner-b"><div class="banner-t">Available to reserve</div><div>@Model.AvailableUnits unit@(Model.AvailableUnits == 1 ? "" : "s") available for your selected schedule.</div></div>
-                        </div>
-                        <a href="/Reservations/New/@Model.EquipmentId" class="cp-btn cp-btn-primary cp-btn-lg" style="width:100%">
-                            <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
-                            <div>Reserve Equipment</div>
-                        </a>
-                    }
-                    else
-                    {
-                        <div class="banner err">
-                            <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19L12 3z"/><path d="M12 9.5v5M12 17.6v.4"/></svg>
-                            <div class="banner-b"><div class="banner-t">Not available</div><div>@Model.UnavailableReason</div></div>
-                        </div>
-                        <div class="cp-btn cp-btn-secondary cp-btn-lg" aria-disabled="true" style="width:100%;opacity:.6;pointer-events:none">Reserve Equipment</div>
-                    }
+            @if (Model.CanReserve)
+            {
+                <a href="/Reservations/New/@Model.EquipmentId" class="cp-btn cp-btn-primary cp-btn-lg">Reserve Equipment</a>
+            }
+            else
+            {
+                <div class="banner err">
+                    <div class="banner-b"><div class="banner-t">Not available to reserve</div><div>@Model.UnavailableReason</div></div>
                 </div>
-            </div>
+            }
         </div>
     </div>
 </div>

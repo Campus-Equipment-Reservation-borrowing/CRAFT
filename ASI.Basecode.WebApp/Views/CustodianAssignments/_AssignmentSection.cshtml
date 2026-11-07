@@ -2,16 +2,16 @@
 @model AssignmentSectionViewModel
 
 <div class="cp-card">
-    <div class="cp-card-header">@Model.Title <span class="cp-badge cp-badge-neutral" style="margin-left:6px;">@Model.Rows.Count</span></div>
-    <p class="cp-cell-sub" style="margin:0 0 12px;">@Model.Hint</p>
+    <div class="cp-card-header">@Model.Title <span class="cp-cell-sub">@Model.Rows.Count</span></div>
+    <p class="cp-cell-sub cp-form-group">@Model.Hint</p>
 
     @if (Model.CustodianOptions.Count == 0)
     {
-        <div class="banner warn" style="margin-bottom:12px;"><div class="banner-b">No active custodian accounts yet. Create one in User Management first.</div></div>
+        <div class="banner warn cp-form-group"><div class="banner-b">No active custodian accounts yet. Create one in User Management first.</div></div>
     }
     else if (Model.TargetOptions.Count > 0)
     {
-        <form method="post" asp-action="Assign" class="cp-filter-bar" style="margin-bottom:12px;">
+        <form method="post" asp-action="Assign" class="cp-filter-bar">
             @Html.AntiForgeryToken()
             <input type="hidden" name="scopeType" value="@Model.ScopeType" />
             <select name="targetId" class="cp-select" required aria-label="@Model.TargetLabel">
@@ -34,7 +34,7 @@
 
     @if (Model.Rows.Count == 0)
     {
-        <div class="cp-empty-state" style="padding:18px;">
+        <div class="cp-empty-state compact">
             <div class="cp-empty-state-text">Nothing assigned. Unassigned reservations go to the shared pool.</div>
         </div>
     }
@@ -52,9 +52,9 @@
                                 <div class="cp-cell-sub">@a.TargetDetail</div>
                             </td>
                             <td><a asp-controller="Users" asp-action="Details" asp-route-id="@a.CustodianUserId" class="name-link">@a.CustodianName</a></td>
-                            <td style="font-size:11.6px;">@a.AssignedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
+                            <td>@a.AssignedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
                             <td class="text-center">
-                                <form method="post" asp-action="Unassign" asp-route-id="@a.AssignmentId" style="display:inline;"
+                                <form method="post" asp-action="Unassign" asp-route-id="@a.AssignmentId" style="display:inline"
                                       onsubmit="return confirm('Remove this assignment? New reservations will go to the shared pool.');">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Remove</button>

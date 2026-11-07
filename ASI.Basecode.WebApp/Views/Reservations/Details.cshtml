@@ -3,26 +3,12 @@
 @{
     ViewData["Title"] = "Reservation Details";
 }
-@functions {
-    private static string GetStatusBadgeClass(string statusCode)
-    {
-        return statusCode switch
-        {
-            "PENDING" => "cp-badge-warning",
-            "APPROVED" => "cp-badge-info",
-            "REJECTED" => "cp-badge-error",
-            "CANCELLED" => "cp-badge-neutral",
-            "COMPLETED" => "cp-badge-success",
-            "EXPIRED" => "cp-badge-neutral",
-            _ => "cp-badge-neutral",
-        };
-    }
-}
 
 <div class="cp-page-header">
     <div>
+        <partial name="_Breadcrumb" model='new[] { ("My Reservations", "/Reservations/Mine") }' />
         <h1 class="cp-page-title">Reservation Details</h1>
-        <p class="cp-page-subtitle">@Model.ReservationNumber</p>
+        <p class="cp-page-subtitle">Reservation <span class="cp-mono">@Model.ReservationNumber</span> and its current status.</p>
     </div>
     <div class="cp-page-actions">
         @if (Model.StatusCode is "APPROVED" or "READY_FOR_RELEASE" or "PARTIALLY_RELEASED")
@@ -37,87 +23,65 @@
                 <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Cancel Reservation</button>
             </form>
         }
-        <a asp-controller="Reservations" asp-action="Mine" class="cp-btn cp-btn-secondary cp-btn-sm">Back to My Reservations</a>
     </div>
 </div>
 
-<div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;align-items:start;">
-    <div style="display:flex;flex-direction:column;gap:16px;">
-        <!-- Request Status -->
+<div class="cp-grid-2">
+    <div class="cp-stack">
         <div class="cp-card">
-            <div class="cp-card-header">Request Status</div>
-            <div>
-                <span class="cp-badge @GetStatusBadgeClass(Model.StatusCode)" style="font-size:13px;padding:4px 12px;">@Model.StatusDescription</span>
-                <ul style="list-style:none;padding:0;margin:12px 0 0;font-size:12px;color:var(--color-text-gray);">
-                    <li style="margin-bottom:4px;"><i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i> Submitted @Model.SubmittedAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</li>
-                    @if (Model.CompletedAtUtc.HasValue)
-                    {
-                        <li style="margin-bottom:4px;"><i class="fa-solid fa-flag-checkered" style="margin-right:6px;"></i> Completed @Model.CompletedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")</li>
-                    }
-                    @if (!string.IsNullOrEmpty(Model.BorrowerName))
-                    {
-                        <li style="margin-bottom:4px;"><i class="fa-solid fa-user" style="margin-right:6px;"></i> Borrower: @Model.BorrowerName</li>
-                    }
-                    @if (!string.IsNullOrEmpty(Model.PolicyVersionNumber))
-                    {
-                        <li style="margin-bottom:4px;"><i class="fa-solid fa-scale-balanced" style="margin-right:6px;"></i> Policy version: @Model.PolicyVersionNumber</li>
-                    }
-                </ul>
+            <div class="cp-card-header">
+                Request Status
+                <span class="@StatusBadge.Css(Model.StatusCode)">@Model.StatusDescription</span>
             </div>
+            <dl class="cp-kv">
+                <dt>Submitted</dt><dd>@Model.SubmittedAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+                @if (Model.CompletedAtUtc.HasValue)
+                {
+                    <dt>Completed</dt><dd>@Model.CompletedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+                }
+                @if (!string.IsNullOrEmpty(Model.BorrowerName))
+                {
+                    <dt>Borrower</dt><dd>@Model.BorrowerName</dd>
+                }
+                @if (!string.IsNullOrEmpty(Model.PolicyVersionNumber))
+                {
+                    <dt>Policy version</dt><dd>@Model.PolicyVersionNumber</dd>
+                }
+            </dl>
         </div>
 
-        <!-- Equipment & Schedule -->
         <div class="cp-card">
             <div class="cp-card-header">Equipment &amp; Schedule</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:12.5px;">
-                <div style="color:var(--color-text-gray);">Equipment</div>
-                <div>@Model.EquipmentName <span style="color:var(--color-text-lighter);font-size:11px;">(@Model.AssetCode)</span></div>
-                <div style="color:var(--color-text-gray);">Category</div>
-                <div>@Model.CategoryName</div>
-                <div style="color:var(--color-text-gray);">Pickup Point</div>
-                <div>@(Model.PickupLocationName ?? "—")</div>
-                <div style="color:var(--color-text-gray);">Borrowing Start</div>
-                <div>@Model.RequestedStartAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
-                <div style="color:var(--color-text-gray);">Expected Return</div>
-                <div>@Model.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
-            </div>
+            <dl class="cp-kv">
+                <dt>Equipment</dt><dd>@Model.EquipmentName <span class="cp-cell-sub">(@Model.AssetCode)</span></dd>
+                <dt>Category</dt><dd>@Model.CategoryName</dd>
+                <dt>Pickup Point</dt><dd>@(Model.PickupLocationName ?? "—")</dd>
+                <dt>Borrowing Start</dt><dd>@Model.RequestedStartAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+                <dt>Expected Return</dt><dd>@Model.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
+            </dl>
         </div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:16px;">
-        <!-- Quantities -->
+    <div class="cp-stack">
         <div class="cp-card">
             <div class="cp-card-header">Quantities</div>
-            <div style="font-size:12.5px;">
-                <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--color-border);">
-                    <span style="color:var(--color-text-gray);">Requested quantity</span>
-                    <span style="font-weight:600;">@Model.RequestedQuantity</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--color-border);">
-                    <span style="color:var(--color-text-gray);">Approved quantity</span>
-                    <span>@(Model.ApprovedQuantity > 0 ? Model.ApprovedQuantity.ToString() : "—")</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;padding:6px 0;">
-                    <span style="color:var(--color-text-gray);">Units held for pickup</span>
-                    <span>@(Model.HeldQuantity > 0 ? Model.HeldQuantity.ToString() : "—")</span>
-                </div>
-            </div>
+            <dl class="cp-kv">
+                <dt>Requested</dt><dd>@Model.RequestedQuantity</dd>
+                <dt>Approved</dt><dd>@(Model.ApprovedQuantity > 0 ? Model.ApprovedQuantity.ToString() : "—")</dd>
+                <dt>Held for pickup</dt><dd>@(Model.HeldQuantity > 0 ? Model.HeldQuantity.ToString() : "—")</dd>
+            </dl>
         </div>
 
-        <!-- Purpose & Notes -->
         <div class="cp-card">
             <div class="cp-card-header">Purpose &amp; Notes</div>
-            <div style="margin-bottom:12px;">
-                <div style="font-size:12px;font-weight:600;color:var(--color-text-soft);margin-bottom:4px;">Purpose of Borrowing</div>
-                <div style="font-size:12.5px;">@Model.Purpose</div>
-            </div>
-            <div>
-                <div style="font-size:12px;font-weight:600;color:var(--color-text-soft);margin-bottom:4px;">Acknowledgements</div>
-                <ul style="list-style:none;padding:0;margin:0;font-size:11.6px;color:var(--color-text-gray);">
-                    <li style="margin-bottom:4px;"><i class="fa-solid fa-check" style="color:var(--color-success);margin-right:6px;"></i> Borrowing rules acknowledged at submission.</li>
-                    <li><i class="fa-solid fa-check" style="color:var(--color-success);margin-right:6px;"></i> Overdue/accountability terms acknowledged at submission.</li>
-                </ul>
-            </div>
+            <dl class="cp-kv">
+                <dt>Purpose</dt><dd>@Model.Purpose</dd>
+                @if (!string.IsNullOrWhiteSpace(Model.AdditionalNotes))
+                {
+                    <dt>Additional notes</dt><dd>@Model.AdditionalNotes</dd>
+                }
+                <dt>Acknowledgements</dt><dd>Borrowing rules and overdue/accountability terms acknowledged at submission.</dd>
+            </dl>
         </div>
     </div>
 </div>

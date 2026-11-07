@@ -14,15 +14,14 @@
 <div class="cp-filter-bar">
     <form method="get" asp-action="Borrowings" style="display:contents;">
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by borrower, equipment or transaction number..." />
-        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Borrowings" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
 </div>
 
 @if (!Model.Page.Items.Any())
 {
-    <div class="cp-empty-state">
-        <div class="cp-empty-state-icon"><i class="fa-solid fa-hand-holding"></i></div>
+    <div class="cp-empty-state compact">
         <div class="cp-empty-state-text">No active borrowings.</div>
     </div>
 }
@@ -38,7 +37,7 @@ else
                     <th class="text-center">Qty</th>
                     <th>Released</th>
                     <th>Due</th>
-                    <th>Overdue</th>
+                    <th>Status</th>
                     <th>Released By</th>
                     <th>Inspection</th>
                 </tr>
@@ -46,28 +45,28 @@ else
             <tbody>
                 @foreach (var b in Model.Page.Items)
                 {
-                    <tr style="@(b.IsOverdue ? "background:var(--color-error-bg);" : "")">
-                        <td><strong>@b.TransactionNumber</strong></td>
+                    <tr>
+                        <td class="cp-mono">@b.TransactionNumber</td>
                         <td>@b.BorrowerName</td>
                         <td>
-                            @b.EquipmentName
-                            <div style="font-size:10.8px;color:var(--color-text-lighter);">@b.AssetCode</div>
+                            <div class="cp-cell-name">@b.EquipmentName</div>
+                            <div class="cp-cell-sub cp-mono">@b.AssetCode</div>
                         </td>
-                        <td class="text-center">@b.ReleasedQuantity</td>
-                        <td style="font-size:11.6px;">@b.ReleasedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
-                        <td style="font-size:11.6px;@(b.IsOverdue ? "color:var(--color-error);font-weight:700;" : "")">@b.DueAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
+                        <td class="text-center cp-mono">@b.ReleasedQuantity</td>
+                        <td>@b.ReleasedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
+                        <td>@b.DueAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
                         <td>
                             @if (b.IsOverdue)
                             {
-                                <span class="cp-badge cp-badge-error">Overdue @b.DaysOverdue d</span>
+                                <span class="@StatusBadge.Css("OVERDUE")">Overdue @b.DaysOverdue d</span>
                             }
                             else
                             {
-                                <span class="cp-badge cp-badge-success">On time</span>
+                                <span class="@StatusBadge.Css(b.StatusCode)">@b.StatusDescription</span>
                             }
                         </td>
-                        <td style="font-size:11.6px;">@(b.ReleasedBy ?? "—")</td>
-                        <td style="font-size:11.6px;">@b.InspectionStatus</td>
+                        <td>@(b.ReleasedBy ?? "—")</td>
+                        <td>@b.InspectionStatus</td>
                     </tr>
                 }
             </tbody>

@@ -6,17 +6,15 @@
 
 <div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div>Equipment</div><div>/</div><div class="cur">Add Equipment</div></div>
-        <div class="cp-page-title">Add Equipment</div>
-        <div class="cp-page-subtitle">Fields marked with an asterisk are required.</div>
+        <partial name="_Breadcrumb" model='new[] { ("Equipment", "/Equipment") }' />
+        <h1 class="cp-page-title">Add Equipment</h1>
+        <p class="cp-page-subtitle">Fields marked with an asterisk are required.</p>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-bd">
-        <form asp-action="Create" method="post" enctype="multipart/form-data">
-            @Html.AntiForgeryToken()
-            <partial name="_EquipmentForm" model="Model" />
-        </form>
-    </div>
+<div class="cp-card cp-card-narrow">
+    <form asp-action="Create" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <partial name="_EquipmentForm" model="Model" />
+    </form>
 </div>

@@ -11,10 +11,10 @@
 </div>
 
 <div class="cp-hero">
-    <div style="min-width:0;">
+    <div>
         <div class="cp-hero-title">CRAFT overview</div>
         <div class="cp-hero-sub">
-            @Model.TotalUsers registered account@(Model.TotalUsers == 1 ? "" : "s"), @Model.EquipmentRecords equipment record@(Model.EquipmentRecords == 1 ? "" : "s") and @Model.ReservationTotal reservation@(Model.ReservationTotal == 1 ? "" : "s") on record.
+            Each tile below opens the list behind it: users, equipment, transactions or the audit log.
         </div>
     </div>
 </div>
@@ -96,12 +96,12 @@
 }
 
 <div class="cp-section-title">Recent system activity</div>
-<div class="cp-card">
-    <div class="cp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+<div class="cp-card cp-card-flush">
+    <div class="cp-card-header">
         <span>Latest recorded actions</span>
-        <a href="/Monitoring/AuditLogs" class="cp-btn cp-btn-secondary cp-btn-sm">View all</a>
+        <a href="/Monitoring/AuditLogs">View all</a>
     </div>
-    <div class="cp-table-wrap" style="border:none;">
+    <div class="cp-table-wrap">
         <table class="cp-table">
             <thead>
                 <tr>
@@ -116,17 +116,17 @@
             <tbody>
                 @if (!Model.RecentAudit.Any())
                 {
-                    <tr><td colspan="6" class="cp-empty-state" style="padding:24px;">No activity yet.</td></tr>
+                    <tr><td colspan="6"><div class="cp-empty-state compact"><div class="cp-empty-state-text">No activity yet.</div></div></td></tr>
                 }
                 @foreach (var a in Model.RecentAudit)
                 {
                     <tr>
-                        <td style="font-size:11.6px;white-space:nowrap;">@a.OccurredAtUtc.ToLocalTime().ToString("dd MMM HH:mm")</td>
-                        <td style="font-size:11.6px;">@a.ActorName</td>
-                        <td style="font-size:11.6px;">@a.ActionType</td>
-                        <td style="font-size:11.6px;">@a.EntityType</td>
-                        <td style="font-size:11.6px;">@(a.ReferenceNumber ?? "-")</td>
-                        <td style="font-size:11.6px;">@(a.Details ?? "-")</td>
+                        <td>@a.OccurredAtUtc.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                        <td>@a.ActorName</td>
+                        <td>@a.ActionType</td>
+                        <td>@a.EntityType</td>
+                        <td class="cp-mono">@(a.ReferenceNumber ?? "-")</td>
+                        <td>@(a.Details ?? "-")</td>
                     </tr>
                 }
             </tbody>

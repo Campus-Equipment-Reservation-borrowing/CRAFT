@@ -5,14 +5,14 @@
 }
 @if (summary != null && summary.IsCustodian)
 {
-    <div class="cp-card">
-        <div class="cp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="cp-card cp-card-flush">
+        <div class="cp-card-header">
             <span>Custodian Assignments</span>
-            <a asp-controller="CustodianAssignments" asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Manage</a>
+            <a asp-controller="CustodianAssignments" asp-action="Index">Manage</a>
         </div>
         @if (summary.Assignments.Count == 0)
         {
-            <p class="cp-cell-sub" style="margin:0;">No borrowers, locations or categories assigned. This custodian only sees the shared pool.</p>
+            <div class="cp-empty-state compact"><div class="cp-empty-state-text">No borrowers, locations or categories assigned. This custodian only sees the shared pool.</div></div>
         }
         else
         {
@@ -36,15 +36,17 @@
 else if (summary != null && summary.IsBorrower)
 {
     <div class="cp-card">
-        <div class="cp-card-header">Assigned Custodian</div>
+        <div class="cp-card-header">
+            <span>Assigned Custodian</span>
+            <a asp-controller="CustodianAssignments" asp-action="Index">Manage</a>
+        </div>
         @if (summary.AssignedCustodianName == null)
         {
-            <p class="cp-cell-sub" style="margin:0 0 10px;">Not assigned directly. Requests are routed by equipment location or category, or go to the shared pool.</p>
+            <p class="cp-cell-sub">Not assigned directly. Requests are routed by equipment location or category, or go to the shared pool.</p>
         }
         else
         {
-            <p style="margin:0 0 10px;"><a asp-action="Details" asp-route-id="@summary.AssignedCustodianUserId" class="name-link cp-cell-name">@summary.AssignedCustodianName</a> handles this borrower's reservations.</p>
+            <p><a asp-action="Details" asp-route-id="@summary.AssignedCustodianUserId" class="name-link cp-cell-name">@summary.AssignedCustodianName</a> handles this borrower's reservations.</p>
         }
-        <a asp-controller="CustodianAssignments" asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Manage assignments</a>
     </div>
 }

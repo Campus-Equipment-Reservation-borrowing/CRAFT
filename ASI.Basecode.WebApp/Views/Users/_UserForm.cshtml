@@ -2,72 +2,64 @@
 @using Microsoft.AspNetCore.Mvc.Rendering
 @model UserFormViewModel
 
-<div asp-validation-summary="ModelOnly" class="banner err" style="margin-bottom:14px"></div>
+<div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
 <input type="hidden" asp-for="UserId" />
 
-<div class="frow">
-    <div class="field">
-        <div class="flabel">First Name<div class="req">*</div></div>
-        <input asp-for="FirstName" class="input" style="width:100%" placeholder="e.g. Maria" />
-        <span asp-validation-for="FirstName" class="fielderr"></span>
+<div class="cp-profile-grid">
+    <div class="cp-form-group">
+        <label asp-for="FirstName" class="cp-form-label">First Name <span class="required">*</span></label>
+        <input asp-for="FirstName" class="cp-input" placeholder="e.g. Maria" />
+        <span asp-validation-for="FirstName" class="cp-form-error"></span>
     </div>
-    <div class="field">
-        <div class="flabel">Last Name<div class="req">*</div></div>
-        <input asp-for="LastName" class="input" style="width:100%" placeholder="e.g. Santos" />
-        <span asp-validation-for="LastName" class="fielderr"></span>
+    <div class="cp-form-group">
+        <label asp-for="LastName" class="cp-form-label">Last Name <span class="required">*</span></label>
+        <input asp-for="LastName" class="cp-input" placeholder="e.g. Santos" />
+        <span asp-validation-for="LastName" class="cp-form-error"></span>
     </div>
-</div>
 
-<div class="frow">
-    <div class="field">
-        <div class="flabel">Account Identifier<div class="req">*</div></div>
-        <input asp-for="AccountIdentifier" class="input" style="width:100%" placeholder="e.g. 2023-104857 or EMP-2021-0134" />
-        <div class="hint">School or employee ID. Must be unique across the system.</div>
-        <span asp-validation-for="AccountIdentifier" class="fielderr"></span>
+    <div class="cp-form-group">
+        <label asp-for="AccountIdentifier" class="cp-form-label">Account Identifier <span class="required">*</span></label>
+        <input asp-for="AccountIdentifier" class="cp-input" placeholder="e.g. 2023-104857 or EMP-2021-0134" />
+        <div class="cp-form-hint">School or employee ID. Must be unique across the system.</div>
+        <span asp-validation-for="AccountIdentifier" class="cp-form-error"></span>
     </div>
-    <div class="field">
-        <div class="flabel">School Email<div class="req">*</div></div>
-        <input asp-for="SchoolEmail" type="email" class="input" style="width:100%" placeholder="e.g. maria.santos@university.edu.ph" />
-        <div class="hint">Must be unique across the system.</div>
-        <span asp-validation-for="SchoolEmail" class="fielderr"></span>
+    <div class="cp-form-group">
+        <label asp-for="SchoolEmail" class="cp-form-label">School Email <span class="required">*</span></label>
+        <input asp-for="SchoolEmail" type="email" class="cp-input" placeholder="e.g. maria.santos@university.edu.ph" />
+        <div class="cp-form-hint">Must be unique across the system.</div>
+        <span asp-validation-for="SchoolEmail" class="cp-form-error"></span>
     </div>
-</div>
 
-<div class="frow">
-    <div class="field">
-        <div class="flabel">Role<div class="req">*</div></div>
-        <select asp-for="RoleId" class="input" style="width:100%" asp-items="@(ViewBag.RoleOptions as SelectList)"></select>
-        <span asp-validation-for="RoleId" class="fielderr"></span>
+    <div class="cp-form-group">
+        <label asp-for="RoleId" class="cp-form-label">Role <span class="required">*</span></label>
+        <select asp-for="RoleId" class="cp-select" asp-items="@(ViewBag.RoleOptions as SelectList)"></select>
+        <span asp-validation-for="RoleId" class="cp-form-error"></span>
     </div>
-    <div class="field">
-        <div class="flabel">Department</div>
-        <select asp-for="DepartmentId" class="input" style="width:100%" asp-items="@(ViewBag.DepartmentOptions as SelectList)"></select>
-        <div class="hint">Optional. For most users it is their college or office.</div>
-        <span asp-validation-for="DepartmentId" class="fielderr"></span>
+    <div class="cp-form-group">
+        <label asp-for="DepartmentId" class="cp-form-label">Department</label>
+        <select asp-for="DepartmentId" class="cp-select" asp-items="@(ViewBag.DepartmentOptions as SelectList)"></select>
+        <div class="cp-form-hint">Optional. For most users it is their college or office.</div>
+        <span asp-validation-for="DepartmentId" class="cp-form-error"></span>
     </div>
-    <div class="field">
-        <div class="flabel">Account Status<div class="req">*</div></div>
-        <select asp-for="AccountStatusId" class="input" style="width:100%" asp-items="@(ViewBag.StatusOptions as SelectList)"></select>
-        <span asp-validation-for="AccountStatusId" class="fielderr"></span>
-    </div>
-</div>
 
-@if (Model.UserId == 0)
-{
-    <div class="frow">
-        <div class="field">
-            <div class="flabel">Temporary Password</div>
-            <input asp-for="TemporaryPassword" type="password" class="input" style="width:100%" autocomplete="new-password" placeholder="Leave blank to generate one" />
-            <div class="hint">At least 8 characters with 1 uppercase letter and 1 number. It's shown once after saving, and the user must change it at first sign-in.</div>
-            <span asp-validation-for="TemporaryPassword" class="fielderr"></span>
+    <div class="cp-form-group">
+        <label asp-for="AccountStatusId" class="cp-form-label">Account Status <span class="required">*</span></label>
+        <select asp-for="AccountStatusId" class="cp-select" asp-items="@(ViewBag.StatusOptions as SelectList)"></select>
+        <span asp-validation-for="AccountStatusId" class="cp-form-error"></span>
+    </div>
+
+    @if (Model.UserId == 0)
+    {
+        <div class="cp-form-group">
+            <label asp-for="TemporaryPassword" class="cp-form-label">Temporary Password</label>
+            <input asp-for="TemporaryPassword" type="password" class="cp-input" autocomplete="new-password" placeholder="Leave blank to generate one" />
+            <div class="cp-form-hint">At least 8 characters with 1 uppercase letter and 1 number. It's shown once after saving, and the user must change it at first sign-in.</div>
+            <span asp-validation-for="TemporaryPassword" class="cp-form-error"></span>
         </div>
-    </div>
-}
+    }
+</div>
 
-<div class="acts">
+<div class="cp-page-actions">
     <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
-    <button type="submit" class="cp-btn cp-btn-primary">
-        <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-        <div>Save User</div>
-    </button>
+    <button type="submit" class="cp-btn cp-btn-primary">Save User</button>
 </div>

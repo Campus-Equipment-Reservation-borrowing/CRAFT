@@ -1,69 +1,71 @@
 @using ASI.Basecode.Data.Models
 @model Equipment
 @{
-    ViewData["Title"] = "Equipment Details";
+    ViewData["Title"] = Model.EquipmentName;
+    var balance = Model.EquipmentInventoryBalance;
+    var available = balance == null
+        ? 0
+        : Math.Max(0, balance.TotalQuantity - balance.ReservedQuantity - balance.ReleasedQuantity
+            - balance.AwaitingInspectionQuantity - balance.MaintenanceQuantity - balance.UnreconciledQuantity);
 }
 
 <div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div>Equipment</div><div>/</div><div class="cur">@Model.EquipmentName</div></div>
-        <div class="cp-page-title">@Model.EquipmentName</div>
-        <div class="cp-page-subtitle">@Model.AssetCode &middot; @(Model.EquipmentCategory?.CategoryName ?? "-")</div>
+        <partial name="_Breadcrumb" model='new[] { ("Equipment", "/Equipment") }' />
+        <h1 class="cp-page-title">@Model.EquipmentName</h1>
+        <p class="cp-page-subtitle">Equipment record, condition and inventory balance.</p>
     </div>
     <div class="cp-page-actions">
         <a asp-action="Label" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-secondary">Print QR label</a>
         <a asp-action="Edit" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-primary">Edit</a>
-        <a asp-action="Index" class="cp-btn cp-btn-secondary">Back to List</a>
     </div>
 </div>
 
-<div class="row" style="gap:20px;align-items:flex-start">
-    <div style="flex:1.2;min-width:0">
-        <div class="card">
-            <div class="eq-img" style="height:220px;overflow:hidden">
-                @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
+<div class="cp-grid-2">
+    <div class="cp-card">
+        @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
+        {
+            <img src="@Model.ImagePath" alt="@Model.EquipmentName" style="display:block;width:100%;max-height:260px;object-fit:cover;border-radius:10px;margin-bottom:14px" />
+        }
+        <dl class="cp-kv">
+            <dt>Asset Code</dt><dd><span class="cp-mono">@Model.AssetCode</span></dd>
+            <dt>Category</dt><dd>@(Model.EquipmentCategory?.CategoryName ?? "-")</dd>
+            <dt>Location</dt><dd>@(Model.Location?.LocationName ?? "-")</dd>
+            <dt>Condition</dt><dd>@(Model.CurrentCondition?.Description ?? "-")</dd>
+            <dt>Status</dt>
+            <dd>
+                @if (Model.OperationalStatus != null)
                 {
-                    <img src="@Model.ImagePath" alt="@Model.EquipmentName" style="width:100%;height:100%;object-fit:cover" />
+                    <span class="@StatusBadge.Css(Model.OperationalStatus.Code)">@Model.OperationalStatus.Description</span>
                 }
                 else
                 {
-                    <svg class="ic" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
+                    <span>-</span>
                 }
-            </div>
-            <div class="card-bd">
-                <div class="kv">
-                    <div class="kv-row"><div class="kv-k">Asset Code</div><div class="kv-v">@Model.AssetCode</div></div>
-                    <div class="kv-row"><div class="kv-k">Category</div><div class="kv-v">@(Model.EquipmentCategory?.CategoryName ?? "-")</div></div>
-                    <div class="kv-row"><div class="kv-k">Location</div><div class="kv-v">@(Model.Location?.LocationName ?? "-")</div></div>
-                    <div class="kv-row"><div class="kv-k">Condition</div><div class="kv-v">@(Model.CurrentCondition?.Description ?? "-")</div></div>
-                    <div class="kv-row"><div class="kv-k">Availability Status</div><div class="kv-v">@(Model.OperationalStatus?.Description ?? "-")</div></div>
-                    <div class="kv-row"><div class="kv-k">Active</div><div class="kv-v">@(Model.IsActive ? "Yes" : "No")</div></div>
-                    <div class="kv-row"><div class="kv-k">Created</div><div class="kv-v">@Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</div></div>
-                    <div class="kv-row last"><div class="kv-k">Description</div><div class="kv-v">@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</div></div>
-                </div>
-            </div>
-        </div>
+                @if (!Model.IsActive)
+                {
+                    <span class="cp-badge cp-badge-neutral">Inactive</span>
+                }
+            </dd>
+            <dt>Created</dt><dd>@Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</dd>
+            <dt>Description</dt><dd>@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</dd>
+        </dl>
     </div>
-    <div style="flex:1;min-width:0">
-        <div class="card">
-            <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Inventory Balance</div></div></div>
-            <div class="card-bd">
-                @if (Model.EquipmentInventoryBalance == null)
-                {
-                    <div class="empty">
-                        <div class="empty-t">No inventory balance</div>
-                        <div class="empty-s">No inventory balance is recorded for this equipment yet.</div>
-                    </div>
-                }
-                else
-                {
-                    <div class="kv">
-                        <div class="kv-row"><div class="kv-k">Total Quantity</div><div class="kv-v">@Model.EquipmentInventoryBalance.TotalQuantity</div></div>
-                        <div class="kv-row"><div class="kv-k">Reserved</div><div class="kv-v">@Model.EquipmentInventoryBalance.ReservedQuantity</div></div>
-                        <div class="kv-row last"><div class="kv-k">Released</div><div class="kv-v">@Model.EquipmentInventoryBalance.ReleasedQuantity</div></div>
-                    </div>
-                }
-            </div>
-        </div>
+
+    <div class="cp-card">
+        <div class="cp-card-header">Inventory Balance</div>
+        @if (balance == null)
+        {
+            <div class="cp-empty-state compact"><div class="cp-empty-state-text">No inventory balance is recorded for this equipment yet.</div></div>
+        }
+        else
+        {
+            <dl class="cp-kv">
+                <dt>Available</dt><dd>@available</dd>
+                <dt>Total Quantity</dt><dd>@balance.TotalQuantity</dd>
+                <dt>Reserved</dt><dd>@balance.ReservedQuantity</dd>
+                <dt>Released</dt><dd>@balance.ReleasedQuantity</dd>
+            </dl>
+        }
     </div>
 </div>

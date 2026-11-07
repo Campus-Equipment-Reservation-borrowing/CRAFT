@@ -11,85 +11,84 @@
     </div>
 </div>
 
-<!-- Policy -->
-<h3 style="font-size:14px;font-weight:700;color:var(--color-text-soft);margin:0 0 8px;">Borrowing Policy (current version)</h3>
-<div class="cp-card" style="margin-bottom:24px;">
-    <form asp-action="SavePolicy" method="post" style="padding:20px;">
-        @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="Policy.PolicyVersionId" />
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;">
-            <div class="cp-form-group" style="margin:0;">
-                <label asp-for="Policy.MaxBorrowDurationDays" class="cp-form-label">Max Borrow Days</label>
-                <input asp-for="Policy.MaxBorrowDurationDays" type="number" min="1" class="cp-input" />
-            </div>
-            <div class="cp-form-group" style="margin:0;">
-                <label asp-for="Policy.MaxActiveBorrowingUnits" class="cp-form-label">Max Active Units</label>
-                <input asp-for="Policy.MaxActiveBorrowingUnits" type="number" min="1" class="cp-input" />
-            </div>
-            <div class="cp-form-group" style="margin:0;">
-                <label asp-for="Policy.OverdueGracePeriodMinutes" class="cp-form-label">Overdue Grace (min)</label>
-                <input asp-for="Policy.OverdueGracePeriodMinutes" type="number" min="0" class="cp-input" />
-            </div>
-            <div class="cp-form-group" style="margin:0;">
-                <label asp-for="Policy.LowStockThreshold" class="cp-form-label">Low Stock Threshold</label>
-                <input asp-for="Policy.LowStockThreshold" type="number" min="0" class="cp-input" />
-            </div>
+<div class="cp-stack">
+    <div class="cp-grid-2">
+        <div class="cp-card">
+            <div class="cp-card-header">Borrowing Policy <span class="cp-cell-sub">Current version</span></div>
+            <form asp-action="SavePolicy" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Policy.PolicyVersionId" />
+                <div class="cp-profile-grid">
+                    <div class="cp-form-group">
+                        <label asp-for="Policy.MaxBorrowDurationDays" class="cp-form-label">Max Borrow Days</label>
+                        <input asp-for="Policy.MaxBorrowDurationDays" type="number" min="1" class="cp-input" />
+                    </div>
+                    <div class="cp-form-group">
+                        <label asp-for="Policy.MaxActiveBorrowingUnits" class="cp-form-label">Max Active Units</label>
+                        <input asp-for="Policy.MaxActiveBorrowingUnits" type="number" min="1" class="cp-input" />
+                    </div>
+                    <div class="cp-form-group">
+                        <label asp-for="Policy.OverdueGracePeriodMinutes" class="cp-form-label">Overdue Grace (min)</label>
+                        <input asp-for="Policy.OverdueGracePeriodMinutes" type="number" min="0" class="cp-input" />
+                    </div>
+                    <div class="cp-form-group">
+                        <label asp-for="Policy.LowStockThreshold" class="cp-form-label">Low Stock Threshold</label>
+                        <input asp-for="Policy.LowStockThreshold" type="number" min="0" class="cp-input" />
+                    </div>
+                </div>
+                <label class="cp-form-hint">
+                    <input type="checkbox" asp-for="Policy.BlockReservationWhenOverdue" />
+                    Block reservations when borrower has overdue items
+                </label>
+                <div class="cp-profile-actions">
+                    <button type="submit" class="cp-btn cp-btn-success">Publish New Policy Version</button>
+                </div>
+            </form>
         </div>
-        <div style="margin-bottom:16px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--color-text-soft);cursor:pointer;">
-                <input type="checkbox" asp-for="Policy.BlockReservationWhenOverdue" />
-                <span>Block reservations when borrower has overdue items</span>
-            </label>
-        </div>
-        <div style="text-align:right;">
-            <button type="submit" class="cp-btn cp-btn-success">Publish New Policy Version</button>
-        </div>
-    </form>
-</div>
 
-<!-- Policy History -->
-<h3 style="font-size:14px;font-weight:700;color:var(--color-text-soft);margin:0 0 8px;">Policy History</h3>
-<div class="cp-table-wrap" style="margin-bottom:24px;">
-    <table class="cp-table">
-        <thead>
-            <tr><th>Version</th><th>Effective From</th><th>Current</th><th>Max Days</th><th>Max Units</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var p in Model.PolicyHistory)
-            {
-                <tr>
-                    <td>@p.VersionNumber</td>
-                    <td style="font-size:11.6px;">@p.EffectiveFromUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
-                    <td>@(p.IsCurrent ? "Yes" : "—")</td>
-                    <td>@p.MaxBorrowDurationDays</td>
-                    <td>@p.MaxActiveBorrowingUnits</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
+        <div class="cp-card cp-card-flush">
+            <div class="cp-card-header">Policy History</div>
+            <div class="cp-table-wrap">
+                <table class="cp-table">
+                    <thead>
+                        <tr><th>Version</th><th>Effective From</th><th>Current</th><th>Max Days</th><th>Max Units</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.PolicyHistory)
+                        {
+                            <tr>
+                                <td class="cp-mono">@p.VersionNumber</td>
+                                <td>@p.EffectiveFromUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
+                                <td>@(p.IsCurrent ? "Yes" : "—")</td>
+                                <td>@p.MaxBorrowDurationDays</td>
+                                <td>@p.MaxActiveBorrowingUnits</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-<!-- Categories -->
-<h3 style="font-size:14px;font-weight:700;color:var(--color-text-soft);margin:0 0 8px;">Equipment Categories</h3>
-<div class="cp-card" style="margin-bottom:24px;">
-    <div style="padding:20px;">
-        <form asp-action="AddCategory" method="post" style="display:flex;gap:8px;margin-bottom:16px;">
+    <div class="cp-card cp-card-flush">
+        <div class="cp-card-header">Equipment Categories</div>
+        <form asp-action="AddCategory" method="post" class="cp-filter-bar">
             @Html.AntiForgeryToken()
-            <input name="code" class="cp-input" placeholder="Code (e.g. LAPTOP)" style="max-width:200px;" />
+            <input name="code" class="cp-input" placeholder="Code (e.g. LAPTOP)" />
             <input name="name" class="cp-input" placeholder="Category name" />
             <button type="submit" class="cp-btn cp-btn-success cp-btn-sm">Add</button>
         </form>
         <div class="cp-table-wrap">
             <table class="cp-table">
-                <thead><tr><th>Code</th><th>Name</th><th class="text-center">Actions</th></tr></thead>
+                <thead><tr><th>Code</th><th>Name</th><th>Actions</th></tr></thead>
                 <tbody>
                     @foreach (var c in Model.Categories)
                     {
                         <tr>
-                            <td>@c.CategoryCode</td>
+                            <td class="cp-mono">@c.CategoryCode</td>
                             <td>@c.CategoryName</td>
-                            <td class="text-center">
-                                <form asp-action="DeleteCategory" asp-route-id="@c.EquipmentCategoryId" method="post" style="display:inline;">
+                            <td>
+                                <form asp-action="DeleteCategory" asp-route-id="@c.EquipmentCategoryId" method="post">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm" onclick="return confirm('Delete this category?');">Delete</button>
                                 </form>
@@ -100,34 +99,31 @@
             </table>
         </div>
     </div>
-</div>
 
-<!-- Locations -->
-<h3 style="font-size:14px;font-weight:700;color:var(--color-text-soft);margin:0 0 8px;">Locations</h3>
-<div class="cp-card" style="margin-bottom:24px;">
-    <div style="padding:20px;">
-        <form asp-action="AddLocation" method="post" style="display:flex;gap:8px;align-items:center;margin-bottom:16px;">
+    <div class="cp-card cp-card-flush">
+        <div class="cp-card-header">Locations</div>
+        <form asp-action="AddLocation" method="post" class="cp-filter-bar">
             @Html.AntiForgeryToken()
-            <input name="code" class="cp-input" placeholder="Code" style="max-width:120px;" />
+            <input name="code" class="cp-input" placeholder="Code" />
             <input name="name" class="cp-input" placeholder="Location name" />
-            <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;">
+            <label class="cp-form-hint">
                 <input type="checkbox" name="isPickup" value="true" /> Pickup point
             </label>
             <button type="submit" class="cp-btn cp-btn-success cp-btn-sm">Add</button>
         </form>
         <div class="cp-table-wrap">
             <table class="cp-table">
-                <thead><tr><th>Code</th><th>Name</th><th>Pickup</th><th>Active</th><th class="text-center">Actions</th></tr></thead>
+                <thead><tr><th>Code</th><th>Name</th><th>Pickup</th><th>Active</th><th>Actions</th></tr></thead>
                 <tbody>
                     @foreach (var l in Model.Locations)
                     {
                         <tr>
-                            <td>@l.LocationCode</td>
+                            <td class="cp-mono">@l.LocationCode</td>
                             <td>@l.LocationName</td>
                             <td>@(l.IsPickupLocation ? "Yes" : "No")</td>
                             <td>@(l.IsActive ? "Yes" : "No")</td>
-                            <td class="text-center">
-                                <form asp-action="DeleteLocation" asp-route-id="@l.LocationId" method="post" style="display:inline;">
+                            <td>
+                                <form asp-action="DeleteLocation" asp-route-id="@l.LocationId" method="post">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm" onclick="return confirm('Delete this location?');">Delete</button>
                                 </form>

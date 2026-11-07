@@ -9,41 +9,48 @@
 
 <div class="cp-page-header">
     <div>
+        <partial name="_Breadcrumb" model='new[] { ("Returns", "/Returns") }' />
         <h1 class="cp-page-title">Record Return</h1>
         <p class="cp-page-subtitle">Record the return of borrowed equipment.</p>
     </div>
-    <div class="cp-page-actions">
-        <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Back to list</a>
-    </div>
 </div>
 
-@if (ctx != null)
-{
-    <div class="cp-card" style="margin-bottom:16px;">
-        <div class="cp-card-header">Borrowing Summary</div>
-        <div style="font-size:12.5px;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;">
-            <div style="color:var(--color-text-gray);">Transaction #</div><div>@ctx.TransactionNumber</div>
-            <div style="color:var(--color-text-gray);">Borrower</div><div>@ctx.BorrowerName</div>
-            <div style="color:var(--color-text-gray);">Equipment</div><div>@ctx.EquipmentName (@ctx.AssetCode)</div>
-            <div style="color:var(--color-text-gray);">Released</div><div>@ctx.ReleasedQuantity (already returned: @ctx.AlreadyReturned)</div>
-            <div style="color:var(--color-text-gray);">Due</div><div style="@(ctx.IsOverdue ? "color:var(--color-error);font-weight:700;" : "")">@ctx.DueAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm") @(ctx.IsOverdue ? $"(overdue {ctx.DaysOverdue} d)" : "")</div>
+<div class="cp-stack">
+    @if (ctx != null)
+    {
+        <div class="cp-card">
+            <div class="cp-card-header">Borrowing Summary</div>
+            <dl class="cp-kv">
+                <dt>Transaction #</dt><dd class="cp-mono">@ctx.TransactionNumber</dd>
+                <dt>Borrower</dt><dd>@ctx.BorrowerName</dd>
+                <dt>Equipment</dt><dd>@ctx.EquipmentName</dd>
+                <dt>Asset Code</dt><dd class="cp-mono">@ctx.AssetCode</dd>
+                <dt>Released</dt><dd class="cp-mono">@ctx.ReleasedQuantity</dd>
+                <dt>Already Returned</dt><dd class="cp-mono">@ctx.AlreadyReturned</dd>
+                <dt>Due</dt>
+                <dd>
+                    @ctx.DueAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                    @if (ctx.IsOverdue)
+                    {
+                        <span class="@StatusBadge.Css("OVERDUE")">Overdue @ctx.DaysOverdue d</span>
+                    }
+                </dd>
+            </dl>
         </div>
-    </div>
-}
+    }
 
-<div class="cp-card">
-    <div style="padding:20px;">
+    <div class="cp-card">
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="BorrowingId" />
             <div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-                <div class="cp-form-group" style="margin:0;">
+            <div class="cp-grid-2">
+                <div class="cp-form-group">
                     <label asp-for="ReturnedQuantity" class="cp-form-label">Returned Quantity <span class="required">*</span></label>
                     <input asp-for="ReturnedQuantity" type="number" min="1" class="cp-input" />
                 </div>
-                <div class="cp-form-group" style="margin:0;">
+                <div class="cp-form-group">
                     <label asp-for="ReturnedAtUtc" class="cp-form-label">Return Date/Time</label>
                     <input asp-for="ReturnedAtUtc" type="datetime-local" class="cp-input" />
                 </div>
@@ -54,12 +61,12 @@
                 <textarea asp-for="Notes" class="cp-textarea" rows="3"></textarea>
             </div>
 
-            <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div class="cp-page-actions">
                 <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
-                <button type="submit" class="cp-btn cp-btn-success"><i class="fa-solid fa-check"></i> Record Return</button>
+                <button type="submit" class="cp-btn cp-btn-success">Record Return</button>
                 @if (ctx != null)
                 {
-                    <a asp-action="Inspect" asp-route-id="@ctx.Form.BorrowingId" class="cp-btn cp-btn-primary" style="margin-left:8px;">Record Inspection</a>
+                    <a asp-action="Inspect" asp-route-id="@ctx.Form.BorrowingId" class="cp-btn cp-btn-primary">Record Inspection</a>
                 }
             </div>
         </form>

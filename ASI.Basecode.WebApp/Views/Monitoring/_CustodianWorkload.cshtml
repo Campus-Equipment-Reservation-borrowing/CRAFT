@@ -2,11 +2,11 @@
 @model CustodianWorkloadViewModel
 
 <div class="cp-section-title">Custodian workload</div>
-<div class="cp-grid-2" style="margin-bottom:16px;">
-    <div class="cp-card">
-        <div class="cp-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+<div class="cp-grid-2">
+    <div class="cp-card cp-card-flush">
+        <div class="cp-card-header">
             <span>Open work by custodian</span>
-            <a asp-controller="CustodianAssignments" asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Assignments</a>
+            <a asp-controller="CustodianAssignments" asp-action="Index">Assignments</a>
         </div>
         <div class="cp-table-wrap">
             <table class="cp-table">
@@ -16,15 +16,15 @@
                     {
                         <tr>
                             <td><a asp-controller="Users" asp-action="Details" asp-route-id="@w.CustodianUserId" class="name-link">@w.CustodianName</a></td>
-                            <td class="text-center">@w.Pending</td>
-                            <td class="text-center">@w.Approved</td>
-                            <td class="text-center">@w.AssignmentCount</td>
+                            <td class="text-center cp-mono">@w.Pending</td>
+                            <td class="text-center cp-mono">@w.Approved</td>
+                            <td class="text-center cp-mono">@w.AssignmentCount</td>
                         </tr>
                     }
                     <tr>
                         <td><span class="cp-badge cp-badge-neutral">Shared pool</span></td>
-                        <td class="text-center">@Model.PoolPending</td>
-                        <td class="text-center">@Model.PoolApproved</td>
+                        <td class="text-center cp-mono">@Model.PoolPending</td>
+                        <td class="text-center cp-mono">@Model.PoolApproved</td>
                         <td class="text-center">—</td>
                     </tr>
                 </tbody>
@@ -32,11 +32,11 @@
         </div>
     </div>
 
-    <div class="cp-card">
+    <div class="cp-card cp-card-flush">
         <div class="cp-card-header">Reassign open reservations</div>
         @if (Model.OpenReservations.Count == 0)
         {
-            <p class="cp-cell-sub" style="margin:0;">No open reservations.</p>
+            <div class="cp-empty-state compact"><div class="cp-empty-state-text">No open reservations.</div></div>
         }
         else
         {
@@ -48,14 +48,14 @@
                         {
                             <tr>
                                 <td>
-                                    <span class="cp-cell-name">@r.ReservationNumber</span>
+                                    <span class="cp-cell-name cp-mono">@r.ReservationNumber</span>
                                     <div class="cp-cell-sub">@r.BorrowerName &middot; @r.EquipmentName &middot; @r.StatusDescription</div>
                                 </td>
                                 <td>
                                     <form method="post" asp-controller="CustodianAssignments" asp-action="Reassign" style="display:flex;gap:6px;">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="reservationId" value="@r.ReservationId" />
-                                        <select name="custodianUserId" class="cp-select" aria-label="Custodian for @r.ReservationNumber" style="min-width:140px;">
+                                        <select name="custodianUserId" class="cp-select" aria-label="Custodian for @r.ReservationNumber">
                                             <option value="" selected="@(r.AssignedCustodianUserId == null)">Shared pool</option>
                                             @foreach (var c in Model.CustodianOptions)
                                             {

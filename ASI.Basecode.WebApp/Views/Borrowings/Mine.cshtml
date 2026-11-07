@@ -2,115 +2,86 @@
 @{
     ViewData["Title"] = "My Borrowings";
     var overdue = Model.Borrowings.Where(b => b.IsOverdue).ToList();
-    Func<string, string> statusBg = code => code switch
-    {
-        "OVERDUE" => "#FBEAEA",
-        "PARTIALLY_RETURNED" => "#FDF3E1",
-        _ => "#E6F1F5",
-    };
-    Func<string, string> statusFg = code => code switch
-    {
-        "OVERDUE" => "#8E2F2F",
-        "PARTIALLY_RETURNED" => "#8A5D0F",
-        _ => "#245C6E",
-    };
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div class="cur">My Borrowings</div></div>
-        <div class="title">My Borrowings</div>
-        <div class="subtitle">Equipment currently released to you. Return items on or before the due date to keep your record clear.</div>
-    </div>
-    <div class="hd-actions">
-        <a class="btn btn-secondary" href="/Borrowings/History">
-            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            <div>Borrowing History</div>
-        </a>
+        <h1 class="cp-page-title">My Borrowings</h1>
+        <p class="cp-page-subtitle">Equipment currently released to you. Return items on or before the due date.</p>
     </div>
 </div>
 
-<div class="col">
-    @if (overdue.Any())
-    {
-        <div class="banner err">
-            <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19L12 3z"/><path d="M12 9.5v5M12 17.6v.4"/></svg>
-            <div class="banner-b">
-                <div class="banner-t">Return your overdue item@(overdue.Count == 1 ? "" : "s")</div>
-                <div>@overdue.First().EquipmentName@(overdue.Count > 1 ? $" and {overdue.Count - 1} more" : "") is @overdue.First().DaysOverdue day@(overdue.First().DaysOverdue == 1 ? "" : "s") overdue. New reservation requests are blocked until it is returned.</div>
-            </div>
+@if (overdue.Any())
+{
+    <div class="banner err">
+        <div class="banner-b">
+            <div class="banner-t">Return your overdue item@(overdue.Count == 1 ? "" : "s")</div>
+            <div>@overdue.First().EquipmentName@(overdue.Count > 1 ? $" and {overdue.Count - 1} more" : "") is @overdue.First().DaysOverdue day@(overdue.First().DaysOverdue == 1 ? "" : "s") overdue. New reservation requests are blocked until it is returned.</div>
         </div>
-    }
+    </div>
+}
 
-    <div class="card">
-        <form method="get" action="/Borrowings/Mine" class="toolbar">
-            <div class="search" style="flex:1">
-                <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-                <input type="text" name="search" value="@Model.Search" placeholder="Search by equipment or transaction ID..." style="border:0;outline:0;background:transparent;flex:1;font:inherit;color:inherit" />
-            </div>
-            <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-            <a href="/Borrowings/Mine" class="btn btn-secondary btn-sm">Clear</a>
-        </form>
-        <div class="tbl">
-            <div class="tr th">
-                <div class="td" style="flex:280 1 0;min-width:0">EQUIPMENT</div>
-                <div class="td" style="flex:150 1 0;min-width:0">TRANSACTION ID</div>
-                <div class="td" style="flex:55 1 0;min-width:0">QTY</div>
-                <div class="td" style="flex:180 1 0;min-width:0">RELEASE DATE</div>
-                <div class="td" style="flex:170 1 0;min-width:0">CONDITION AT RELEASE</div>
-                <div class="td" style="flex:160 1 0;min-width:0">DUE DATE</div>
-                <div class="td" style="flex:130 1 0;min-width:0">REMAINING</div>
-                <div class="td" style="flex:140 1 0;min-width:0">STATUS</div>
-                <div class="td end" style="flex:150 1 0;min-width:0"></div>
-            </div>
+<div class="cp-filter-bar">
+    <form method="get" action="/Borrowings/Mine" style="display:contents">
+        <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by equipment or transaction ID..." />
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
+        <a href="/Borrowings/Mine" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
+    </form>
+</div>
+
+<div class="cp-table-wrap">
+    <table class="cp-table">
+        <thead>
+            <tr>
+                <th>Equipment</th>
+                <th>Transaction</th>
+                <th>Qty</th>
+                <th>Released</th>
+                <th>Condition at Release</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
             @if (!Model.Borrowings.Any())
             {
-                <div class="tr"><div class="td" style="flex:1;min-width:0;padding:28px 17px;color:#8A968F">You have no active borrowings.</div></div>
+                <tr><td colspan="8"><div class="cp-empty-state compact"><div class="cp-empty-state-text">You have no active borrowings.</div></div></td></tr>
             }
             @foreach (var b in Model.Borrowings)
             {
                 var daysLeft = (b.DueAtUtc.ToLocalTime().Date - DateTime.Now.Date).Days;
-                <div class="tr">
-                    <div class="td" style="flex:280 1 0;min-width:0">
-                        <div class="cellwrap">
-                            <div class="thumb" style="width:36px;height:36px">
-                                <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
-                            </div>
-                            <div class="cellname">
-                                <div class="strong">@b.EquipmentName</div>
-                                <div class="sub">@b.AssetCode</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="td" style="flex:150 1 0;min-width:0"><div class="mono">@b.TransactionNumber</div></div>
-                    <div class="td" style="flex:55 1 0;min-width:0">@b.Quantity</div>
-                    <div class="td" style="flex:180 1 0;min-width:0">@b.ReleasedAtUtc.ToLocalTime().ToString("dd MMM yyyy")<div class="sub">@b.ReleasedAtUtc.ToLocalTime().ToString("hh:mm tt")</div></div>
-                    <div class="td" style="flex:170 1 0;min-width:0">
-                        <div class="badge mid" style="background:#EAF5EF;color:#0B5D3E"><div class="dot"></div>@(b.ReleaseConditionName ?? "Good Condition")</div>
-                    </div>
-                    <div class="td" style="flex:160 1 0;min-width:0">@b.DueAtUtc.ToLocalTime().ToString("dd MMM yyyy")<div class="sub">@b.DueAtUtc.ToLocalTime().ToString("hh:mm tt")</div></div>
-                    <div class="td" style="flex:130 1 0;min-width:0">
-                        @if (daysLeft < 0)
+                var dueToday = b.IsDueToday && !b.IsOverdue;
+                <tr>
+                    <td>
+                        <div class="cp-cell-name">@b.EquipmentName</div>
+                        <div class="cp-cell-sub">@b.AssetCode</div>
+                    </td>
+                    <td class="cp-mono">@b.TransactionNumber</td>
+                    <td>@b.Quantity</td>
+                    <td>@b.ReleasedAtUtc.ToLocalTime().ToString("dd MMM yyyy")<div class="cp-cell-sub">@b.ReleasedAtUtc.ToLocalTime().ToString("hh:mm tt")</div></td>
+                    <td>
+                        @if (string.IsNullOrWhiteSpace(b.ReleaseConditionName))
                         {
-                            <div class="strong" style="color:#8E2F2F">@(-daysLeft) day@(daysLeft == -1 ? "" : "s") overdue</div>
-                        }
-                        else if (daysLeft == 0)
-                        {
-                            <div class="strong" style="color:#8A5D0F">Due today</div>
+                            <span class="cp-cell-sub">-</span>
                         }
                         else
                         {
-                            <div class="strong">@daysLeft day@(daysLeft == 1 ? "" : "s") left</div>
+                            <span class="@StatusBadge.Css(b.ReleaseConditionName.ToUpperInvariant().Replace(' ', '_'))">@b.ReleaseConditionName</span>
                         }
-                    </div>
-                    <div class="td" style="flex:140 1 0;min-width:0">
-                        <div class="badge mid" style="background:@statusBg(b.StatusCode);color:@statusFg(b.StatusCode)"><div class="dot"></div>@(b.IsDueToday && !b.IsOverdue ? "Due Today" : b.StatusDescription)</div>
-                    </div>
-                    <div class="td end" style="flex:150 1 0;min-width:0">
-                        <a class="btn btn-secondary btn-sm" href="/Borrowings/Details/@b.BorrowingId"><div>View Details</div></a>
-                    </div>
-                </div>
+                    </td>
+                    <td>
+                        @b.DueAtUtc.ToLocalTime().ToString("dd MMM yyyy")
+                        <div class="cp-cell-sub">
+                            @if (daysLeft < 0) { <text>@(-daysLeft) day@(daysLeft == -1 ? "" : "s") overdue</text> }
+                            else if (daysLeft == 0) { <text>@b.DueAtUtc.ToLocalTime().ToString("hh:mm tt")</text> }
+                            else { <text>@daysLeft day@(daysLeft == 1 ? "" : "s") left</text> }
+                        </div>
+                    </td>
+                    <td><span class="@StatusBadge.Css(dueToday ? "DUE_TODAY" : b.StatusCode)">@(dueToday ? "Due Today" : b.StatusDescription)</span></td>
+                    <td><a class="cp-btn cp-btn-secondary cp-btn-sm" href="/Borrowings/Details/@b.BorrowingId">View Details</a></td>
+                </tr>
             }
-        </div>
-    </div>
+        </tbody>
+    </table>
 </div>

@@ -1,145 +1,94 @@
 @model BorrowingDetailsViewModel
 @{
-    ViewData["Title"] = "Borrowing Details";
+    ViewData["Title"] = $"Borrowing {Model.TransactionNumber}";
     var remaining = (Model.DueAtUtc.ToLocalTime().Date - DateTime.Now.Date).Days;
-    var statusBg = Model.IsReturned ? "#EAF5EF" : (Model.IsOverdue ? "#FBEAEA" : "#E6F1F5");
-    var statusFg = Model.IsReturned ? "#0B5D3E" : (Model.IsOverdue ? "#8E2F2F" : "#245C6E");
+    Func<string, string> code = name => (name ?? "").Trim().ToUpperInvariant().Replace(' ', '_');
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div>My Borrowings</div><div>/</div><div class="cur">@Model.TransactionNumber</div></div>
-        <div class="title">Borrowing @Model.TransactionNumber</div>
-        <div class="subtitle">@Model.EquipmentName &middot; Released @Model.ReleasedAtUtc.ToLocalTime().ToString("dd MMMM yyyy") &middot; Due @Model.DueAtUtc.ToLocalTime().ToString("dd MMMM yyyy")</div>
-    </div>
-    <div class="hd-actions">
-        <a class="btn btn-secondary" href="@(Model.IsReturned ? "/Borrowings/History" : "/Borrowings/Mine")">
-            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
-            <div>Back</div>
-        </a>
+        <partial name="_Breadcrumb" model='new[] { ("My Borrowings", "/Borrowings/Mine") }' />
+        <h1 class="cp-page-title">Borrowing @Model.TransactionNumber</h1>
+        <p class="cp-page-subtitle">Release and return record for this borrowing.</p>
     </div>
 </div>
 
-<div class="col">
-    <div class="card">
-        <div class="card-bd" style="padding:18px 22px">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">
-                <div style="display:flex;align-items:center;gap:16px">
-                    <div class="thumb" style="width:64px;height:64px">
-                        <svg class="ic" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
-                    </div>
-                    <div>
-                        <div style="font-size:17px;font-weight:700">@Model.EquipmentName</div>
-                        <div class="hint" style="margin-top:4px">@Model.AssetCode &middot; @Model.CategoryName &middot; Qty @Model.Quantity</div>
-                    </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:32px;flex-wrap:wrap">
-                    <div>
-                        <div class="hint">Released</div>
-                        <div style="font-size:15px;font-weight:700;margin-top:3px">@Model.ReleasedAtUtc.ToLocalTime().ToString("dd MMM, hh:mm tt")</div>
-                    </div>
-                    <div>
-                        <div class="hint">Due</div>
-                        <div style="font-size:15px;font-weight:700;margin-top:3px">@Model.DueAtUtc.ToLocalTime().ToString("dd MMM, hh:mm tt")</div>
-                    </div>
-                    <div>
-                        <div class="hint">Remaining</div>
-                        <div style="font-size:15px;font-weight:700;margin-top:3px;color:@(remaining < 0 ? "#8E2F2F" : "#168A5B")">
-                            @if (Model.IsReturned) { <text>Returned</text> }
-                            else if (remaining < 0) { <text>@(-remaining) day@(remaining == -1 ? "" : "s") overdue</text> }
-                            else if (remaining == 0) { <text>Due today</text> }
-                            else { <text>@remaining day@(remaining == 1 ? "" : "s")</text> }
-                        </div>
-                    </div>
-                    <div>
-                        <div class="hint">Status</div>
-                        <div style="margin-top:5px"><div class="badge" style="background:@statusBg;color:@statusFg"><div class="dot"></div>@Model.StatusDescription</div></div>
-                    </div>
-                </div>
-            </div>
+<div class="cp-grid-2">
+    <div class="cp-card">
+        <div class="cp-card-header">
+            Summary
+            <span class="@StatusBadge.Css(Model.IsOverdue && !Model.IsReturned ? "OVERDUE" : Model.StatusCode)">@Model.StatusDescription</span>
         </div>
+        <dl class="cp-kv">
+            <dt>Equipment</dt><dd>@Model.EquipmentName</dd>
+            <dt>Asset Code</dt><dd class="cp-mono">@Model.AssetCode</dd>
+            <dt>Category</dt><dd>@Model.CategoryName</dd>
+            <dt>Location</dt><dd>@(Model.LocationName ?? "-")</dd>
+            <dt>Quantity Released</dt><dd>@Model.Quantity unit@(Model.Quantity == 1 ? "" : "s")</dd>
+            <dt>Released</dt>
+            <dd>
+                @Model.ReleasedAtUtc.ToLocalTime().ToString("dd MMMM yyyy, hh:mm tt")
+                @if (!string.IsNullOrWhiteSpace(Model.ReleasedBy))
+                {
+                    <div class="cp-cell-sub">by @Model.ReleasedBy</div>
+                }
+            </dd>
+            <dt>Condition at Release</dt>
+            <dd>
+                @if (string.IsNullOrWhiteSpace(Model.ReleaseConditionName))
+                {
+                    <text>-</text>
+                }
+                else
+                {
+                    <span class="@StatusBadge.Css(code(Model.ReleaseConditionName))">@Model.ReleaseConditionName</span>
+                }
+            </dd>
+            <dt>Due</dt>
+            <dd>
+                @Model.DueAtUtc.ToLocalTime().ToString("dd MMMM yyyy, hh:mm tt")
+                @if (!Model.IsReturned)
+                {
+                    <div class="cp-cell-sub">
+                        @if (remaining < 0) { <text>@(-remaining) day@(remaining == -1 ? "" : "s") overdue</text> }
+                        else if (remaining == 0) { <text>Due today</text> }
+                        else { <text>@remaining day@(remaining == 1 ? "" : "s") left</text> }
+                    </div>
+                }
+            </dd>
+        </dl>
     </div>
 
-    <div class="row" style="gap:20px;align-items:flex-start">
-        <div style="flex:1.35;min-width:0">
-            <div class="col">
-                <div class="card">
-                    <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Transaction Details</div></div></div>
-                    <div class="card-bd">
-                        <div class="kv">
-                            <div class="kv-row"><div class="kv-k">Transaction ID</div><div class="kv-v">@Model.TransactionNumber</div></div>
-                            <div class="kv-row"><div class="kv-k">Equipment</div><div class="kv-v">@Model.EquipmentName</div></div>
-                            <div class="kv-row"><div class="kv-k">Asset Code</div><div class="kv-v">@Model.AssetCode</div></div>
-                            <div class="kv-row"><div class="kv-k">Category</div><div class="kv-v">@Model.CategoryName</div></div>
-                            <div class="kv-row"><div class="kv-k">Location</div><div class="kv-v">@(Model.LocationName ?? "-")</div></div>
-                            <div class="kv-row last"><div class="kv-k">Quantity Released</div><div class="kv-v">@Model.Quantity unit@(Model.Quantity == 1 ? "" : "s")</div></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Release Information</div><div class="card-sub">Recorded by the custodian at pickup</div></div></div>
-                    <div class="card-bd">
-                        <div class="kv">
-                            <div class="kv-row"><div class="kv-k">Released By</div><div class="kv-v">@(Model.ReleasedBy ?? "Property Office")</div></div>
-                            <div class="kv-row"><div class="kv-k">Release Date &amp; Time</div><div class="kv-v">@Model.ReleasedAtUtc.ToLocalTime().ToString("dd MMMM yyyy, hh:mm tt")</div></div>
-                            <div class="kv-row last"><div class="kv-k">Condition at Release</div><div class="kv-v"><div class="badge" style="background:#EAF5EF;color:#0B5D3E"><div class="dot"></div>@(Model.ReleaseConditionName ?? "Good")</div></div></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Return Information</div></div></div>
-                    <div class="card-bd">
-                        @if (Model.IsReturned)
-                        {
-                            <div class="kv">
-                                <div class="kv-row"><div class="kv-k">Returned On</div><div class="kv-v">@(Model.ReturnedAtUtc?.ToLocalTime().ToString("dd MMMM yyyy, hh:mm tt") ?? "-")</div></div>
-                                <div class="kv-row"><div class="kv-k">Returned Quantity</div><div class="kv-v">@(Model.ReturnedQuantity?.ToString() ?? Model.Quantity.ToString()) unit@(Model.Quantity == 1 ? "" : "s")</div></div>
-                                <div class="kv-row"><div class="kv-k">Received By</div><div class="kv-v">@(Model.ReceivedBy ?? "-")</div></div>
-                                <div class="kv-row last"><div class="kv-k">Final Condition</div><div class="kv-v"><div class="badge" style="background:#EAF5EF;color:#0B5D3E"><div class="dot"></div>@(Model.FinalConditionName ?? "Good")</div></div></div>
-                            </div>
-                            @if (!string.IsNullOrWhiteSpace(Model.InspectionNotes))
-                            {
-                                <div class="hint" style="margin-top:10px">Inspection notes: @Model.InspectionNotes</div>
-                            }
-                        }
-                        else
-                        {
-                            <div class="empty">
-                                <svg class="ic" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 015 5v6"/></svg>
-                                <div class="empty-t">Not yet returned</div>
-                                <div class="empty-s">Return details and the post-return condition inspection will appear here once the custodian records the return.</div>
-                            </div>
-                        }
-                    </div>
-                </div>
+    <div class="cp-card">
+        <div class="cp-card-header">Return Information</div>
+        @if (Model.IsReturned)
+        {
+            <dl class="cp-kv">
+                <dt>Returned On</dt><dd>@(Model.ReturnedAtUtc?.ToLocalTime().ToString("dd MMMM yyyy, hh:mm tt") ?? "-")</dd>
+                <dt>Returned Quantity</dt><dd>@(Model.ReturnedQuantity?.ToString() ?? Model.Quantity.ToString()) unit@(Model.Quantity == 1 ? "" : "s")</dd>
+                <dt>Received By</dt><dd>@(Model.ReceivedBy ?? "-")</dd>
+                <dt>Final Condition</dt>
+                <dd>
+                    @if (string.IsNullOrWhiteSpace(Model.FinalConditionName))
+                    {
+                        <text>-</text>
+                    }
+                    else
+                    {
+                        <span class="@StatusBadge.Css(code(Model.FinalConditionName))">@Model.FinalConditionName</span>
+                    }
+                </dd>
+                @if (!string.IsNullOrWhiteSpace(Model.InspectionNotes))
+                {
+                    <dt>Inspection Notes</dt><dd>@Model.InspectionNotes</dd>
+                }
+            </dl>
+        }
+        else
+        {
+            <div class="cp-empty-state compact">
+                <div class="cp-empty-state-text">Not yet returned. Return details and the condition inspection appear here once the custodian records the return.</div>
             </div>
-        </div>
-        <div style="flex:1;min-width:0">
-            <div class="card">
-                <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Transaction Timeline</div></div></div>
-                <div class="card-bd">
-                    <div class="tl">
-                        <div class="tl-i">
-                            <div class="tl-rail"><div class="tl-node"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div class="tl-line"></div></div>
-                            <div class="tl-b"><div class="tl-t">Equipment released to you</div><div class="tl-m">@Model.ReleasedAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt") &middot; @(Model.ReleasedBy ?? "Property Office")</div></div>
-                        </div>
-                        @if (Model.IsReturned)
-                        {
-                            <div class="tl-i">
-                                <div class="tl-rail"><div class="tl-node"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div class="tl-line"></div></div>
-                                <div class="tl-b"><div class="tl-t">Returned and inspected</div><div class="tl-m">@(Model.ReturnedAtUtc?.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt") ?? "-") &middot; @(Model.FinalConditionName ?? "Good")</div></div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="tl-i">
-                                <div class="tl-rail"><div class="tl-node"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div></div>
-                                <div class="tl-b"><div class="tl-t">Return due</div><div class="tl-m">@Model.DueAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt")</div></div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
+        }
     </div>
 </div>

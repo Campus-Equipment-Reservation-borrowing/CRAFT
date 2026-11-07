@@ -18,28 +18,28 @@
         <div class="cp-card-header">Published</div>
         @if (Model.Items.Count == 0)
         {
-            <div class="cp-empty-state" style="padding:18px;"><div class="cp-empty-state-text">No announcements yet.</div></div>
+            <div class="cp-empty-state compact"><div class="cp-empty-state-text">No announcements yet.</div></div>
         }
         else
         {
-            <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="cp-stack">
                 @foreach (var a in Model.Items)
                 {
-                    <article style="border:1px solid var(--color-border);border-radius:10px;padding:12px 14px;">
-                        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
-                            <div style="min-width:0;">
+                    <article class="cp-card">
+                        <div class="cp-row-between">
+                            <div>
                                 <div class="cp-cell-name">@a.Title</div>
                                 <div class="cp-cell-sub">@a.AudienceLabel &middot; @a.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy") @(a.CreatedByName == null ? "" : "· " + a.CreatedByName)</div>
                             </div>
-                            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-                                <span class="cp-badge @(a.IsActive ? "cp-badge-success" : "cp-badge-neutral")">@(a.IsActive ? (a.ExpiresAtUtc.HasValue ? "Until " + a.ExpiresAtUtc.Value.ToLocalTime().AddDays(-1).ToString("dd MMM") : "Active") : "Expired")</span>
+                            <div class="cp-page-actions">
+                                <span class="@StatusBadge.Css(a.IsActive ? "ACTIVE" : "EXPIRED")">@(a.IsActive ? (a.ExpiresAtUtc.HasValue ? "Until " + a.ExpiresAtUtc.Value.ToLocalTime().AddDays(-1).ToString("dd MMM") : "Active") : "Expired")</span>
                                 <form method="post" asp-action="Delete" asp-route-id="@a.AnnouncementId" onsubmit="return confirm('Delete this announcement?');">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
                                 </form>
                             </div>
                         </div>
-                        <p style="margin:8px 0 0;font-size:12.6px;white-space:pre-line;">@a.Body</p>
+                        <p class="cp-form-hint" style="white-space:pre-line">@a.Body</p>
                     </article>
                 }
             </div>
@@ -59,12 +59,12 @@
                 <label class="cp-form-label" for="annBody">Message <span class="required">*</span></label>
                 <textarea id="annBody" name="Body" class="cp-textarea" rows="5" maxlength="2000" required>@Model.Form?.Body</textarea>
             </div>
-            <fieldset class="cp-form-group" style="border:0;padding:0;margin-bottom:12px;">
+            <fieldset class="cp-form-group" style="border:0;padding:0">
                 <legend class="cp-form-label">Audience <span class="required">*</span></legend>
-                <div style="display:flex;flex-wrap:wrap;gap:12px;">
+                <div style="display:flex;flex-wrap:wrap;gap:12px">
                     @foreach (var (code, label) in audiences)
                     {
-                        <label style="display:flex;align-items:center;gap:6px;font-size:12.6px;cursor:pointer;">
+                        <label>
                             <input type="checkbox" name="TargetRoles" value="@code" checked="@(chosen.Contains(code))" /> @label
                         </label>
                     }
@@ -72,7 +72,7 @@
             </fieldset>
             <div class="cp-form-group">
                 <label class="cp-form-label" for="annExpires">Show until (optional)</label>
-                <input id="annExpires" type="date" name="ExpiresOn" value="@(Model.Form?.ExpiresOn?.ToString("yyyy-MM-dd"))" class="cp-input" style="max-width:200px;" />
+                <input id="annExpires" type="date" name="ExpiresOn" value="@(Model.Form?.ExpiresOn?.ToString("yyyy-MM-dd"))" class="cp-input" />
                 <div class="cp-form-hint">Leave empty to keep it on dashboards until you delete it.</div>
             </div>
             <button type="submit" class="cp-btn cp-btn-primary">Publish</button>

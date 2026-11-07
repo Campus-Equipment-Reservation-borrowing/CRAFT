@@ -14,15 +14,14 @@
 <div class="cp-filter-bar">
     <form method="get" asp-action="Index" style="display:contents;">
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by borrower, equipment or transaction..." />
-        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
 </div>
 
 @if (!Model.Page.Items.Any())
 {
-    <div class="cp-empty-state">
-        <div class="cp-empty-state-icon"><i class="fa-solid fa-rotate-left"></i></div>
+    <div class="cp-empty-state compact">
         <div class="cp-empty-state-text">No returns recorded yet.</div>
     </div>
 }
@@ -45,25 +44,25 @@ else
                 @foreach (var r in Model.Page.Items)
                 {
                     <tr>
-                        <td><strong>@r.TransactionNumber</strong></td>
+                        <td class="cp-mono">@r.TransactionNumber</td>
                         <td>@r.BorrowerName</td>
                         <td>
-                            @r.EquipmentName
-                            <div style="font-size:10.8px;color:var(--color-text-lighter);">@r.AssetCode</div>
+                            <div class="cp-cell-name">@r.EquipmentName</div>
+                            <div class="cp-cell-sub cp-mono">@r.AssetCode</div>
                         </td>
-                        <td class="text-center">@r.ReturnedQuantity</td>
-                        <td style="font-size:11.6px;">@r.ReturnedAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                        <td class="text-center cp-mono">@r.ReturnedQuantity</td>
+                        <td>@r.ReturnedAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
                         <td>
                             @if (r.WasReturnedLate)
                             {
-                                <span class="cp-badge cp-badge-error">Late @r.DaysOverdue d</span>
+                                <span class="@StatusBadge.Css("OVERDUE")">Late @r.DaysOverdue d</span>
                             }
                             else
                             {
-                                <span class="cp-badge cp-badge-success">On time</span>
+                                <span class="@StatusBadge.Css("RETURNED")">On time</span>
                             }
                         </td>
-                        <td style="font-size:11.6px;">@(r.ReceivedBy ?? "—")</td>
+                        <td>@(r.ReceivedBy ?? "—")</td>
                     </tr>
                 }
             </tbody>

@@ -1,85 +1,38 @@
 @model DashboardViewModel
 @{
-    ViewData["Title"] = "Reports";
+    ViewData["Title"] = "Tracking & Reports";
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div class="cur">Reports</div></div>
-        <div class="title">Tracking &amp; Reports</div>
-        <div class="subtitle">Utilisation, transaction totals and exportable operational records.</div>
-    </div>
-    <div class="hd-actions">
-        <a href="/Monitoring/Transactions" class="btn btn-secondary">Transactions</a>
-        <a href="/Monitoring/AuditLogs" class="btn btn-secondary">Audit Logs</a>
+        <h1 class="cp-page-title">Tracking &amp; Reports</h1>
+        <p class="cp-page-subtitle">Reservation totals and exportable operational records.</p>
     </div>
 </div>
 
-<div class="metrics">
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic info"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg></div></div>
-        <div><div class="m-val">@Model.EquipmentRecords</div><div class="m-lbl">Equipment Records</div></div>
-    </div>
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic teal"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div></div>
-        <div><div class="m-val">@Model.AvailableUnits</div><div class="m-lbl">Available Units</div></div>
-    </div>
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic warn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div></div>
-        <div><div class="m-val">@Model.BorrowedUnits</div><div class="m-lbl">Units Borrowed</div></div>
-    </div>
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic err"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19L12 3z"/><path d="M12 9.5v5M12 17.6v.4"/></svg></div></div>
-        <div><div class="m-val">@Model.BorrowingOverdue</div><div class="m-lbl">Overdue Transactions</div></div>
-    </div>
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic gray"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg></div></div>
-        <div><div class="m-val">@Model.DamagedLostUnits</div><div class="m-lbl">Damaged / Lost</div></div>
-    </div>
-</div>
+<p class="cp-cell-sub">Live utilisation and inventory figures are on the <a href="/Monitoring/Dashboard">admin dashboard</a>.</p>
 
-<div class="row" style="gap:20px;align-items:flex-start">
-    <div style="flex:1.4;min-width:0">
-        <div class="card">
-            <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Reservation Summary</div><div class="card-sub">All reservation statuses</div></div></div>
-            <div class="card-bd">
-                <div class="kv">
-                    <div class="kv-row"><div class="kv-k">Total reservations</div><div class="kv-v">@Model.ReservationTotal</div></div>
-                    <div class="kv-row"><div class="kv-k">Pending</div><div class="kv-v">@Model.ReservationPending</div></div>
-                    <div class="kv-row"><div class="kv-k">Approved</div><div class="kv-v">@Model.ReservationApproved</div></div>
-                    <div class="kv-row"><div class="kv-k">Ready for release</div><div class="kv-v">@Model.ReservationReadyForRelease</div></div>
-                    <div class="kv-row"><div class="kv-k">Completed</div><div class="kv-v">@Model.ReservationCompleted</div></div>
-                    <div class="kv-row"><div class="kv-k">Rejected</div><div class="kv-v">@Model.ReservationRejected</div></div>
-                    <div class="kv-row last"><div class="kv-k">Cancelled</div><div class="kv-v">@Model.ReservationCancelled</div></div>
-                </div>
-            </div>
-        </div>
+<div class="cp-grid-2">
+    <div class="cp-card">
+        <div class="cp-card-header">Reservation Summary <span class="cp-cell-sub">All reservation statuses</span></div>
+        <dl class="cp-kv">
+            <dt>Total reservations</dt><dd>@Model.ReservationTotal</dd>
+            <dt>Pending</dt><dd>@Model.ReservationPending</dd>
+            <dt>Approved</dt><dd>@Model.ReservationApproved</dd>
+            <dt>Ready for release</dt><dd>@Model.ReservationReadyForRelease</dd>
+            <dt>Completed</dt><dd>@Model.ReservationCompleted</dd>
+            <dt>Rejected</dt><dd>@Model.ReservationRejected</dd>
+            <dt>Cancelled</dt><dd>@Model.ReservationCancelled</dd>
+        </dl>
     </div>
-    <div style="flex:1;min-width:0">
-        <div class="card">
-            <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Export Reports</div><div class="card-sub">Download CSV files for external reporting</div></div></div>
-            <div class="card-bd">
-                <a href="/Monitoring/ExportAuditCsv" class="btn btn-secondary btn-full">
-                    <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
-                    <div>Export Audit Logs (CSV)</div>
-                </a>
-                <a href="/Monitoring/ExportReservationsCsv" class="btn btn-secondary btn-full">
-                    <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
-                    <div>Export Reservations (CSV)</div>
-                </a>
-                <a href="/Monitoring/ExportBorrowingsCsv" class="btn btn-secondary btn-full">
-                    <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
-                    <div>Export Borrowings (CSV)</div>
-                </a>
-                <a href="/Monitoring/ExportMovementsCsv" class="btn btn-secondary btn-full">
-                    <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>
-                    <div>Export Inventory Movements (CSV)</div>
-                </a>
-                <a href="/Monitoring/Transactions" class="btn btn-primary btn-full">
-                    <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M20 17H9l3 3"/><path d="M4 7v10a2 2 0 002 2h1M20 17V7a2 2 0 00-2-2h-1"/></svg>
-                    <div>Open Transaction Monitoring</div>
-                </a>
-            </div>
+
+    <div class="cp-card">
+        <div class="cp-card-header">Export Reports <span class="cp-cell-sub">CSV files for external reporting</span></div>
+        <div class="cp-stack">
+            <a href="/Monitoring/ExportAuditCsv" class="cp-btn cp-btn-secondary">Export Audit Logs (CSV)</a>
+            <a href="/Monitoring/ExportReservationsCsv" class="cp-btn cp-btn-secondary">Export Reservations (CSV)</a>
+            <a href="/Monitoring/ExportBorrowingsCsv" class="cp-btn cp-btn-secondary">Export Borrowings (CSV)</a>
+            <a href="/Monitoring/ExportMovementsCsv" class="cp-btn cp-btn-secondary">Export Inventory Movements (CSV)</a>
         </div>
     </div>
 </div>

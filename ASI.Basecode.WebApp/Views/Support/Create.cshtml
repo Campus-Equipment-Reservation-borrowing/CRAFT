@@ -13,25 +13,25 @@
 
 <div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><a asp-action="Index">Support</a><div>/</div><div class="cur">New ticket</div></div>
+        <partial name="_Breadcrumb" model='new[] { ("Support", "/Support") }' />
         <h1 class="cp-page-title">New Support Ticket</h1>
         <p class="cp-page-subtitle">An administrator will reply here; you'll get a notification when they do.</p>
     </div>
 </div>
 
-<div class="cp-card" style="max-width:760px;">
+<div class="cp-card cp-card-narrow">
     <form method="post" asp-action="Create">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
 
-        <fieldset class="cp-form-group" style="border:0;padding:0;">
+        <fieldset class="cp-form-group" style="border:0;padding:0">
             <legend class="cp-form-label">What is this about? <span class="required">*</span></legend>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:8px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:8px">
                 @foreach (var (code, label, hint) in categories)
                 {
-                    <label style="display:flex;gap:8px;align-items:flex-start;border:1px solid var(--color-border);border-radius:10px;padding:10px 12px;cursor:pointer;">
-                        <input type="radio" name="Category" value="@code" checked="@(Model.Category == code)" required style="margin-top:3px;" />
-                        <span><span class="cp-cell-name">@label</span><span class="cp-cell-sub" style="display:block;">@hint</span></span>
+                    <label class="cp-card" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer">
+                        <input type="radio" name="Category" value="@code" checked="@(Model.Category == code)" required />
+                        <span><span class="cp-cell-name">@label</span><br /><span class="cp-cell-sub">@hint</span></span>
                     </label>
                 }
             </div>
@@ -48,7 +48,7 @@
             <textarea asp-for="Body" class="cp-textarea" rows="6" maxlength="4000" required></textarea>
             <span asp-validation-for="Body" class="cp-form-error"></span>
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <div class="cp-page-actions">
             <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
             <button type="submit" class="cp-btn cp-btn-primary">Submit ticket</button>
         </div>

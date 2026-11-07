@@ -7,75 +7,62 @@
     var type = (ViewBag.Type as string) ?? "all";
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div class="cur">Notifications</div></div>
-        <div class="title">Notifications</div>
-        <div class="subtitle">Updates on your reservations, borrowings, due dates and account.</div>
+        <h1 class="cp-page-title">Notifications</h1>
+        <p class="cp-page-subtitle">Updates on your reservations, borrowings, due dates and account.</p>
     </div>
-    <div class="hd-actions">
-        <form asp-action="MarkAllRead" method="post" style="margin:0;">
+    <div class="cp-page-actions">
+        <form asp-action="MarkAllRead" method="post">
             @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-secondary">
-                <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                <div>Mark all as read</div>
-            </button>
+            <button type="submit" class="cp-btn cp-btn-secondary">Mark all as read</button>
         </form>
-        <a class="btn btn-secondary" href="/Profile">Preferences</a>
     </div>
 </div>
 
-<div class="card">
-    <form method="get" action="/Notifications" class="toolbar">
-        <div class="search" style="flex:1">
-            <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-            <input type="text" name="search" value="@search" placeholder="Search notifications..." style="border:0;outline:0;background:transparent;flex:1;font:inherit;color:inherit" />
-        </div>
-        <select name="status" class="select" style="flex:0 0 130px;padding:0 10px;font:inherit;color:#42504A">
-            @if (status == "all") { <option value="all" selected>All statuses</option> } else { <option value="all">All statuses</option> }
-            @if (status == "unread") { <option value="unread" selected>Unread</option> } else { <option value="unread">Unread</option> }
-            @if (status == "read") { <option value="read" selected>Read</option> } else { <option value="read">Read</option> }
+<div class="cp-filter-bar">
+    <form method="get" action="/Notifications" style="display:contents">
+        <input type="text" name="search" value="@search" class="cp-input" placeholder="Search notifications..." />
+        <select name="status" class="cp-select">
+            <option value="all" selected="@(status == "all")">All statuses</option>
+            <option value="unread" selected="@(status == "unread")">Unread</option>
+            <option value="read" selected="@(status == "read")">Read</option>
         </select>
-        <select name="type" class="select" style="flex:0 0 150px;padding:0 10px;font:inherit;color:#42504A">
-            @if (type == "all") { <option value="all" selected>All types</option> } else { <option value="all">All types</option> }
-            @if (type == "RESERVATION") { <option value="RESERVATION" selected>Reservations</option> } else { <option value="RESERVATION">Reservations</option> }
-            @if (type == "BORROWING") { <option value="BORROWING" selected>Borrowings</option> } else { <option value="BORROWING">Borrowings</option> }
-            @if (type == "ACCOUNT") { <option value="ACCOUNT" selected>Account</option> } else { <option value="ACCOUNT">Account</option> }
+        <select name="type" class="cp-select">
+            <option value="all" selected="@(type == "all")">All types</option>
+            <option value="RESERVATION" selected="@(type == "RESERVATION")">Reservations</option>
+            <option value="BORROWING" selected="@(type == "BORROWING")">Borrowings</option>
+            <option value="ACCOUNT" selected="@(type == "ACCOUNT")">Account</option>
         </select>
-        <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
-        <a href="/Notifications" class="btn btn-secondary btn-sm">Clear</a>
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
+        <a href="/Notifications" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
+</div>
 
+<div class="cp-card">
     @if (!Model.Notifications.Any())
     {
-        <div class="empty">
-            <svg class="ic" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z"/><path d="M10 21a2 2 0 004 0"/></svg>
-            <div class="empty-t">No notifications</div>
-            <div class="empty-s">No notifications match your search or filters.</div>
-        </div>
+        <div class="cp-empty-state compact"><div class="cp-empty-state-text">No notifications match your search or filters.</div></div>
     }
 
     @foreach (var n in Model.Notifications)
     {
-        <div class="notif @(n.IsRead ? "" : "un")" style="padding:14px 17px">
-            <div class="n-ic @(n.NotificationType is "BORROWING" or "DUE_REMINDER" or "OVERDUE" or "ALERT" ? "warn" : (n.NotificationType is "ACCOUNT" or "SUPPORT" ? "" : "info"))">
-                <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z"/><path d="M10 21a2 2 0 004 0"/></svg>
-            </div>
-            <div class="n-b" style="flex:1">
-                <div class="n-t">@n.Title</div>
-                <div class="n-d">@n.Message</div>
-            </div>
-            <div class="n-time" style="align-self:center">@n.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt")</div>
+        <div class="cp-notif @(n.IsRead ? "" : "unread")">
             @if (!n.IsRead)
             {
-                <form asp-action="MarkRead" asp-route-id="@n.NotificationId" method="post" style="margin:0;align-self:center">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-secondary btn-sm">Mark read</button>
-                </form>
+                <span class="cp-dot-unread" aria-label="Unread"></span>
             }
-            else
+            <div class="cp-list-main" style="flex:1">
+                <div class="cp-notif-title">@n.Title</div>
+                <div class="cp-notif-msg">@n.Message</div>
+                <div class="cp-notif-time">@n.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt")</div>
+            </div>
+            @if (!n.IsRead)
             {
-                <div class="n-dot" style="background:#DCE6E0;align-self:center"></div>
+                <form asp-action="MarkRead" asp-route-id="@n.NotificationId" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Mark read</button>
+                </form>
             }
         </div>
     }

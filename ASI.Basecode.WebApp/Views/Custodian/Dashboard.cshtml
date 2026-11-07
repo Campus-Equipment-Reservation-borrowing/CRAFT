@@ -1,13 +1,13 @@
 @model CustodianDashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
-    Func<string, string> taskBadge = type => type switch
+    // Task types map onto the status they act on, so the colours match the status badges elsewhere.
+    Func<string, string> taskStatus = type => type switch
     {
-        "REVIEW" => "cp-badge cp-badge-warning",
-        "RELEASE" => "cp-badge cp-badge-success",
-        "RETURN" => "cp-badge cp-badge-info",
-        "OVERDUE" => "cp-badge cp-badge-error",
-        _ => "cp-badge cp-badge-neutral",
+        "REVIEW" => "PENDING",
+        "RELEASE" => "APPROVED",
+        "RETURN" => "ACTIVE",
+        _ => type,
     };
     Func<string, string> taskLabel = type => type switch
     {
@@ -24,14 +24,10 @@
         <h1 class="cp-page-title">Custodian Dashboard</h1>
         <p class="cp-page-subtitle">Operational overview for today - reservations, releases, returns and inventory.</p>
     </div>
-    <div class="cp-page-actions">
-        <a href="/Custodian/Reservations" class="cp-btn cp-btn-secondary">Reservation Queue</a>
-        <a href="/Returns" class="cp-btn cp-btn-primary">Process Return</a>
-    </div>
 </div>
 
 <div class="cp-hero">
-    <div style="min-width:0;">
+    <div>
         <div class="cp-hero-title">Today's operations</div>
         <div class="cp-hero-sub">
             @if (Model.OverdueEquipment > 0)
@@ -78,9 +74,9 @@
 
 <div class="cp-section-title">Today's tasks</div>
 <div class="cp-grid-2">
-    <div class="cp-card">
+    <div class="cp-card cp-card-flush">
         <div class="cp-card-header">Task List</div>
-        <div class="cp-table-wrap" style="border:none;">
+        <div class="cp-table-wrap">
             <table class="cp-table">
                 <thead>
                     <tr><th>Task</th><th>Type</th><th>When</th><th></th></tr>
@@ -88,7 +84,7 @@
                 <tbody>
                     @if (!Model.Tasks.Any())
                     {
-                        <tr><td colspan="4" class="cp-empty-state" style="padding:24px;">No tasks scheduled for today.</td></tr>
+                        <tr><td colspan="4"><div class="cp-empty-state compact"><div class="cp-empty-state-text">No tasks scheduled for today.</div></div></td></tr>
                     }
                     @foreach (var task in Model.Tasks)
                     {
@@ -97,8 +93,8 @@
                                 <div class="cp-cell-name">@task.Title</div>
                                 <div class="cp-cell-sub">@task.Detail</div>
                             </td>
-                            <td><span class="@taskBadge(task.Type)">@taskLabel(task.Type)</span></td>
-                            <td style="font-size:11.5px;white-space:nowrap;">@task.WhenUtc.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                            <td><span class="@StatusBadge.Css(taskStatus(task.Type))">@taskLabel(task.Type)</span></td>
+                            <td>@task.WhenUtc.ToLocalTime().ToString("dd MMM HH:mm")</td>
                             <td class="text-center">
                                 <a href="@Url.Action(task.LinkAction, task.LinkController, task.LinkId.HasValue ? new { id = task.LinkId } : null)" class="cp-btn cp-btn-secondary cp-btn-sm">Open</a>
                             </td>
@@ -117,18 +113,18 @@
         <div class="cp-list">
             @if (!Model.InventoryAlerts.Any())
             {
-                <div class="cp-empty-state" style="padding:20px;">No inventory alerts.</div>
+                <div class="cp-empty-state compact"><div class="cp-empty-state-text">No inventory alerts.</div></div>
             }
             @foreach (var alert in Model.InventoryAlerts)
             {
                 <div class="cp-list-row">
                     <div class="cp-list-main">
                         <div class="cp-list-title">@alert.EquipmentName</div>
-                        <div class="cp-list-sub">@alert.AssetCode - @alert.AvailableUnits of @alert.TotalQuantity available</div>
+                        <div class="cp-list-sub"><span class="cp-mono">@alert.AssetCode</span> · @alert.AvailableUnits of @alert.TotalQuantity available</div>
                     </div>
                     @if (alert.IsUnderMaintenance)
                     {
-                        <span class="cp-badge cp-badge-error">Under Maintenance</span>
+                        <span class="@StatusBadge.Css("UNDER_MAINTENANCE")">Under Maintenance</span>
                     }
                     else
                     {

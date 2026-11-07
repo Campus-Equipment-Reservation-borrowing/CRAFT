@@ -2,107 +2,92 @@
 @using Microsoft.AspNetCore.Mvc.Rendering
 @model EquipmentFormViewModel
 
-<div asp-validation-summary="ModelOnly" class="banner err" style="margin-bottom:14px"></div>
+@if (ViewData.ModelState.TryGetValue(string.Empty, out var modelEntry) && modelEntry.Errors.Count > 0)
+{
+    <div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
+}
 <input type="hidden" asp-for="EquipmentId" />
 <input type="hidden" asp-for="ImagePath" />
 
-<div class="frow">
-    <div class="field">
-        <div class="flabel">Equipment Name<div class="req">*</div></div>
-        <input asp-for="EquipmentName" class="input" style="width:100%" placeholder="e.g. Dell Latitude 5440 Laptop" />
-        <span asp-validation-for="EquipmentName" class="fielderr"></span>
+<div class="cp-grid-2">
+    <div class="cp-form-group">
+        <label class="cp-form-label" asp-for="EquipmentName">Equipment Name <span class="required">*</span></label>
+        <input asp-for="EquipmentName" class="cp-input" placeholder="e.g. Dell Latitude 5440 Laptop" />
+        <span asp-validation-for="EquipmentName" class="cp-form-error"></span>
     </div>
-    <div class="field">
-        <div class="flabel">Asset Code<div class="req">*</div></div>
-        <input asp-for="AssetCode" class="input" style="width:100%" placeholder="e.g. LPT-2024-018" />
-        <div class="hint">Must be unique across the system.</div>
-        <span asp-validation-for="AssetCode" class="fielderr"></span>
-    </div>
-</div>
-
-<div class="frow">
-    <div class="field">
-        <div class="flabel">Category<div class="req">*</div></div>
-        <select asp-for="EquipmentCategoryId" class="input" style="width:100%" asp-items="@(ViewBag.CategoryOptions as SelectList)"></select>
-        <span asp-validation-for="EquipmentCategoryId" class="fielderr"></span>
-    </div>
-    <div class="field">
-        <div class="flabel">Location</div>
-        <select asp-for="LocationId" class="input" style="width:100%" asp-items="@(ViewBag.LocationOptions as SelectList)"></select>
-        <span asp-validation-for="LocationId" class="fielderr"></span>
+    <div class="cp-form-group">
+        <label class="cp-form-label" asp-for="AssetCode">Asset Code <span class="required">*</span></label>
+        <input asp-for="AssetCode" class="cp-input" placeholder="e.g. LPT-2024-018" />
+        <div class="cp-form-hint">Must be unique across the system.</div>
+        <span asp-validation-for="AssetCode" class="cp-form-error"></span>
     </div>
 </div>
 
-<div class="frow">
-    <div class="field">
-        <div class="flabel">Total Quantity<div class="req">*</div></div>
-        <input asp-for="TotalQuantity" type="number" min="1" class="input" style="width:100%" />
-        @if (Model.EquipmentId > 0)
-        {
-            <div class="hint">The total cannot drop below units currently held by borrowers.</div>
-        }
-        <span asp-validation-for="TotalQuantity" class="fielderr"></span>
+<div class="cp-grid-2">
+    <div class="cp-form-group">
+        <label class="cp-form-label" asp-for="EquipmentCategoryId">Category <span class="required">*</span></label>
+        <select asp-for="EquipmentCategoryId" class="cp-select" asp-items="@(ViewBag.CategoryOptions as SelectList)"></select>
+        <span asp-validation-for="EquipmentCategoryId" class="cp-form-error"></span>
     </div>
-    <div class="field">
-        <div class="flabel">Availability Status<div class="req">*</div></div>
-        <select asp-for="OperationalStatusId" class="input" style="width:100%" asp-items="@(ViewBag.OperationalStatusOptions as SelectList)"></select>
-        <span asp-validation-for="OperationalStatusId" class="fielderr"></span>
-    </div>
-    <div class="field">
-        <div class="flabel">Condition Classification<div class="req">*</div></div>
-        <select asp-for="CurrentConditionId" class="input" style="width:100%" asp-items="@(ViewBag.ConditionOptions as SelectList)"></select>
-        <span asp-validation-for="CurrentConditionId" class="fielderr"></span>
+    <div class="cp-form-group">
+        <label class="cp-form-label" asp-for="LocationId">Location</label>
+        <select asp-for="LocationId" class="cp-select" asp-items="@(ViewBag.LocationOptions as SelectList)"></select>
+        <span asp-validation-for="LocationId" class="cp-form-error"></span>
     </div>
 </div>
 
-<div class="frow">
-    <div class="field">
-        <div class="flabel">Description</div>
-        <textarea asp-for="Description" class="input" rows="3" style="width:100%;height:auto;padding:10px 12px" placeholder="Configuration, accessories issued and usage notes..."></textarea>
-        <span asp-validation-for="Description" class="fielderr"></span>
+<div class="cp-grid-2">
+    <div class="cp-form-group">
+        <label class="cp-form-label" asp-for="OperationalStatusId">Availability Status <span class="required">*</span></label>
+        <select asp-for="OperationalStatusId" class="cp-select" asp-items="@(ViewBag.OperationalStatusOptions as SelectList)"></select>
+        <span asp-validation-for="OperationalStatusId" class="cp-form-error"></span>
+    </div>
+    <div class="cp-form-group">
+        <label class="cp-form-label" asp-for="CurrentConditionId">Condition Classification <span class="required">*</span></label>
+        <select asp-for="CurrentConditionId" class="cp-select" asp-items="@(ViewBag.ConditionOptions as SelectList)"></select>
+        <span asp-validation-for="CurrentConditionId" class="cp-form-error"></span>
     </div>
 </div>
 
-<div class="card" style="box-shadow:none;background:#FAFCFB">
-    <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Equipment Photo</div><div class="card-sub">JPG, PNG, WEBP or GIF, up to 5 MB</div></div></div>
-    <div class="card-bd">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-            <div class="thumb" style="width:104px;height:104px;overflow:hidden;border-radius:12px">
-                @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
-                {
-                    <img src="@Model.ImagePath" alt="@Model.EquipmentName" style="width:100%;height:100%;object-fit:cover" />
-                }
-                else
-                {
-                    <svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
-                }
-            </div>
-            <div class="field" style="flex:1;min-width:220px">
-                <div class="flabel">Upload / replace photo</div>
-                <input type="file" name="imageFile" accept=".jpg,.jpeg,.png,.webp,.gif" class="input" style="width:100%;padding:8px 10px" />
-                @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
-                {
-                    <label class="hint" style="display:flex;gap:7px;align-items:center;margin-top:8px;cursor:pointer">
-                        <input type="checkbox" name="removeImage" value="true" /> Remove current photo
-                    </label>
-                }
-            </div>
-        </div>
-    </div>
+<div class="cp-form-group">
+    <label class="cp-form-label" asp-for="TotalQuantity">Total Quantity <span class="required">*</span></label>
+    <input asp-for="TotalQuantity" type="number" min="1" class="cp-input" />
+    @if (Model.EquipmentId > 0)
+    {
+        <div class="cp-form-hint">The total cannot drop below units currently held by borrowers.</div>
+    }
+    <span asp-validation-for="TotalQuantity" class="cp-form-error"></span>
 </div>
 
-<div class="frow">
-    <div class="field">
-        <label class="hint" style="display:flex;gap:8px;align-items:center;cursor:pointer">
-            <input asp-for="IsActive" type="checkbox" /> Active (available for reservations)
+<div class="cp-form-group">
+    <label class="cp-form-label" asp-for="Description">Description</label>
+    <textarea asp-for="Description" class="cp-textarea" rows="3" placeholder="Configuration, accessories issued and usage notes..."></textarea>
+    <span asp-validation-for="Description" class="cp-form-error"></span>
+</div>
+
+<div class="cp-form-group">
+    <label class="cp-form-label" for="imageFile">Equipment Photo</label>
+    @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
+    {
+        <img src="@Model.ImagePath" alt="@Model.EquipmentName" style="display:block;width:104px;height:104px;object-fit:cover;border-radius:12px;margin-bottom:8px" />
+    }
+    <input type="file" id="imageFile" name="imageFile" accept=".jpg,.jpeg,.png,.webp,.gif" class="cp-input" />
+    <div class="cp-form-hint">JPG, PNG, WEBP or GIF, up to 5 MB.</div>
+    @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
+    {
+        <label class="cp-form-hint">
+            <input type="checkbox" name="removeImage" value="true" /> Remove current photo
         </label>
-    </div>
+    }
 </div>
 
-<div class="acts">
+<div class="cp-form-group">
+    <label class="cp-form-hint">
+        <input asp-for="IsActive" type="checkbox" /> Active (available for reservations)
+    </label>
+</div>
+
+<div class="cp-row-between">
     <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
-    <button type="submit" class="cp-btn cp-btn-primary">
-        <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-        <div>Save Equipment</div>
-    </button>
+    <button type="submit" class="cp-btn cp-btn-primary">Save Equipment</button>
 </div>

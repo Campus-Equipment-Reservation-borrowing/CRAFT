@@ -6,17 +6,15 @@
 
 <div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div>Users</div><div>/</div><div class="cur">Edit</div></div>
-        <div class="cp-page-title">Edit User</div>
-        <div class="cp-page-subtitle">Update account details. Deleting is blocked while borrowings, reservations or inventory movements reference the user.</div>
+        <partial name="_Breadcrumb" model='new[] { ("Users", "/Users") }' />
+        <h1 class="cp-page-title">Edit User</h1>
+        <p class="cp-page-subtitle">Update the account details, role and status.</p>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-bd">
-        <form asp-action="Edit" asp-route-id="@Model.UserId" method="post">
-            @Html.AntiForgeryToken()
-            <partial name="_UserForm" model="Model" />
-        </form>
-    </div>
+<div class="cp-card cp-card-narrow">
+    <form asp-action="Edit" asp-route-id="@Model.UserId" method="post">
+        @Html.AntiForgeryToken()
+        <partial name="_UserForm" model="Model" />
+    </form>
 </div>

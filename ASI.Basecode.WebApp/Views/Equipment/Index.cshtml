@@ -2,127 +2,133 @@
 @using Microsoft.AspNetCore.Mvc.Rendering
 @model EquipmentIndexViewModel
 @{
-    ViewData["Title"] = "Equipment Administration";
+    ViewData["Title"] = "Equipment Management";
 }
 
 <div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div class="cur">Equipment Administration</div></div>
-        <div class="cp-page-title">Equipment Administration</div>
-        <div class="cp-page-subtitle">System-wide equipment records, categories, locations and maintenance information.</div>
+        <h1 class="cp-page-title">Equipment Management</h1>
+        <p class="cp-page-subtitle">System-wide equipment records, categories, locations and maintenance information.</p>
     </div>
     <div class="cp-page-actions">
-        <a asp-action="Create" class="cp-btn cp-btn-primary">
-            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-            <div>Add Equipment</div>
-        </a>
+        <a asp-action="Create" class="cp-btn cp-btn-primary">Add Equipment</a>
     </div>
 </div>
 
-<div class="metrics">
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic info"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg></div></div>
-        <div><div class="m-val">@(Model.Totals?.RecordCount ?? 0)</div><div class="m-lbl">Equipment Records</div></div>
+<div class="cp-kpi-grid">
+    <div class="cp-kpi">
+        <div class="cp-kpi-label">Equipment Records</div>
+        <div class="cp-kpi-value">@(Model.Totals?.RecordCount ?? 0)</div>
     </div>
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic teal"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg></div></div>
-        <div><div class="m-val">@(Model.Totals?.TotalUnits ?? 0)</div><div class="m-lbl">Total Units</div></div>
+    <div class="cp-kpi">
+        <div class="cp-kpi-label">Total Units</div>
+        <div class="cp-kpi-value">@(Model.Totals?.TotalUnits ?? 0)</div>
     </div>
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic info"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div></div>
-        <div><div class="m-val">@(Model.Totals?.AvailableUnits ?? 0)</div><div class="m-lbl">Available</div></div>
+    <div class="cp-kpi">
+        <div class="cp-kpi-label">Available</div>
+        <div class="cp-kpi-value">@(Model.Totals?.AvailableUnits ?? 0)</div>
     </div>
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic warn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div></div>
-        <div><div class="m-val">@(Model.Totals?.ReservedUnits ?? 0)</div><div class="m-lbl">Reserved</div></div>
+    <div class="cp-kpi">
+        <div class="cp-kpi-label">Reserved</div>
+        <div class="cp-kpi-value warn">@(Model.Totals?.ReservedUnits ?? 0)</div>
     </div>
-    <div class="metric">
-        <div class="metric-top"><div class="m-ic gray"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9"/><path d="M3 3v6h6"/></svg></div></div>
-        <div><div class="m-val">@(Model.Totals?.ReleasedUnits ?? 0)</div><div class="m-lbl">Released</div></div>
+    <div class="cp-kpi">
+        <div class="cp-kpi-label">Released</div>
+        <div class="cp-kpi-value muted">@(Model.Totals?.ReleasedUnits ?? 0)</div>
     </div>
 </div>
 
-<div class="card">
-    <form method="get" asp-action="Index" class="toolbar">
-        <div class="search">
-            <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-            <input type="text" name="search" value="@Model.Search" placeholder="Search by asset code, name or category..." style="border:0;outline:0;background:transparent;flex:1;font:inherit;color:inherit" />
-        </div>
-        <select name="category" class="select" style="flex:0 1 150px;padding:0 10px;font:inherit;color:#42504A" asp-items="@(ViewBag.CategoryOptions as SelectList)"></select>
-        <select name="location" class="select" style="flex:0 1 150px;padding:0 10px;font:inherit;color:#42504A" asp-items="@(ViewBag.LocationOptions as SelectList)"></select>
-        <select name="condition" class="select" style="flex:0 1 150px;padding:0 10px;font:inherit;color:#42504A" asp-items="@(ViewBag.ConditionOptions as SelectList)"></select>
-        <select name="operationalStatus" class="select" style="flex:0 1 140px;padding:0 10px;font:inherit;color:#42504A" asp-items="@(ViewBag.OperationalStatusOptions as SelectList)"></select>
+<div class="cp-filter-bar">
+    <form method="get" asp-action="Index" style="display:contents">
+        <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by asset code, name or category..." />
+        <select name="category" class="cp-select" asp-items="@(ViewBag.CategoryOptions as SelectList)"></select>
+        <select name="location" class="cp-select" asp-items="@(ViewBag.LocationOptions as SelectList)"></select>
+        <select name="condition" class="cp-select" asp-items="@(ViewBag.ConditionOptions as SelectList)"></select>
+        <select name="operationalStatus" class="cp-select" asp-items="@(ViewBag.OperationalStatusOptions as SelectList)"></select>
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
-
-    <div class="tbl">
-        <div class="tr th">
-            <div class="td" style="flex:260 1 0;min-width:0">EQUIPMENT</div>
-            <div class="td" style="flex:120 1 0;min-width:0">ASSET CODE</div>
-            <div class="td" style="flex:120 1 0;min-width:0">CATEGORY</div>
-            <div class="td" style="flex:130 1 0;min-width:0">LOCATION</div>
-            <div class="td" style="flex:60 1 0;min-width:0">QTY</div>
-            <div class="td" style="flex:70 1 0;min-width:0">AVAIL.</div>
-            <div class="td" style="flex:120 1 0;min-width:0">CONDITION</div>
-            <div class="td" style="flex:100 1 0;min-width:0">STATUS</div>
-            <div class="td end" style="flex:220 1 0;min-width:0">ACTIONS</div>
-        </div>
-        @if (!Model.Page.Items.Any())
-        {
-            <div class="tr"><div class="td" style="flex:1;min-width:0;padding:28px 17px;color:#8A968F">No equipment records found.</div></div>
-        }
-        @foreach (var eq in Model.Page.Items)
-        {
-            <div class="tr">
-                <div class="td" style="flex:260 1 0;min-width:0">
-                    <div class="cellwrap">
-                        <div class="thumb" style="width:38px;height:38px;overflow:hidden">
-                            @if (!string.IsNullOrWhiteSpace(eq.ImagePath))
-                            {
-                                <img src="@eq.ImagePath" alt="@eq.EquipmentName" style="width:100%;height:100%;object-fit:cover" />
-                            }
-                            else
-                            {
-                                <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
-                            }
-                        </div>
-                        <div class="cellname">
-                            <a asp-action="Details" asp-route-id="@eq.EquipmentId" class="name-link"><div class="strong">@eq.EquipmentName</div></a>
-                            <div class="sub">@(string.IsNullOrWhiteSpace(eq.Description) ? "-" : (eq.Description.Length > 48 ? eq.Description.Substring(0, 48) + "..." : eq.Description))</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="td" style="flex:120 1 0;min-width:0"><div class="mono">@eq.AssetCode</div></div>
-                <div class="td" style="flex:120 1 0;min-width:0">@eq.CategoryName</div>
-                <div class="td" style="flex:130 1 0;min-width:0">@(eq.LocationName ?? "-")</div>
-                <div class="td" style="flex:60 1 0;min-width:0">@eq.TotalQuantity</div>
-                <div class="td" style="flex:70 1 0;min-width:0"><div class="strong" style="color:@(eq.AvailableUnits <= 0 ? "#8E2F2F" : "#0B5D3E")">@eq.AvailableUnits</div></div>
-                <div class="td" style="flex:120 1 0;min-width:0">@(eq.ConditionName ?? "-")</div>
-                <div class="td" style="flex:100 1 0;min-width:0">
-                    <div class="badge mid" style="background:@(eq.IsActive ? "#EAF5EF" : "#EEF2F0");color:@(eq.IsActive ? "#0B5D3E" : "#3E514A")"><div class="dot"></div>@(eq.IsActive ? "Active" : "Inactive")</div>
-                </div>
-                <div class="td end" style="flex:220 1 0;min-width:0">
-                    <div class="acts">
-                        <a asp-action="Edit" asp-route-id="@eq.EquipmentId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
-                        <form method="post" asp-action="Delete" asp-route-id="@eq.EquipmentId" style="margin:0" onsubmit="return confirm('Delete this equipment record?');">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    @if (Model.Page != null && Model.Page.TotalPages > 1)
-    {
-        <div class="pager">
-            <div class="hint">Page @Model.Page.Page of @Model.Page.TotalPages (@Model.Page.TotalCount records)</div>
-            <div class="acts">
-                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page - 1)" class="cp-btn cp-btn-secondary cp-btn-sm">‹ Previous</a>
-                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page + 1)" class="cp-btn cp-btn-secondary cp-btn-sm">Next ›</a>
-            </div>
-        </div>
-    }
 </div>
+
+<div class="cp-card cp-card-flush">
+    <div class="cp-table-wrap">
+        <table class="cp-table">
+            <thead>
+                <tr>
+                    <th>Equipment</th>
+                    <th>Asset Code</th>
+                    <th>Category</th>
+                    <th>Location</th>
+                    <th>Available / Total</th>
+                    <th>Condition</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Page.Items.Any())
+                {
+                    <tr><td colspan="8"><div class="cp-empty-state compact"><div class="cp-empty-state-text">No equipment records found.</div></div></td></tr>
+                }
+                @foreach (var eq in Model.Page.Items)
+                {
+                    var statusCode = eq.OperationalStatusName?.Trim().ToUpperInvariant().Replace(' ', '_');
+                    <tr class="@(eq.IsActive ? "" : "cp-muted-row")">
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                @if (!string.IsNullOrWhiteSpace(eq.ImagePath))
+                                {
+                                    <img src="@eq.ImagePath" alt="@eq.EquipmentName" class="cp-avatar cp-avatar-sm" />
+                                }
+                                <a asp-action="Details" asp-route-id="@eq.EquipmentId" class="cp-cell-name">@eq.EquipmentName</a>
+                            </div>
+                        </td>
+                        <td><span class="cp-mono">@eq.AssetCode</span></td>
+                        <td>@eq.CategoryName</td>
+                        <td>@(eq.LocationName ?? "-")</td>
+                        <td><span class="cp-mono">@eq.AvailableUnits / @eq.TotalQuantity</span></td>
+                        <td>@(eq.ConditionName ?? "-")</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(eq.OperationalStatusName))
+                            {
+                                <span class="@StatusBadge.Css(statusCode)">@eq.OperationalStatusName</span>
+                            }
+                            @if (!eq.IsActive)
+                            {
+                                <span class="cp-badge cp-badge-neutral">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@eq.EquipmentId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
+                            <form method="post" asp-action="Delete" asp-route-id="@eq.EquipmentId" style="display:inline" onsubmit="return confirm('Delete this equipment record?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (Model.Page != null && Model.Page.TotalPages > 1)
+{
+    <div class="cp-pagination">
+        <span class="cp-pagination-info">Page @Model.Page.Page of @Model.Page.TotalPages (@Model.Page.TotalCount records)</span>
+        <ul class="cp-pagination-list">
+            <li class="@(Model.Page.HasPrevious ? "" : "disabled")">
+                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page - 1)">‹</a>
+            </li>
+            @for (var p = 1; p <= Model.Page.TotalPages; p++)
+            {
+                <li class="@(p == Model.Page.Page ? "active" : "")">
+                    <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@p">@p</a>
+                </li>
+            }
+            <li class="@(Model.Page.HasNext ? "" : "disabled")">
+                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page + 1)">›</a>
+            </li>
+        </ul>
+    </div>
+}

@@ -2,161 +2,114 @@
 @{
     var isCustodian = string.Equals(Model.RoleCode, "TECHNICIAN", System.StringComparison.OrdinalIgnoreCase);
     var isAdmin = string.Equals(Model.RoleCode, "ADMIN", System.StringComparison.OrdinalIgnoreCase);
-    var isBorrower = !isCustodian && !isAdmin;
     var idLabel = isCustodian ? "Employee ID" : (isAdmin ? "Admin ID" : "School ID");
     var departmentLabel = isCustodian ? "Assigned Location" : "College / Department";
     var initials = ((Model.FirstName?.Length > 0 ? Model.FirstName.Substring(0, 1) : "") +
                     (Model.LastName?.Length > 0 ? Model.LastName.Substring(0, 1) : "")).ToUpperInvariant();
-    var verified = string.Equals(Model.AccountStatusCode, "ACTIVE", System.StringComparison.OrdinalIgnoreCase);
 }
 
-<div class="card" style="margin-bottom:15px">
-    <div class="card-bd" style="padding:17px 19px">
-        <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
-            <div class="avatar lg" style="background:#FDECE2;color:#99441A">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
-            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
-                <div style="font-size:18px;font-weight:700;letter-spacing:-.3px">@Model.FullName</div>
-                <div class="hint" style="font-size:12px;overflow-wrap:anywhere">@Model.SchoolEmail &middot; @(Model.DepartmentName ?? "No department")</div>
-                <div style="display:flex;gap:7px;margin-top:2px;flex-wrap:wrap">
-                    <div class="badge" style="background:#E6F1F5;color:#245C6E"><div class="dot"></div>@Model.RoleName</div>
-                    <div class="badge" style="background:@(verified ? "#EAF5EF" : "#FDF3E1");color:@(verified ? "#0B5D3E" : "#8A5D0F")"><div class="dot"></div>@(verified ? "Verified" : "Pending verification")</div>
-                    <div class="badge" style="background:#E6F1F5;color:#245C6E"><div class="dot"></div>@Model.AccountStatusDescription</div>
+<div class="cp-stack">
+    <div class="cp-card">
+        <div class="cp-profile-header">
+            <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+            <div class="cp-stack">
+                <div>
+                    <div class="cp-profile-name">@Model.FullName</div>
+                    <div class="cp-profile-meta">@Model.SchoolEmail</div>
                 </div>
-                <div class="profstat">
-                    <div><div class="ps-v">@Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</div><div class="ps-l">Member since</div></div>
-                    <div><div class="ps-v">@Model.ActiveBorrowings</div><div class="ps-l">Active borrowings</div></div>
-                    <div><div class="ps-v">@Model.CompletedBorrowings</div><div class="ps-l">Completed</div></div>
-                    <div><div class="ps-v" style="color:@(Model.OverdueItems > 0 ? "#C94A4A" : "#17251E")">@Model.OverdueItems</div><div class="ps-l">Overdue</div></div>
+                <div>
+                    <span class="cp-badge cp-badge-info">@Model.RoleName</span>
+                    <span class="@StatusBadge.AccountCss(Model.AccountStatusCode)">@Model.AccountStatusDescription</span>
+                </div>
+                <div class="cp-profile-stats">
+                    <div><div class="cp-profile-stat-value">@Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</div><div class="cp-profile-stat-label">Member since</div></div>
+                    <div><div class="cp-profile-stat-value">@Model.ActiveBorrowings</div><div class="cp-profile-stat-label">Active borrowings</div></div>
+                    <div><div class="cp-profile-stat-value">@Model.CompletedBorrowings</div><div class="cp-profile-stat-label">Completed</div></div>
+                    <div><div class="cp-profile-stat-value" style="@(Model.OverdueItems > 0 ? "color:var(--color-error)" : null)">@Model.OverdueItems</div><div class="cp-profile-stat-label">Overdue</div></div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row" style="gap:20px;align-items:flex-start">
-    <div style="flex:1.35;min-width:0">
-        <div class="col">
-            <div class="card">
-                <div class="card-hd"><div class="card-hd-txt"><div class="card-title">@(isCustodian ? "Staff Information" : (isAdmin ? "Administrator Information" : "School Information"))</div><div class="card-sub">Maintained by the Administrator in User Management</div></div></div>
-                <div class="card-bd">
-                    <div class="frow">
-                        <div class="field"><div class="flabel">@idLabel</div><div class="input dis"><div>@Model.AccountIdentifier</div></div></div>
-                        <div class="field"><div class="flabel">Account Role</div><div class="input dis"><div>@Model.RoleName</div></div></div>
-                    </div>
-                    <div class="frow">
-                        <div class="field"><div class="flabel">@departmentLabel</div><div class="input dis"><div>@(Model.DepartmentName ?? "-")</div></div></div>
-                        <div class="field"><div class="flabel">Account Status</div><div class="input dis"><div>@Model.AccountStatusDescription</div></div></div>
-                    </div>
-                </div>
+    <div class="cp-grid-2">
+        <div class="cp-stack">
+            <div class="cp-card">
+                <div class="cp-card-header">@(isCustodian ? "Staff Information" : (isAdmin ? "Administrator Information" : "School Information")) <span class="cp-cell-sub">Maintained by the Administrator in User Management</span></div>
+                <dl class="cp-kv">
+                    <dt>@idLabel</dt><dd><span class="cp-mono">@Model.AccountIdentifier</span></dd>
+                    <dt>@departmentLabel</dt><dd>@(Model.DepartmentName ?? "-")</dd>
+                </dl>
             </div>
 
-            <form method="post" action="/Profile/SaveContact">
+            <form method="post" action="/Profile/SaveContact" class="cp-stack">
                 @Html.AntiForgeryToken()
-                <div class="card">
-                    <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Contact Information</div><div class="card-sub">Used for reservation and due-date notices</div></div></div>
-                    <div class="card-bd">
-                        <div class="frow">
-                            <div class="field">
-                                <div class="flabel">School Email<div class="req">*</div></div>
-                                <div class="input dis"><div>@Model.SchoolEmail</div></div>
-                                <div class="hint">Notifications and password resets are sent here.</div>
-                            </div>
-                            <div class="field">
-                                <div class="flabel">Contact Number<div class="req">*</div></div>
-                                <input id="ContactNumber" name="ContactNumber" value="@Model.ContactNumber" class="input" placeholder="+63 917 555 0142" style="width:100%" required />
-                            </div>
+                <div class="cp-card">
+                    <div class="cp-card-header">Contact Information <span class="cp-cell-sub">Used for reservation and due-date notices</span></div>
+                    <div class="cp-profile-grid">
+                        <div class="cp-form-group">
+                            <label class="cp-form-label" for="ContactNumber">Contact Number <span class="required">*</span></label>
+                            <input id="ContactNumber" name="ContactNumber" value="@Model.ContactNumber" class="cp-input" placeholder="+63 917 555 0142" required />
                         </div>
-                        <div class="frow">
-                            <div class="field">
-                                <div class="flabel">Alternate Contact</div>
-                                <input id="AlternateContact" name="AlternateContact" value="@Model.AlternateContact" class="input" placeholder="Optional" style="width:100%" />
-                            </div>
+                        <div class="cp-form-group">
+                            <label class="cp-form-label" for="AlternateContact">Alternate Contact</label>
+                            <input id="AlternateContact" name="AlternateContact" value="@Model.AlternateContact" class="cp-input" placeholder="Optional" />
                         </div>
                     </div>
+                    <div class="cp-form-hint">Notifications and password resets are sent to your school email.</div>
                 </div>
 
-                <div class="card">
-                    <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Notification Preferences</div><div class="card-sub">Choose what CRAFT notifies you about</div></div></div>
-                    <div class="card-bd" style="gap:0">
-                        <label class="prefrow" style="cursor:pointer">
-                            <div class="prefrow-b"><div class="prefrow-t">Reservation decisions</div><div class="prefrow-d">Email me when a request is approved, rejected or marked ready for pickup.</div></div>
-                            <input type="checkbox" name="NotifyReservationUpdates" value="true" @(Model.NotifyReservationUpdates ? "checked" : "") />
-                        </label>
-                        <label class="prefrow" style="cursor:pointer">
-                            <div class="prefrow-b"><div class="prefrow-t">Due-date reminders</div><div class="prefrow-d">Send a reminder before each due date.</div></div>
-                            <input type="checkbox" name="NotifyDueReminders" value="true" @(Model.NotifyDueReminders ? "checked" : "") />
-                        </label>
-                        <label class="prefrow" style="cursor:pointer">
-                            <div class="prefrow-b"><div class="prefrow-t">Overdue alerts</div><div class="prefrow-d">Keep alerting me until overdue equipment is returned.</div></div>
-                            <input type="checkbox" name="NotifyOverdueAlerts" value="true" @(Model.NotifyOverdueAlerts ? "checked" : "") />
-                        </label>
-                        <label class="prefrow" style="cursor:pointer">
-                            <div class="prefrow-b"><div class="prefrow-t">Return confirmations</div><div class="prefrow-d">Notify me once a return has been inspected and closed.</div></div>
-                            <input type="checkbox" name="NotifyReturnConfirmations" value="true" @(Model.NotifyReturnConfirmations ? "checked" : "") />
-                        </label>
-                        <label class="prefrow last" style="cursor:pointer">
-                            <div class="prefrow-b"><div class="prefrow-t">Equipment announcements</div><div class="prefrow-d">Occasional notices about newly available equipment.</div></div>
-                            <input type="checkbox" name="NotifyAnnouncements" value="true" @(Model.NotifyAnnouncements ? "checked" : "") />
-                        </label>
-                    </div>
+                <div class="cp-card">
+                    <div class="cp-card-header">Notification Preferences <span class="cp-cell-sub">Choose what CRAFT notifies you about</span></div>
+                    <label class="cp-pref-row">
+                        <div><div class="cp-pref-title">Reservation decisions</div><div class="cp-pref-sub">Email me when a request is approved, rejected or marked ready for pickup.</div></div>
+                        <input type="checkbox" name="NotifyReservationUpdates" value="true" @(Model.NotifyReservationUpdates ? "checked" : "") />
+                    </label>
+                    <label class="cp-pref-row">
+                        <div><div class="cp-pref-title">Due-date reminders</div><div class="cp-pref-sub">Send a reminder before each due date.</div></div>
+                        <input type="checkbox" name="NotifyDueReminders" value="true" @(Model.NotifyDueReminders ? "checked" : "") />
+                    </label>
+                    <label class="cp-pref-row">
+                        <div><div class="cp-pref-title">Overdue alerts</div><div class="cp-pref-sub">Keep alerting me until overdue equipment is returned.</div></div>
+                        <input type="checkbox" name="NotifyOverdueAlerts" value="true" @(Model.NotifyOverdueAlerts ? "checked" : "") />
+                    </label>
+                    <label class="cp-pref-row">
+                        <div><div class="cp-pref-title">Return confirmations</div><div class="cp-pref-sub">Notify me once a return has been inspected and closed.</div></div>
+                        <input type="checkbox" name="NotifyReturnConfirmations" value="true" @(Model.NotifyReturnConfirmations ? "checked" : "") />
+                    </label>
+                    <label class="cp-pref-row">
+                        <div><div class="cp-pref-title">Equipment announcements</div><div class="cp-pref-sub">Occasional notices about newly available equipment.</div></div>
+                        <input type="checkbox" name="NotifyAnnouncements" value="true" @(Model.NotifyAnnouncements ? "checked" : "") />
+                    </label>
                 </div>
 
-                <div class="acts">
-                    <button type="submit" class="cp-btn cp-btn-primary">
-                        <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                        <div>Save Changes</div>
-                    </button>
-                    <a href="/" class="cp-btn cp-btn-secondary">Discard Changes</a>
+                <div class="cp-profile-actions">
+                    <button type="submit" class="cp-btn cp-btn-primary">Save Changes</button>
+                    <a href="/Profile" class="cp-btn cp-btn-secondary">Discard Changes</a>
                 </div>
             </form>
         </div>
-    </div>
 
-    <div style="flex:1;min-width:0">
-        <div class="col">
+        <div class="cp-stack">
             <form method="post" action="/Profile/ChangePassword">
                 @Html.AntiForgeryToken()
-                <div class="card">
-                    <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Password &amp; Security</div><div class="card-sub">Changing your password signs out every other device</div></div></div>
-                    <div class="card-bd">
-                        <div class="field">
-                            <div class="flabel">Current Password<div class="req">*</div></div>
-                            <input id="CurrentPassword" name="CurrentPassword" type="password" class="input" autocomplete="current-password" style="width:100%" required />
-                        </div>
-                        <div class="field">
-                            <div class="flabel">New Password<div class="req">*</div></div>
-                            <input id="NewPassword" name="NewPassword" type="password" class="input" autocomplete="new-password" style="width:100%" required />
-                            <div class="hint">At least 8 characters with one number and one uppercase letter.</div>
-                        </div>
-                        <div class="field">
-                            <div class="flabel">Confirm New Password<div class="req">*</div></div>
-                            <input id="ConfirmPassword" name="ConfirmPassword" type="password" class="input" autocomplete="new-password" style="width:100%" required />
-                        </div>
-                        <button type="submit" class="cp-btn cp-btn-primary cp-btn-lg" style="width:100%">
-                            <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4,0 018 0v3"/></svg>
-                            <div>Update Password</div>
-                        </button>
+                <div class="cp-card">
+                    <div class="cp-card-header">Password &amp; Security <span class="cp-cell-sub">Changing your password signs out every other device</span></div>
+                    <div class="cp-form-group">
+                        <label class="cp-form-label" for="CurrentPassword">Current Password <span class="required">*</span></label>
+                        <input id="CurrentPassword" name="CurrentPassword" type="password" class="cp-input" autocomplete="current-password" required />
                     </div>
+                    <div class="cp-form-group">
+                        <label class="cp-form-label" for="NewPassword">New Password <span class="required">*</span></label>
+                        <input id="NewPassword" name="NewPassword" type="password" class="cp-input" autocomplete="new-password" required />
+                        <div class="cp-form-hint">At least 8 characters with one number and one uppercase letter.</div>
+                    </div>
+                    <div class="cp-form-group">
+                        <label class="cp-form-label" for="ConfirmPassword">Confirm New Password <span class="required">*</span></label>
+                        <input id="ConfirmPassword" name="ConfirmPassword" type="password" class="cp-input" autocomplete="new-password" required />
+                    </div>
+                    <button type="submit" class="cp-btn cp-btn-primary">Update Password</button>
                 </div>
             </form>
-
-            <div class="card">
-                <div class="card-hd"><div class="card-hd-txt"><div class="card-title">Account Security</div></div></div>
-                <div class="card-bd">
-                    <div class="kv">
-                        <div class="kv-row"><div class="kv-k">Account status</div><div class="kv-v"><div class="badge" style="background:@(verified ? "#EAF5EF" : "#FDF3E1");color:@(verified ? "#0B5D3E" : "#8A5D0F")"><div class="dot"></div>@(verified ? "Verified" : "Pending")</div></div></div>
-                        <div class="kv-row last">
-                            <div class="kv-k">Session</div>
-                            <div class="kv-v">
-                                <form method="post" action="/Account/Logout" style="margin:0">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Sign Out</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>

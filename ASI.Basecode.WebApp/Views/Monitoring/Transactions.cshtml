@@ -12,24 +12,21 @@
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" asp-action="Transactions" style="display:contents;">
+    <form method="get" asp-action="Transactions" style="display:contents">
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by reference, actor, equipment..." />
         <select name="tab" class="cp-select">
             <option value="All" selected="@(Model.Tab == "All")">All transactions</option>
             <option value="Reservations" selected="@(Model.Tab == "Reservations")">Reservations only</option>
             <option value="Borrowings" selected="@(Model.Tab == "Borrowings")">Borrowings only</option>
         </select>
-        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Transactions" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
 </div>
 
 @if (!Model.Page.Items.Any())
 {
-    <div class="cp-empty-state">
-        <div class="cp-empty-state-icon"><i class="fa-solid fa-receipt"></i></div>
-        <div class="cp-empty-state-text">No transactions found.</div>
-    </div>
+    <div class="cp-empty-state compact"><div class="cp-empty-state-text">No transactions found.</div></div>
 }
 else
 {
@@ -42,7 +39,7 @@ else
                     <th>Date</th>
                     <th>Actor</th>
                     <th>Equipment</th>
-                    <th class="text-center">Qty</th>
+                    <th>Qty</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -51,15 +48,15 @@ else
                 {
                     <tr>
                         <td><span class="cp-badge @(t.Type == "Reservation" ? "cp-badge-info" : "cp-badge-success")">@t.Type</span></td>
-                        <td><strong>@t.Reference</strong></td>
-                        <td style="font-size:11.6px;">@t.Date.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
-                        <td style="font-size:11.6px;">@t.Actor</td>
+                        <td><span class="cp-mono">@t.Reference</span></td>
+                        <td class="cp-mono">@t.Date.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@t.Actor</td>
                         <td>
-                            @t.Equipment
-                            <div style="font-size:10.8px;color:var(--color-text-lighter);">@t.AssetCode</div>
+                            <span class="cp-cell-name">@t.Equipment</span>
+                            <div class="cp-cell-sub cp-mono">@t.AssetCode</div>
                         </td>
-                        <td class="text-center">@t.Quantity</td>
-                        <td style="font-size:11.6px;">@t.Status</td>
+                        <td class="cp-mono">@t.Quantity</td>
+                        <td><span class="@StatusBadge.Css(t.StatusCode)">@t.Status</span></td>
                     </tr>
                 }
             </tbody>

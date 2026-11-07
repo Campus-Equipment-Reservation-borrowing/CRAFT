@@ -656,3 +656,9 @@
     .cp-kv { grid-template-columns: 1fr; }
     .cp-kv > dt { border-bottom: none; padding-bottom: 0; }
 }
+.cp-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.cp-check { display: flex; align-items: flex-start; gap: 8px; font-size: 12.2px; color: var(--color-text-muted); line-height: 1.5; margin-bottom: 8px; cursor: pointer; }
+.cp-check input { margin-top: 3px; flex-shrink: 0; }
+@media (max-width: 700px) { .cp-form-row { grid-template-columns: 1fr; } }
+/* ModelOnly summaries render even with no errors; hide them until they have content */
+.cp-validation-summary.validation-summary-valid, .validation-summary-valid.banner { display: none; }

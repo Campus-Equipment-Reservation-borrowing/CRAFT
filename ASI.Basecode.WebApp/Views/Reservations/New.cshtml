@@ -6,66 +6,63 @@
 
 <div class="cp-page-header">
     <div>
+        <partial name="_Breadcrumb" model='new[] { ("Equipment", "/Reservations/Available") }' />
         <h1 class="cp-page-title">Reservation Form</h1>
-        <p class="cp-page-subtitle">Complete the details below. Your request will be queued for custodian review.</p>
-    </div>
-    <div class="cp-page-actions">
-        <a asp-controller="Reservations" asp-action="Available" class="cp-btn cp-btn-secondary">Cancel</a>
+        <p class="cp-page-subtitle">Your request will be queued for custodian review.</p>
     </div>
 </div>
 
 <div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
 
-<div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;align-items:start;">
-    <!-- Left: Form -->
+<div class="cp-grid-2">
     <div class="cp-card">
         <form asp-controller="Reservations" asp-action="New" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Form.EquipmentId" />
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-                <div class="cp-form-group" style="margin:0;">
+            <div class="cp-form-row">
+                <div class="cp-form-group">
                     <label asp-for="Form.Quantity" class="cp-form-label">Quantity <span class="required">*</span></label>
                     <input asp-for="Form.Quantity" type="number" class="cp-input" min="1" />
                     <div class="cp-form-hint">Maximum 3 units per borrower.</div>
                     <span asp-validation-for="Form.Quantity" class="cp-form-error"></span>
                 </div>
-                <div class="cp-form-group" style="margin:0;">
+                <div class="cp-form-group">
                     <label class="cp-form-label">Pickup Point <span class="required">*</span></label>
                     <select asp-for="Form.PickupLocationId" class="cp-select" asp-items="@(ViewBag.PickupOptions as SelectList)"></select>
                     <span asp-validation-for="Form.PickupLocationId" class="cp-form-error"></span>
                 </div>
             </div>
 
-            <div style="font-size:11px;font-weight:600;color:var(--color-text-lighter);text-transform:uppercase;letter-spacing:0.8px;margin:20px 0 10px;">Borrowing Schedule</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-                <div class="cp-form-group" style="margin:0;">
+            <div class="cp-section-title">Borrowing Schedule</div>
+            <div class="cp-form-row">
+                <div class="cp-form-group">
                     <label asp-for="Form.BorrowingDate" class="cp-form-label">Borrowing Date <span class="required">*</span></label>
                     <input asp-for="Form.BorrowingDate" type="date" class="cp-input" />
                     <span asp-validation-for="Form.BorrowingDate" class="cp-form-error"></span>
                 </div>
-                <div class="cp-form-group" style="margin:0;">
+                <div class="cp-form-group">
                     <label asp-for="Form.BorrowingTime" class="cp-form-label">Borrowing Time <span class="required">*</span></label>
                     <input asp-for="Form.BorrowingTime" type="time" class="cp-input" />
                     <span asp-validation-for="Form.BorrowingTime" class="cp-form-error"></span>
                 </div>
             </div>
 
-            <div style="font-size:11px;font-weight:600;color:var(--color-text-lighter);text-transform:uppercase;letter-spacing:0.8px;margin:20px 0 10px;">Expected Return</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-                <div class="cp-form-group" style="margin:0;">
+            <div class="cp-section-title">Expected Return</div>
+            <div class="cp-form-row">
+                <div class="cp-form-group">
                     <label asp-for="Form.ExpectedReturnDate" class="cp-form-label">Expected Return Date <span class="required">*</span></label>
                     <input asp-for="Form.ExpectedReturnDate" type="date" class="cp-input" />
                     <span asp-validation-for="Form.ExpectedReturnDate" class="cp-form-error"></span>
                 </div>
-                <div class="cp-form-group" style="margin:0;">
+                <div class="cp-form-group">
                     <label asp-for="Form.ExpectedReturnTime" class="cp-form-label">Expected Return Time <span class="required">*</span></label>
                     <input asp-for="Form.ExpectedReturnTime" type="time" class="cp-input" />
                     <span asp-validation-for="Form.ExpectedReturnTime" class="cp-form-error"></span>
                 </div>
             </div>
 
-            <div style="font-size:11px;font-weight:600;color:var(--color-text-lighter);text-transform:uppercase;letter-spacing:0.8px;margin:20px 0 10px;">Purpose &amp; Notes</div>
+            <div class="cp-section-title">Purpose &amp; Notes</div>
             <div class="cp-form-group">
                 <label asp-for="Form.Purpose" class="cp-form-label">Purpose of Borrowing <span class="required">*</span></label>
                 <textarea asp-for="Form.Purpose" class="cp-textarea" rows="3" placeholder="Be specific — the custodian uses this to prioritise competing requests."></textarea>
@@ -77,70 +74,58 @@
                 <span asp-validation-for="Form.AdditionalNotes" class="cp-form-error"></span>
             </div>
 
-            <hr style="border:none;border-top:1px solid var(--color-border);margin:20px 0;" />
-
+            <div class="cp-section-title">Acknowledgements</div>
             <div class="cp-form-group">
-                <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--color-text-soft);cursor:pointer;">
-                    <input type="checkbox" asp-for="Form.AcknowledgeRules" style="margin-top:3px;" />
-                    <span>I acknowledge the borrowing rules and accept accountability for damage, loss or late return of this equipment.</span>
+                <label class="cp-check">
+                    <input type="checkbox" asp-for="Form.AcknowledgeRules" />
+                    I acknowledge the borrowing rules and accept accountability for damage, loss or late return of this equipment.
                 </label>
             </div>
             <div class="cp-form-group">
-                <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--color-text-soft);cursor:pointer;">
-                    <input type="checkbox" asp-for="Form.AcknowledgeResponsibility" style="margin-top:3px;" />
-                    <span>I understand that overdue items may suspend my borrowing privileges for the remainder of the term.</span>
+                <label class="cp-check">
+                    <input type="checkbox" asp-for="Form.AcknowledgeResponsibility" />
+                    I understand that overdue items may suspend my borrowing privileges for the remainder of the term.
                 </label>
             </div>
 
-            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+            <div class="cp-row-between">
                 <a asp-controller="Reservations" asp-action="Available" class="cp-btn cp-btn-secondary">Back</a>
-                <button type="submit" class="cp-btn cp-btn-success">
-                    <i class="fa-solid fa-check"></i> Submit Reservation
-                </button>
+                <button type="submit" class="cp-btn cp-btn-success">Submit Reservation</button>
             </div>
         </form>
     </div>
 
-    <!-- Right: Summary + Info -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="cp-stack">
         <div class="cp-card">
             <div class="cp-card-header">Selected Equipment</div>
             @if (Model.Equipment != null)
             {
-                <div style="margin-bottom:12px;">
-                    <div style="font-size:15px;font-weight:700;color:var(--color-text);">@Model.Equipment.EquipmentName</div>
-                    <div style="font-size:11px;color:var(--color-text-lighter);">@Model.Equipment.AssetCode · @Model.Equipment.CategoryName</div>
+                <dl class="cp-kv">
+                    <dt>Equipment</dt><dd>@Model.Equipment.EquipmentName</dd>
+                    <dt>Asset Code</dt><dd class="cp-mono">@Model.Equipment.AssetCode</dd>
+                    <dt>Category</dt><dd>@Model.Equipment.CategoryName</dd>
                     @if (!string.IsNullOrEmpty(Model.Equipment.LocationName))
                     {
-                        <div style="font-size:11px;color:var(--color-text-lighter);margin-top:2px;"><i class="fa-solid fa-location-dot"></i> @Model.Equipment.LocationName</div>
+                        <dt>Location</dt><dd>@Model.Equipment.LocationName</dd>
                     }
-                </div>
-                <div style="border-top:1px solid var(--color-border);padding-top:10px;">
-                    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-                        <span style="color:var(--color-text-gray);">Available quantity</span>
-                        <span style="font-weight:600;">@Model.Equipment.AvailableUnits of @Model.Equipment.TotalQuantity units</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;">
-                        <span style="color:var(--color-text-gray);">Condition</span>
-                        <span>@Model.Equipment.ConditionName</span>
-                    </div>
-                </div>
+                    <dt>Available</dt><dd>@Model.Equipment.AvailableUnits of @Model.Equipment.TotalQuantity units</dd>
+                    @if (!string.IsNullOrWhiteSpace(Model.Equipment.ConditionName))
+                    {
+                        <dt>Condition</dt><dd><span class="@StatusBadge.Css(Model.Equipment.ConditionName.Trim().ToUpperInvariant().Replace(' ', '_'))">@Model.Equipment.ConditionName</span></dd>
+                    }
+                </dl>
             }
             else
             {
-                <span style="color:var(--color-text-lighter);font-size:12.5px;">Equipment summary unavailable.</span>
+                <div class="cp-empty-state compact"><div class="cp-empty-state-text">Equipment summary unavailable.</div></div>
             }
         </div>
 
         <div class="cp-card">
             <div class="cp-card-header">Review Time</div>
-            <div style="font-size:12px;color:var(--color-text-gray);margin-bottom:8px;">
-                <i class="fa-regular fa-clock" style="margin-right:4px;"></i>
-                Requests are normally reviewed within one working day. You will be notified once a decision is made.
-            </div>
-            <div style="font-size:12px;color:var(--color-text-gray);">
-                <i class="fa-solid fa-shield" style="margin-right:4px;"></i>
-                Cancellation window — you may cancel this request any time while it is still Pending or Approved.
+            <div class="cp-stack">
+                <div class="cp-cell-sub">Requests are normally reviewed within one working day. You will be notified once a decision is made.</div>
+                <div class="cp-cell-sub">Cancellation window — you may cancel this request any time while it is still Pending or Approved.</div>
             </div>
         </div>
     </div>

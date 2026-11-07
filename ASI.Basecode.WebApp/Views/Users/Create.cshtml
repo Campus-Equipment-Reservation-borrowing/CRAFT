@@ -6,17 +6,15 @@
 
 <div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div>Users</div><div>/</div><div class="cur">Add</div></div>
-        <div class="cp-page-title">Add User</div>
-        <div class="cp-page-subtitle">Fields marked with an asterisk are required. Staff accounts get a temporary password they must change at first sign-in.</div>
+        <partial name="_Breadcrumb" model='new[] { ("Users", "/Users") }' />
+        <h1 class="cp-page-title">Add User</h1>
+        <p class="cp-page-subtitle">Staff accounts get a temporary password they must change at first sign-in.</p>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-bd">
-        <form asp-action="Create" method="post">
-            @Html.AntiForgeryToken()
-            <partial name="_UserForm" model="Model" />
-        </form>
-    </div>
+<div class="cp-card cp-card-narrow">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <partial name="_UserForm" model="Model" />
+    </form>
 </div>

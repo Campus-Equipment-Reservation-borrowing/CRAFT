@@ -1,29 +1,20 @@
 @model BorrowingHistoryViewModel
 @{
     ViewData["Title"] = "Borrowing History";
+    Func<string, string> code = name => (name ?? "").Trim().ToUpperInvariant().Replace(' ', '_');
 }
 
-<div class="page-hd">
+<div class="cp-page-header">
     <div>
-        <div class="crumb"><div>CRAFT</div><div>/</div><div class="cur">Borrowing History</div></div>
-        <div class="title">Borrowing History</div>
-        <div class="subtitle">Completed and closed borrowing transactions on your record.</div>
-    </div>
-    <div class="hd-actions">
-        <a class="btn btn-secondary" href="/Borrowings/Mine">
-            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 11h6M9 15h4"/></svg>
-            <div>My Borrowings</div>
-        </a>
+        <h1 class="cp-page-title">Borrowing History</h1>
+        <p class="cp-page-subtitle">Completed and closed borrowing transactions on your record.</p>
     </div>
 </div>
 
-<div class="card">
-    <form method="get" action="/Borrowings/History" class="toolbar">
-        <div class="search" style="flex:1">
-            <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-            <input type="text" name="search" value="@Model.Search" placeholder="Search by equipment, transaction ID or asset code..." style="border:0;outline:0;background:transparent;flex:1;font:inherit;color:inherit" />
-        </div>
-        <select name="condition" class="select" style="flex:0 0 auto;border:1px solid #DCE6E0;background:#fff;border-radius:9px;height:38px;padding:0 12px;font:inherit;color:#42504A">
+<div class="cp-filter-bar">
+    <form method="get" action="/Borrowings/History" style="display:contents">
+        <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by equipment, transaction ID or asset code..." />
+        <select name="condition" class="cp-select">
             @foreach (var c in Model.ConditionOptions)
             {
                 if (Model.Condition == c)
@@ -36,62 +27,64 @@
                 }
             }
         </select>
-        <button type="submit" class="btn btn-secondary">Filter</button>
-        <a href="/Borrowings/History" class="btn btn-secondary">Clear</a>
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
+        <a href="/Borrowings/History" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
-    <div class="tbl">
-        <div class="tr th">
-            <div class="td" style="flex:262 1 0;min-width:0">EQUIPMENT</div>
-            <div class="td" style="flex:145 1 0;min-width:0">TRANSACTION ID</div>
-            <div class="td" style="flex:152 1 0;min-width:0">BORROWING DATE</div>
-            <div class="td" style="flex:152 1 0;min-width:0">RETURN DATE</div>
-            <div class="td" style="flex:166 1 0;min-width:0">FINAL CONDITION</div>
-            <div class="td" style="flex:240 1 0;min-width:0">INSPECTION NOTES</div>
-            <div class="td" style="flex:155 1 0;min-width:0">STATUS</div>
-            <div class="td end" style="flex:100 1 0;min-width:0"></div>
-        </div>
-        @if (!Model.Borrowings.Any())
-        {
-            <div class="tr"><div class="td" style="flex:1;min-width:0;padding:28px 17px;color:#8A968F">No borrowing history yet.</div></div>
-        }
-        @foreach (var b in Model.Borrowings)
-        {
-            var damaged = !string.IsNullOrWhiteSpace(b.FinalConditionName)
-                && !string.Equals(b.FinalConditionName, "Good", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(b.FinalConditionName, "Minor Damage", StringComparison.OrdinalIgnoreCase);
-            <div class="tr">
-                <div class="td" style="flex:262 1 0;min-width:0">
-                    <div class="cellwrap">
-                        <div class="thumb" style="width:36px;height:36px">
-                            <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
-                        </div>
-                        <div class="cellname">
-                            <div class="strong">@b.EquipmentName</div>
-                            <div class="sub">@b.AssetCode</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="td" style="flex:145 1 0;min-width:0"><div class="mono">@b.TransactionNumber</div></div>
-                <div class="td" style="flex:152 1 0;min-width:0">@b.ReleasedAtUtc.ToLocalTime().ToString("dd MMM yyyy")<div class="sub">@b.ReleasedAtUtc.ToLocalTime().ToString("hh:mm tt")</div></div>
-                <div class="td" style="flex:152 1 0;min-width:0">
-                    @if (b.ReturnedAtUtc.HasValue)
-                    {
-                        <text>@b.ReturnedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy")<div class="sub">@b.ReturnedAtUtc.Value.ToLocalTime().ToString("hh:mm tt")</div></text>
-                    }
-                    else
-                    {
-                        <span class="sub">-</span>
-                    }
-                </div>
-                <div class="td" style="flex:166 1 0;min-width:0">
-                    <div class="badge mid" style="background:@(damaged ? "#FBEAEA" : "#EAF5EF");color:@(damaged ? "#8E2F2F" : "#0B5D3E")">
-                        <div class="dot"></div>@(b.FinalConditionName ?? "Good")
-                    </div>
-                </div>
-                <div class="td" style="flex:240 1 0;min-width:0">@(string.IsNullOrWhiteSpace(b.InspectionNotes) ? "-" : b.InspectionNotes)</div>
-                <div class="td" style="flex:155 1 0;min-width:0"><div class="badge mid" style="background:#EAF5EF;color:#0B5D3E"><div class="dot"></div>@b.StatusDescription</div></div>
-                <div class="td end" style="flex:100 1 0;min-width:0"><a class="btn btn-secondary btn-sm" href="/Borrowings/Details/@b.BorrowingId">View</a></div>
-            </div>
-        }
-    </div>
+</div>
+
+<div class="cp-table-wrap">
+    <table class="cp-table">
+        <thead>
+            <tr>
+                <th>Equipment</th>
+                <th>Transaction</th>
+                <th>Borrowed</th>
+                <th>Returned</th>
+                <th>Final Condition</th>
+                <th>Inspection Notes</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Borrowings.Any())
+            {
+                <tr><td colspan="8"><div class="cp-empty-state compact"><div class="cp-empty-state-text">No borrowing history yet.</div></div></td></tr>
+            }
+            @foreach (var b in Model.Borrowings)
+            {
+                <tr>
+                    <td>
+                        <div class="cp-cell-name">@b.EquipmentName</div>
+                        <div class="cp-cell-sub">@b.AssetCode</div>
+                    </td>
+                    <td class="cp-mono">@b.TransactionNumber</td>
+                    <td>@b.ReleasedAtUtc.ToLocalTime().ToString("dd MMM yyyy")<div class="cp-cell-sub">@b.ReleasedAtUtc.ToLocalTime().ToString("hh:mm tt")</div></td>
+                    <td>
+                        @if (b.ReturnedAtUtc.HasValue)
+                        {
+                            @b.ReturnedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy")<div class="cp-cell-sub">@b.ReturnedAtUtc.Value.ToLocalTime().ToString("hh:mm tt")</div>
+                        }
+                        else
+                        {
+                            <span class="cp-cell-sub">-</span>
+                        }
+                    </td>
+                    <td>
+                        @if (string.IsNullOrWhiteSpace(b.FinalConditionName))
+                        {
+                            <span class="cp-cell-sub">-</span>
+                        }
+                        else
+                        {
+                            <span class="@StatusBadge.Css(code(b.FinalConditionName))">@b.FinalConditionName</span>
+                        }
+                    </td>
+                    <td>@(string.IsNullOrWhiteSpace(b.InspectionNotes) ? "-" : b.InspectionNotes)</td>
+                    <td><span class="@StatusBadge.Css(code(b.StatusDescription))">@b.StatusDescription</span></td>
+                    <td><a class="cp-btn cp-btn-secondary cp-btn-sm" href="/Borrowings/Details/@b.BorrowingId">View</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
 </div>

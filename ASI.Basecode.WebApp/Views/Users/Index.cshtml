@@ -28,7 +28,7 @@
         <p class="cp-page-subtitle">Manage user accounts, roles, and departments.</p>
     </div>
     <div class="cp-page-actions">
-        <a asp-action="Create" class="cp-btn cp-btn-success"><i class="fa-solid fa-plus"></i> Add User</a>
+        <a asp-action="Create" class="cp-btn cp-btn-success">Add User</a>
     </div>
 </div>
 
@@ -50,14 +50,14 @@
         <div class="cp-kpi-label">Custodians &amp; Admins</div>
         <div class="cp-kpi-value">@(Model.Totals?.CustodianAdmins ?? 0)</div>
     </div>
-    <a class="cp-kpi" asp-action="Verifications" style="text-decoration:none;color:inherit;" title="Open the verification queue">
+    <a class="cp-kpi" asp-action="Verifications" title="Open the verification queue">
         <div class="cp-kpi-label">Unverified</div>
         <div class="cp-kpi-value">@(Model.Totals?.Unverified ?? 0)</div>
     </a>
 </div>
 
 <!-- Quick presets -->
-<div class="tabs" style="margin-bottom:12px;">
+<div class="tabs" style="margin-bottom:12px">
     @foreach (var p in presets.Where(p => p.Label == "All" || p.Role != null || p.Status != null))
     {
         var on = presetFiltersOnly && p.Role == currentRole && p.Status == currentStatus;
@@ -72,11 +72,11 @@
         <select name="role" class="cp-select" asp-items="@(ViewBag.RoleOptions as SelectList)"></select>
         <select name="department" class="cp-select" asp-items="@(ViewBag.DepartmentOptions as SelectList)"></select>
         <select name="status" class="cp-select" asp-items="@(ViewBag.StatusOptions as SelectList)"></select>
-        <select name="pageSize" class="cp-select" style="max-width:90px;">
+        <select name="pageSize" class="cp-select" aria-label="Rows per page">
             <option value="10" selected="@(Model.Page?.PageSize == 10)">10</option>
             <option value="25" selected="@(Model.Page?.PageSize == 25)">25</option>
         </select>
-        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm"><i class="fa-solid fa-filter"></i> Apply</button>
+        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
 </div>
@@ -84,8 +84,7 @@
 <!-- Table -->
 @if (!Model.Page.Items.Any())
 {
-    <div class="cp-empty-state">
-        <div class="cp-empty-state-icon"><i class="fa-solid fa-users"></i></div>
+    <div class="cp-empty-state compact">
         <div class="cp-empty-state-text">No user accounts found.</div>
     </div>
 }
@@ -109,25 +108,21 @@ else
                 {
                     <tr>
                         <td>
-                            <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="display:flex;align-items:center;gap:8px">
                                 <div class="cp-avatar cp-avatar-sm">@(u.FirstName?.Substring(0,1))@(u.LastName?.Substring(0,1))</div>
-                                <div>
-                                    <a asp-action="Details" asp-route-id="@u.UserId" class="name-link"><div style="font-weight:600;">@u.FirstName @u.LastName</div></a>
-                                </div>
+                                <a asp-action="Details" asp-route-id="@u.UserId" class="name-link cp-cell-name">@u.FirstName @u.LastName</a>
                             </div>
                         </td>
-                        <td style="font-family:monospace;font-size:11.6px;">@u.AccountIdentifier</td>
+                        <td class="cp-mono">@u.AccountIdentifier</td>
                         <td>@u.RoleName</td>
                         <td>@(u.DepartmentName ?? "—")</td>
-                        <td style="font-size:11.6px;">@u.SchoolEmail</td>
+                        <td>@u.SchoolEmail</td>
                         <td>
-                            <span class="cp-badge @(u.AccountStatusCode switch { "ACTIVE" => "cp-badge-success", "SUSPENDED" or "UNVERIFIED" => "cp-badge-warning", "LOCKED" or "REJECTED" => "cp-badge-error", _ => "cp-badge-neutral" })">
-                                @u.AccountStatusDescription
-                            </span>
+                            <span class="@StatusBadge.AccountCss(u.AccountStatusCode)">@u.AccountStatusDescription</span>
                         </td>
                         <td class="text-center">
                             <a asp-action="Edit" asp-route-id="@u.UserId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
-                            <form method="post" asp-action="Delete" asp-route-id="@u.UserId" style="display:inline;margin-left:4px;"
+                            <form method="post" asp-action="Delete" asp-route-id="@u.UserId" style="display:inline"
                                   onsubmit="return confirm('Delete this user account?');">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
