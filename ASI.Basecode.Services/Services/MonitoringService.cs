@@ -173,14 +173,61 @@ namespace ASI.Basecode.Services.Services
             };
         }
 
-        public AuditLogsViewModel GetAuditLogs(string search, string entityType, int page, int pageSize)
+        private IQueryable<AuditLog> BuildAuditQuery(string search, DateTime? dateFrom, DateTime? dateTo,
+                                             string user, string role, string actionType)
         {
-            var result = this._repository.GetAuditLogsPaged(search, entityType, page, pageSize);
+            var query = this.DbContext.AuditLogs
+                .Include(a => a.ActorUser)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(a =>
+                    (a.Details != null && a.Details.Contains(term)) ||
+                    (a.ReferenceNumber != null && a.ReferenceNumber.Contains(term)) ||
+                    a.ActionType.Contains(term) ||
+                    a.EntityType.Contains(term));
+            }
+
+            if (dateFrom.HasValue)
+                query = query.Where(a => a.OccurredAtUtc >= dateFrom.Value.ToUniversalTime());
+
+            if (dateTo.HasValue)
+                query = query.Where(a => a.OccurredAtUtc <= dateTo.Value.ToUniversalTime());
+
+            if (!string.IsNullOrWhiteSpace(user))
+            {
+                var name = user.Trim();
+                query = query.Where(a => a.ActorUser != null &&
+                    (a.ActorUser.FirstName + " " + a.ActorUser.LastName).Contains(name));
+            }
+
+            if (!string.IsNullOrWhiteSpace(role))
+                query = query.Where(a => a.ActorUser != null && a.ActorUser.Role.RoleCode == role);
+
+            if (!string.IsNullOrWhiteSpace(actionType))
+                query = query.Where(a => a.ActionType.Contains(actionType));
+
+            return query.OrderByDescending(a => a.OccurredAtUtc);
+        }
+
+        public AuditLogsViewModel GetAuditLogs(string search, DateTime? dateFrom, DateTime? dateTo,
+                                               string user, string role, string actionType, int page)
+        {
+            const int PageSize = 15;
+            page = page < 1 ? 1 : page;
+
+            var query = this.BuildAuditQuery(search, dateFrom, dateTo, user, role, actionType);
+            var totalCount = query.Count();
+            var items = query.Skip((page - 1) * PageSize).Take(PageSize).ToList();
+
             return new AuditLogsViewModel
             {
                 Page = new PagedResult<AuditRowViewModel>
                 {
-                    Items = result.Items.Select(a => new AuditRowViewModel
+                    Items = items.Select(a => new AuditRowViewModel
                     {
                         AuditLogId = a.AuditLogId,
                         OccurredAtUtc = a.OccurredAtUtc,
@@ -190,21 +237,28 @@ namespace ASI.Basecode.Services.Services
                         ReferenceNumber = a.ReferenceNumber,
                         Details = a.Details,
                     }).ToList(),
-                    Page = result.Page,
-                    PageSize = result.PageSize,
-                    TotalCount = result.TotalCount,
+                    Page = page,
+                    PageSize = PageSize,
+                    TotalCount = totalCount,
                 },
                 Search = search,
-                EntityType = string.IsNullOrWhiteSpace(entityType) ? "All" : entityType,
-                EntityTypes = new List<string> { "All", "Equipment", "User", "Reservation", "Borrowing", "ConditionInspection", "AuditLog" },
+                DateFrom = dateFrom,
+                DateTo = dateTo,
+                User = user,
+                Role = role,
+                ActionType = actionType,
             };
         }
 
-        public string ExportAuditLogsCsv(string search, string entityType)
+        public string ExportAuditLogsCsv(string search, DateTime? dateFrom, DateTime? dateTo,
+                                         string user, string role, string actionType)
         {
-            var result = this._repository.GetAuditLogsPaged(search, entityType, 1, 100000);
+            var rows = this.BuildAuditQuery(search, dateFrom, dateTo, user, role, actionType)
+                .Take(100000)
+                .ToList();
+
             var csv = new Csv("OccurredAtUtc", "Actor", "ActionType", "EntityType", "ReferenceNumber", "Details");
-            foreach (var a in result.Items)
+            foreach (var a in rows)
             {
                 csv.Row(a.OccurredAtUtc, $"{a.ActorUser?.FirstName} {a.ActorUser?.LastName}".Trim(), a.ActionType, a.EntityType, a.ReferenceNumber, a.Details);
             }

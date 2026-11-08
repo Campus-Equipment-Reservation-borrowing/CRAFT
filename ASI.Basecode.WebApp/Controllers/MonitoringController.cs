@@ -55,14 +55,14 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.View(this._service.GetDashboard());
         }
 
-        public IActionResult AuditLogs(string search, string entityType, int page = 1, int pageSize = 20)
+        public IActionResult AuditLogs(string search, DateTime? dateFrom, DateTime? dateTo, string user, string role, string actionType, int page = 1)
         {
-            return this.View(this._service.GetAuditLogs(search, entityType, page, pageSize));
+            return this.View(this._service.GetAuditLogs(search, dateFrom, dateTo, user, role, actionType, page));
         }
 
-        public IActionResult ExportAuditCsv(string search, string entityType)
+        public IActionResult ExportAuditCsv(string search, DateTime? dateFrom, DateTime? dateTo, string user, string role, string actionType)
         {
-            var csv = this._service.ExportAuditLogsCsv(search, entityType);
+            var csv = this._service.ExportAuditLogsCsv(search, dateFrom, dateTo, user, role, actionType);
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
             return this.File(bytes, "text/csv", "audit-logs.csv");
         }

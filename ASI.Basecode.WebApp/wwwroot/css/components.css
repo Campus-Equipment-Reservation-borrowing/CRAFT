@@ -436,12 +436,96 @@
     margin-bottom: 16px;
 }
 
-.cp-filter-bar .cp-input {
-    max-width: 320px;
+.cp-filter-bar .cp-filter-search {
+        flex: 1 1 240px;
+        min-width: 200px;
 }
 
-.cp-filter-bar .cp-select {
-    max-width: 180px;
+.cp-filter-bar .cp-filter-date {
+        flex: 0 1 200px;
+        min-width: 170px;
+}
+
+.cp-filter-bar .cp-filter-user {
+        flex: 0 1 160px;
+        min-width: 130px;
+}
+
+.cp-filter-bar .cp-date-filter {
+        position: relative;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+}
+
+.cp-date-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.cp-date-filter-btn.has-value {
+        border-color: var(--color-primary, #168A5B);
+        color: var(--color-primary, #168A5B);
+}
+
+.cp-date-filter-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 60;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    background: #fff;
+    border: 1px solid #E0E9E3;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px -12px rgba(16, 45, 32, 0.3);
+}
+
+.cp-date-filter-panel[hidden] {
+        display: none;
+}
+
+.cp-date-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.cp-date-filter-field label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #42504A;
+}
+
+.cp-date-filter-field .cp-input {
+        width: 100%;
+}
+
+.cp-date-filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+.cp-date-filter-panel .cp-date-filter-field {
+    flex: 0 0 auto;
+}
+
+.cp-date-filter-panel .cp-date-filter-field .cp-input {
+        flex: 0 0 auto;
+        width: 100%;
+        height: 40px;
+        min-height: 0;
+        max-height: 40px;
+        padding-top: 0;
+        padding-bottom: 0;
+        box-sizing: border-box;
 }
 
 /* ===== Pagination ===== */

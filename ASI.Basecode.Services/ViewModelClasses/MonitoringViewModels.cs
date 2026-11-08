@@ -68,5 +68,10 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string Search { get; set; }
         public string EntityType { get; set; }
         public List<string> EntityTypes { get; set; } = new();
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
+        public string User { get; set; }
+        public string Role { get; set; }
+        public string ActionType { get; set; }
     }
 }

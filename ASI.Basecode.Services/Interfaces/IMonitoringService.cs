@@ -1,4 +1,5 @@
 using ASI.Basecode.Services.ViewModelClasses;
+using System;
 using System.Collections.Generic;
 
 namespace ASI.Basecode.Services.Interfaces
@@ -9,9 +10,11 @@ namespace ASI.Basecode.Services.Interfaces
 
         TransactionMonitoringViewModel GetTransactions(string search, string tab, int page, int pageSize);
 
-        AuditLogsViewModel GetAuditLogs(string search, string entityType, int page, int pageSize);
+        AuditLogsViewModel GetAuditLogs(string search, DateTime? dateFrom, DateTime? dateTo,
+                                string user, string role, string actionType, int page);
 
-        string ExportAuditLogsCsv(string search, string entityType);
+        string ExportAuditLogsCsv(string search, DateTime? dateFrom, DateTime? dateTo,
+                                  string user, string role, string actionType);
 
         string ExportMovementsCsv(string search);
 

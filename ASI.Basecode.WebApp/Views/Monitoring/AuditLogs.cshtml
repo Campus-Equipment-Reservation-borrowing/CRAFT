@@ -9,24 +9,61 @@
         <h1 class="cp-page-title">Audit Logs</h1>
         <p class="cp-page-subtitle">System activity trail.</p>
     </div>
-    <div class="cp-page-actions">
+    @*
+        <div class="cp-page-actions">
         <a asp-action="ExportAuditCsv" asp-route-search="@Model.Search" asp-route-entityType="@Model.EntityType" class="cp-btn cp-btn-secondary cp-btn-sm">Export CSV</a>
     </div>
+    *@
+    
 </div>
 
 <div class="cp-filter-bar">
     <form method="get" asp-action="AuditLogs" style="display:contents">
-        <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search details, reference, action..." />
-        <select name="entityType" class="cp-select">
-            @foreach (var et in Model.EntityTypes)
+        <input type="text" name="search" value="@Model.Search" class="cp-input cp-filter-search" placeholder="Search details, reference..." />
+
+           <div class="cp-date-filter" id="dateFilter">
+                <button type="button" class="cp-btn cp-btn-secondary cp-btn-sm cp-date-filter-btn" id="dateFilterBtn" aria-haspopup="true" aria-expanded="false">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                    <span id="dateFilterLabel">Filter by date and time</span>
+                </button>
+
+                <div class="cp-date-filter-panel" id="dateFilterPanel" hidden>
+                    <div class="cp-date-filter-field">
+                        <label for="dateFrom">Start (from)</label>
+                        <input id="dateFrom" type="datetime-local" name="dateFrom" class="cp-input"
+                               value="@Model.DateFrom?.ToString("yyyy-MM-ddTHH:mm")" />
+                    </div>
+                    <div class="cp-date-filter-field">
+                        <label for="dateTo">End (up to)</label>
+                        <input id="dateTo" type="datetime-local" name="dateTo" class="cp-input"
+                               value="@Model.DateTo?.ToString("yyyy-MM-ddTHH:mm")" />
+                    </div>
+                    <div class="cp-date-filter-actions">
+                        <button type="button" class="cp-btn cp-btn-secondary cp-btn-sm" id="dateFilterReset">Reset</button>
+                        <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="dateFilterApply">Apply</button>
+                    </div>
+                </div>
+        </div>
+        <select name="role" class="cp-select" aria-label="Role">
+            <option value="">All roles</option>
+            @foreach (var r in new[] { ("ADMIN", "Administrator"), ("TECHNICIAN", "Custodian"), ("STUDENT", "Student"), ("FACULTY", "Faculty") })
             {
-                <option value="@et" selected="@(Model.EntityType == et)">@et</option>
+                <option value="@r.Item1" selected="@(string.Equals(Model.Role, r.Item1, StringComparison.OrdinalIgnoreCase))">@r.Item2</option>
             }
         </select>
+
+        <select name="actionType" class="cp-select" aria-label="Action type">
+            <option value="">All actions</option>
+            @foreach (var at in new[] { "Create", "Update", "Delete", "Approve", "Reject", "Release", "Return", "Login" })
+            {
+                <option value="@at" selected="@(string.Equals(Model.ActionType, at, StringComparison.OrdinalIgnoreCase))">@at</option>
+            }
+        </select>
+
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="AuditLogs" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
-</div>
+</div> 
 
 @if (!Model.Page.Items.Any())
 {
@@ -64,3 +101,61 @@ else
 }
 
 @await Html.PartialAsync("_Pagination", ASI.Basecode.WebApp.Models.PaginationModel.From(Model.Page))
+
+@section Scripts {
+    <script>
+        (function () {
+            var wrap = document.getElementById('dateFilter');
+            var btn = document.getElementById('dateFilterBtn');
+            var panel = document.getElementById('dateFilterPanel');
+            var label = document.getElementById('dateFilterLabel');
+            var from = document.getElementById('dateFrom');
+            var to = document.getElementById('dateTo');
+            var form = wrap.closest('form');
+            var defaultText = 'Filter by date and time';
+
+            function fmt(v) {
+                if (!v) return '…';
+                var d = new Date(v);
+                return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            }
+
+            function refresh() {
+                if (from.value) to.min = from.value; else to.removeAttribute('min');
+                var has = from.value || to.value;
+                label.textContent = has ? fmt(from.value) + ' – ' + fmt(to.value) : defaultText;
+                btn.classList.toggle('has-value', !!has);
+            }
+
+            function setOpen(open) {
+                panel.hidden = !open;
+                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+
+            btn.addEventListener('click', function () { setOpen(panel.hidden); });
+            document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) setOpen(false); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+
+            from.addEventListener('change', refresh);
+            to.addEventListener('change', refresh);
+
+            document.getElementById('dateFilterReset').addEventListener('click', function () {
+                from.value = '';
+                to.value = '';
+                refresh();
+            });
+
+            document.getElementById('dateFilterApply').addEventListener('click', function () {
+                if (from.value && to.value && to.value < from.value) {
+                    to.setCustomValidity('End must be after start.');
+                    to.reportValidity();
+                    to.setCustomValidity('');
+                    return;
+                }
+                form.requestSubmit ? form.requestSubmit() : form.submit();
+            });
+
+            refresh();
+        })();
+    </script>
+}
