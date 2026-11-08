@@ -88,6 +88,15 @@ namespace ASI.Basecode.Services.Services
             };
         }
 
+        public string GetProfileImagePath(long userId)
+        {
+            return this.DbContext.Users
+                .AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.ProfileImagePath)
+                .FirstOrDefault();
+        }
+
         public (bool Success, string Error) SaveContact(long userId, ProfileContactFormViewModel form)
         {
             try

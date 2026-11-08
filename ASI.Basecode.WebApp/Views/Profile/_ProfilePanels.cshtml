@@ -13,20 +13,49 @@
         <div class="cp-profile-header">
             <div class="cp-profile-idblock">
                 <div class="cp-profile-photo">
-                    @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
-                    {
-                        <img src="@Model.ProfileImagePath" alt="Profile photo for @Model.FullName" class="cp-avatar-lg cp-avatar-photo" />
-                    }
-                    else
-                    {
-                        <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
-                    }
-                    <form method="post" action="/Profile/UploadPhoto" enctype="multipart/form-data" class="cp-profile-photo-form">
+                    <form id="photoForm" method="post" action="/Profile/UploadPhoto" enctype="multipart/form-data" class="cp-profile-photo-form">
                         @Html.AntiForgeryToken()
-                        <input id="profilePhoto" name="profilePhoto" type="file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" aria-label="Choose profile photo" required />
-                        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Upload</button>
-                        <span class="cp-form-hint">JPG, PNG, WEBP or GIF, up to 5 MB.</span>
+                        <input id="profilePhoto" name="profilePhoto" type="file"
+                               accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
+                               class="cp-visually-hidden" aria-label="Change profile photo" required />
                     </form>
+                    <button id="photoOptionsButton" type="button" class="cp-avatar-upload" title="Profile photo options" aria-label="Profile photo options" aria-haspopup="dialog" aria-controls="photoOptionsModal" aria-expanded="false">
+                        @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
+                        {
+                            <img id="avatarPreview" src="@Model.ProfileImagePath" alt="" class="cp-avatar-lg cp-avatar-photo" />
+                            <div id="avatarInitials" class="cp-avatar-lg" hidden>@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+                        }
+                        else
+                        {
+                            <img id="avatarPreview" src="" alt="" class="cp-avatar-lg cp-avatar-photo" hidden />
+                            <div id="avatarInitials" class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+                        }
+                        <span class="cp-avatar-overlay" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </span>
+                    </button>
+                    <span id="photoHint" class="cp-form-hint">Click to change photo</span>
+                    <div id="photoOptionsModal" class="cp-modal-overlay" style="display:none;" aria-hidden="true">
+                        <div class="cp-modal" role="dialog" aria-modal="true" aria-labelledby="photoOptionsTitle">
+                            <h2 id="photoOptionsTitle" class="cp-modal-title">Profile photo</h2>
+                            <p class="cp-form-hint">Upload a new photo or remove your current photo.</p>
+                            <div class="cp-photo-modal-actions">
+                                <button id="uploadPhotoButton" type="button" class="cp-btn cp-btn-primary">Upload photo</button>
+                                <form method="post" action="/Profile/RemovePhoto">
+                                    @Html.AntiForgeryToken()
+                                    @if (string.IsNullOrWhiteSpace(Model.ProfileImagePath))
+                                    {
+                                        <button type="submit" class="cp-btn cp-btn-secondary" disabled>Remove photo</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" class="cp-btn cp-btn-secondary">Remove photo</button>
+                                    }
+                                </form>
+                                <button id="closePhotoOptions" type="button" class="cp-btn cp-btn-secondary">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="cp-stack">
                     <div>
@@ -130,3 +159,71 @@
         </div>
     </div>
 </div>
+<script>
+    (function () {
+        var input = document.getElementById('profilePhoto');
+        var form = document.getElementById('photoForm');
+        var optionsButton = document.getElementById('photoOptionsButton');
+        var modal = document.getElementById('photoOptionsModal');
+        var uploadButton = document.getElementById('uploadPhotoButton');
+        var closeButton = document.getElementById('closePhotoOptions');
+        var preview = document.getElementById('avatarPreview');
+        var initials = document.getElementById('avatarInitials');
+        var hint = document.getElementById('photoHint');
+        var maxBytes = 5 * 1024 * 1024;
+        var allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+        if (!input || !form || !optionsButton || !modal || !uploadButton || !closeButton || !preview || !hint) return;
+
+        function closeModal() {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            optionsButton.setAttribute('aria-expanded', 'false');
+            optionsButton.focus();
+        }
+
+        optionsButton.addEventListener('click', function () {
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+            optionsButton.setAttribute('aria-expanded', 'true');
+            uploadButton.focus();
+        });
+
+        closeButton.addEventListener('click', closeModal);
+        modal.addEventListener('click', function (event) {
+            if (event.target === modal) closeModal();
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && modal.style.display !== 'none') closeModal();
+        });
+
+        uploadButton.addEventListener('click', function () {
+            closeModal();
+            input.click();
+        });
+
+        input.addEventListener('change', function () {
+            var file = input.files && input.files[0];
+            if (!file) return;
+
+            if (allowed.indexOf(file.type) === -1) {
+                hint.textContent = 'Please choose a JPG, PNG, WEBP or GIF image.';
+                input.value = '';
+                return;
+            }
+            if (file.size > maxBytes) {
+                hint.textContent = 'Image must be 5 MB or smaller.';
+                input.value = '';
+                return;
+            }
+
+            preview.src = URL.createObjectURL(file);
+            preview.hidden = false;
+            if (initials) initials.hidden = true;
+
+            hint.textContent = 'Uploading...';
+            optionsButton.classList.add('is-uploading');
+            form.requestSubmit();
+        });
+    })();
+</script>

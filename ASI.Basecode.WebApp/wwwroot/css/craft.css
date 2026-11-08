@@ -315,6 +315,11 @@ html, body {
     color: #99441A;
 }
 
+.craft-header .avatar-photo {
+    display: block;
+    object-fit: cover;
+}
+
 .craft-header .brand-mark {
     width: 38px;
     height: 38px;

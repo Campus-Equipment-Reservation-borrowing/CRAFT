@@ -541,6 +541,81 @@
     font-size: 11px;
 }
 
+.cp-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.cp-profile-photo-form {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.cp-avatar-upload {
+    position: relative;
+    display: inline-block;
+    border-radius: 50%;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    line-height: 0;
+}
+
+    .cp-avatar-upload .cp-avatar-lg {
+        display: flex;
+    }
+
+    .cp-avatar-upload img.cp-avatar-lg {
+        display: block;
+        object-fit: cover;
+    }
+
+    .cp-avatar-upload [hidden] {
+        display: none !important;
+    }
+
+.cp-avatar-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 1.25rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.cp-avatar-upload:hover .cp-avatar-overlay,
+.cp-visually-hidden:focus-visible + .cp-avatar-upload .cp-avatar-overlay {
+    opacity: 1;
+}
+
+.cp-avatar-upload:focus-visible {
+    outline: 2px solid var(--color-primary, #2563eb);
+    outline-offset: 3px;
+}
+
+.cp-avatar-upload.is-uploading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
 /* ===== Modal ===== */
 .cp-modal-overlay {
     position: fixed;
@@ -565,6 +640,22 @@
     font-size: 16.5px;
     font-weight: 700;
     margin: 0 0 12px;
+}
+
+.cp-photo-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.cp-photo-modal-actions form {
+    margin: 0;
+}
+
+.cp-photo-modal-actions .cp-btn {
+    width: 100%;
+    justify-content: center;
 }
 
 /* ===== Toast ===== */

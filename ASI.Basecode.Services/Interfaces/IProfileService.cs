@@ -9,6 +9,8 @@ namespace ASI.Basecode.Services.Interfaces
     {
         ProfileViewModel GetProfile(long userId);
 
+        string GetProfileImagePath(long userId);
+
         (bool Success, string Error) SaveContact(long userId, ProfileContactFormViewModel form);
 
         (bool Success, string Error, string PreviousImagePath) SaveProfileImage(long userId, string imagePath);

@@ -1,0 +1,9 @@
+@model ASI.Basecode.WebApp.Models.ProfileAvatarViewModel
+@if (!string.IsNullOrWhiteSpace(Model.ImagePath))
+{
+    <img src="@Model.ImagePath" alt="" class="avatar accent avatar-photo" />
+}
+else
+{
+    <div class="avatar accent" aria-hidden="true">@Model.Initials</div>
+}

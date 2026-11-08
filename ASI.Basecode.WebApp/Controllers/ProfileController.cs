@@ -96,6 +96,28 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public IActionResult RemovePhoto()
+        {
+            var userId = this._currentUser.GetActorUserId();
+            if (!userId.HasValue)
+            {
+                return this.RedirectToAction("Login", "Account");
+            }
+
+            var (success, error, previousImagePath) = this._profileService.SaveProfileImage(userId.Value, null);
+            if (!success)
+            {
+                this.TempData["ErrorMessage"] = error;
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
+            this.DeletePreviousProfilePhoto(previousImagePath);
+            this.TempData["SuccessMessage"] = "Your profile photo has been removed.";
+            return this.RedirectToAction(nameof(this.Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult UploadPhoto(IFormFile profilePhoto)
         {
             var userId = this._currentUser.GetActorUserId();
