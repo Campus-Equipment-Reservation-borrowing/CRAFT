@@ -327,7 +327,7 @@ namespace ASI.Basecode.Services.Services
             {
                 case "SUPPORT": return "/Support";
                 case "RESERVATION": return "/Reservations/Mine";
-                case "ANNOUNCEMENT": return "/Announcements";
+                case "ANNOUNCEMENT": return "/";
                 case "ACCOUNT": return "/Profile";
                 default: return null;
             }

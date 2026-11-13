@@ -59,8 +59,9 @@ namespace ASI.Basecode.Services.Services
                 {
                     RecipientUserId = recipient.UserId,
                     NotificationType = notificationType,
-                    Title = title,
-                    Message = message,
+                    // Column limits: a long announcement body or quoted note must not fail the caller.
+                    Title = Truncate(title, 200),
+                    Message = Truncate(message, 1000),
                     LinkUrl = linkUrl,
                     IsRead = false,
                     CreatedAtUtc = now,
@@ -123,5 +124,8 @@ namespace ASI.Basecode.Services.Services
                 _ => true,
             };
         }
+
+        private static string Truncate(string value, int max)
+            => value != null && value.Length > max ? value.Substring(0, max - 3) + "..." : value;
     }
 }

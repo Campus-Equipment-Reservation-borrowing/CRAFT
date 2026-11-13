@@ -96,7 +96,7 @@ namespace ASI.Basecode.Services.Services
                     $"Published announcement '{entity.Title}' to {entity.TargetRoles}.");
 
                 this._notifications.Notify(this._notifications.GetActiveUserIdsInRoles(roles.ToArray()),
-                    NotificationTypes.Announcement, entity.Title, entity.Body);
+                    NotificationTypes.Announcement, entity.Title, entity.Body, "/");
 
                 return (true, null);
             }

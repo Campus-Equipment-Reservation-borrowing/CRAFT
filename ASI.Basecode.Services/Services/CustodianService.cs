@@ -98,8 +98,22 @@ namespace ASI.Basecode.Services.Services
             };
         }
 
+        /// <summary>Longest note or reason accepted; it is quoted into audit and notification text.</summary>
+        private const int MaxNoteLength = 500;
+
+        private static string NoteTooLong(string text, string label)
+            => text != null && text.Trim().Length > MaxNoteLength
+                ? $"{label} must be at most {MaxNoteLength} characters."
+                : null;
+
         public (bool Success, string Error) Approve(long reservationId, string notes)
         {
+            var notesError = NoteTooLong(notes, "Approval notes");
+            if (notesError != null)
+            {
+                return (false, notesError);
+            }
+
             try
             {
                 var entity = this._repository.GetReservationWithDetails(reservationId);
@@ -152,6 +166,12 @@ namespace ASI.Basecode.Services.Services
             if (string.IsNullOrWhiteSpace(reason))
             {
                 return (false, ErrorMessages.CustodianRejectReasonRequired);
+            }
+
+            var reasonError = NoteTooLong(reason, "The reason");
+            if (reasonError != null)
+            {
+                return (false, reasonError);
             }
 
             try
@@ -377,6 +397,12 @@ namespace ASI.Basecode.Services.Services
             if (string.IsNullOrWhiteSpace(reason))
             {
                 return (false, ErrorMessages.CustodianRejectReasonRequired);
+            }
+
+            var closeReasonError = NoteTooLong(reason, "The reason");
+            if (closeReasonError != null)
+            {
+                return (false, closeReasonError);
             }
 
             try
@@ -683,7 +709,7 @@ namespace ASI.Basecode.Services.Services
                 EntityType = entityType,
                 EntityId = entityId,
                 ReferenceNumber = referenceNumber,
-                Details = details,
+                Details = details?.Length > 1000 ? details.Substring(0, 997) + "..." : details,
                 OccurredAtUtc = DateTime.UtcNow,
             });
             this._unitOfWork.SaveChanges();

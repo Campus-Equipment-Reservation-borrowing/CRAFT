@@ -507,8 +507,8 @@ namespace ASI.Basecode.Services.Services
                 return default;
             }
 
-            // Dev convention: the form captures wall-clock values and we store them as-is in UTC.
-            return DateTime.SpecifyKind(date.Value.ToDateTime(time.Value), DateTimeKind.Utc);
+            // The form captures campus wall-clock time; views render with ToLocalTime(), so convert from local.
+            return DateTime.SpecifyKind(date.Value.ToDateTime(time.Value), DateTimeKind.Local).ToUniversalTime();
         }
 
         private int ComputeAvailableUnits(EquipmentInventoryBalance balance)

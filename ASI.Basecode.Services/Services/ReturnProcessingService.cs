@@ -90,7 +90,8 @@ namespace ASI.Basecode.Services.Services
                 {
                     BorrowingId = borrowing.BorrowingId,
                     ReturnedQuantity = borrowing.ReleasedQuantity - alreadyReturned,
-                    ReturnedAtUtc = now,
+                    // Shown in a datetime-local input, so pre-fill with local wall-clock time.
+                    ReturnedAtUtc = now.ToLocalTime(),
                     ReceivedByUserId = this._currentUser.GetActorUserId() ?? 0,
                 },
                 TransactionNumber = borrowing.TransactionNumber,
@@ -144,7 +145,14 @@ namespace ASI.Basecode.Services.Services
                     return (false, $"Returned quantity must be between 1 and {remaining}.", 0);
                 }
 
-                var now = form.ReturnedAtUtc == default ? DateTime.UtcNow : DateTime.SpecifyKind(form.ReturnedAtUtc, DateTimeKind.Utc);
+                // The datetime-local field posts local wall-clock time.
+                var now = form.ReturnedAtUtc == default
+                    ? DateTime.UtcNow
+                    : DateTime.SpecifyKind(form.ReturnedAtUtc, DateTimeKind.Local).ToUniversalTime();
+                if (now > DateTime.UtcNow.AddMinutes(5))
+                {
+                    return (false, "The return date and time can't be in the future.", 0);
+                }
                 var wasLate = now > borrowing.DueAtUtc;
                 var daysOverdue = wasLate ? (int)Math.Floor((now - borrowing.DueAtUtc).TotalDays) : 0;
 
