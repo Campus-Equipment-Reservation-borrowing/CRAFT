@@ -99,7 +99,8 @@ namespace ASI.Basecode.Services.Services
             {
                 this._notifications.Notify(reservation.BorrowerUserId, NotificationTypes.Reservation,
                     "Reservation expired",
-                    $"Your reservation {reservation.ReservationNumber} for {reservation.Equipment?.EquipmentName} expired before it was reviewed. The units have been released; you can submit a new request.");
+                    $"Your reservation {reservation.ReservationNumber} for {reservation.Equipment?.EquipmentName} expired before it was reviewed. The units have been released; you can submit a new request.",
+                    $"/Reservations/Details/{reservation.ReservationId}");
             }
 
             return stale.Count;
@@ -156,7 +157,8 @@ namespace ASI.Basecode.Services.Services
                 var item = borrowing.Equipment?.EquipmentName ?? "equipment";
                 this._notifications.Notify(borrowing.BorrowerUserId, NotificationTypes.Overdue,
                     "Equipment overdue",
-                    $"{item} under {borrowing.TransactionNumber} was due {borrowing.DueAtUtc:dd MMM yyyy, hh:mm tt} UTC. Please return it as soon as possible; new reservations are blocked while it is overdue.");
+                    $"{item} under {borrowing.TransactionNumber} was due {borrowing.DueAtUtc:dd MMM yyyy, hh:mm tt} UTC. Please return it as soon as possible; new reservations are blocked while it is overdue.",
+                    $"/Borrowings/Details/{borrowing.BorrowingId}");
 
                 var staff = new List<long>(admins);
                 if (borrowing.Reservation?.AssignedCustodianUserId is long custodianId)
@@ -204,7 +206,8 @@ namespace ASI.Basecode.Services.Services
             {
                 this._notifications.Notify(borrowing.BorrowerUserId, NotificationTypes.DueReminder,
                     "Return due soon",
-                    $"{borrowing.Equipment?.EquipmentName ?? "Your borrowed equipment"} ({borrowing.TransactionNumber}) is due back by {borrowing.DueAtUtc:dd MMM yyyy, hh:mm tt} UTC.");
+                    $"{borrowing.Equipment?.EquipmentName ?? "Your borrowed equipment"} ({borrowing.TransactionNumber}) is due back by {borrowing.DueAtUtc:dd MMM yyyy, hh:mm tt} UTC.",
+                    $"/Borrowings/Details/{borrowing.BorrowingId}");
             }
 
             return dueSoon.Count;

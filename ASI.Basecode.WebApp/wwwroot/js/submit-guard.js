@@ -12,3 +12,9 @@ document.addEventListener('submit', function (e) {
 window.addEventListener('pageshow', function (e) {
     if (e.persisted) document.querySelectorAll('form button[disabled], form input[type=submit][disabled]').forEach(function (b) { b.disabled = false; });
 });
+// [StringLength] only emits data-val-length-max; mirror it into maxlength so typing stops at the limit.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input[data-val-length-max]:not([maxlength]), textarea[data-val-length-max]:not([maxlength])').forEach(function (el) {
+        el.setAttribute('maxlength', el.getAttribute('data-val-length-max'));
+    });
+});

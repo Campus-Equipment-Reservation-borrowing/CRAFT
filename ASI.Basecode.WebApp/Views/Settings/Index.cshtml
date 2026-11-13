@@ -13,27 +13,33 @@
 
 <div class="cp-stack">
     <div class="cp-grid-2">
-        <div class="cp-card">
-            <div class="cp-card-header">Borrowing Policy <span class="cp-cell-sub">Current version</span></div>
+        <div class="cp-card" id="policy">
+            <div class="cp-card-header">Borrowing Policy <span class="cp-cell-sub">Current version @Model.Policy.VersionNumber</span></div>
             <form asp-action="SavePolicy" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="Policy.PolicyVersionId" />
                 <div class="cp-profile-grid">
                     <div class="cp-form-group">
                         <label asp-for="Policy.MaxBorrowDurationDays" class="cp-form-label">Max Borrow Days</label>
-                        <input asp-for="Policy.MaxBorrowDurationDays" type="number" min="1" class="cp-input" />
+                        <input asp-for="Policy.MaxBorrowDurationDays" type="number" min="1" max="365" class="cp-input" />
                     </div>
                     <div class="cp-form-group">
-                        <label asp-for="Policy.MaxActiveBorrowingUnits" class="cp-form-label">Max Active Units</label>
-                        <input asp-for="Policy.MaxActiveBorrowingUnits" type="number" min="1" class="cp-input" />
+                        <label asp-for="Policy.MaxUnitsPerBorrower" class="cp-form-label">Max Units per Reservation</label>
+                        <input asp-for="Policy.MaxUnitsPerBorrower" type="number" min="1" max="100" class="cp-input" />
+                        <div class="cp-form-hint">Most units one borrower may request at once.</div>
+                    </div>
+                    <div class="cp-form-group">
+                        <label asp-for="Policy.MaxActiveBorrowingUnits" class="cp-form-label">Max Open Requests per Borrower</label>
+                        <input asp-for="Policy.MaxActiveBorrowingUnits" type="number" min="1" max="100" class="cp-input" />
+                        <div class="cp-form-hint">Pending or approved reservations a borrower may have at the same time.</div>
                     </div>
                     <div class="cp-form-group">
                         <label asp-for="Policy.OverdueGracePeriodMinutes" class="cp-form-label">Overdue Grace (min)</label>
-                        <input asp-for="Policy.OverdueGracePeriodMinutes" type="number" min="0" class="cp-input" />
+                        <input asp-for="Policy.OverdueGracePeriodMinutes" type="number" min="0" max="1440" class="cp-input" />
                     </div>
                     <div class="cp-form-group">
                         <label asp-for="Policy.LowStockThreshold" class="cp-form-label">Low Stock Threshold</label>
-                        <input asp-for="Policy.LowStockThreshold" type="number" min="0" class="cp-input" />
+                        <input asp-for="Policy.LowStockThreshold" type="number" min="0" max="10000" class="cp-input" />
                     </div>
                 </div>
                 <label class="cp-form-hint">
@@ -51,7 +57,7 @@
             <div class="cp-table-wrap">
                 <table class="cp-table">
                     <thead>
-                        <tr><th>Version</th><th>Effective From</th><th>Current</th><th>Max Days</th><th>Max Units</th></tr>
+                        <tr><th>Version</th><th>Effective From</th><th>Current</th><th>Max Days</th><th>Units / Reservation</th><th>Open Requests</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var p in Model.PolicyHistory)
@@ -61,6 +67,7 @@
                                 <td>@p.EffectiveFromUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
                                 <td>@(p.IsCurrent ? "Yes" : "—")</td>
                                 <td>@p.MaxBorrowDurationDays</td>
+                                <td>@p.MaxUnitsPerBorrower</td>
                                 <td>@p.MaxActiveBorrowingUnits</td>
                             </tr>
                         }
@@ -70,12 +77,12 @@
         </div>
     </div>
 
-    <div class="cp-card cp-card-flush">
+    <div class="cp-card cp-card-flush" id="categories">
         <div class="cp-card-header">Equipment Categories</div>
         <form asp-action="AddCategory" method="post" class="cp-filter-bar">
             @Html.AntiForgeryToken()
-            <input name="code" class="cp-input" placeholder="Code (e.g. LAPTOP)" />
-            <input name="name" class="cp-input" placeholder="Category name" />
+            <input name="code" class="cp-input" placeholder="Code (e.g. LAPTOP)" aria-label="Category code" required minlength="2" maxlength="50" pattern="[A-Za-z0-9_\-]{2,50}" title="2-50 letters, digits, dashes or underscores" style="text-transform:uppercase" />
+            <input name="name" class="cp-input" placeholder="Category name (e.g. Laptops)" aria-label="Category name" required maxlength="200" />
             <button type="submit" class="cp-btn cp-btn-success cp-btn-sm">Add</button>
         </form>
         <div class="cp-table-wrap">
@@ -100,12 +107,12 @@
         </div>
     </div>
 
-    <div class="cp-card cp-card-flush">
+    <div class="cp-card cp-card-flush" id="locations">
         <div class="cp-card-header">Locations</div>
         <form asp-action="AddLocation" method="post" class="cp-filter-bar">
             @Html.AntiForgeryToken()
-            <input name="code" class="cp-input" placeholder="Code" />
-            <input name="name" class="cp-input" placeholder="Location name" />
+            <input name="code" class="cp-input" placeholder="Code (e.g. LIB-2F)" aria-label="Location code" required minlength="2" maxlength="50" pattern="[A-Za-z0-9_\-]{2,50}" title="2-50 letters, digits, dashes or underscores" style="text-transform:uppercase" />
+            <input name="name" class="cp-input" placeholder="Location name" aria-label="Location name" required maxlength="200" />
             <label class="cp-form-hint">
                 <input type="checkbox" name="isPickup" value="true" /> Pickup point
             </label>

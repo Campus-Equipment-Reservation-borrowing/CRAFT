@@ -29,7 +29,8 @@
         </div>
         <div class="cp-form-group">
             <label class="cp-form-label" asp-for="AccountIdentifier">School ID / Employee ID <span class="required">*</span></label>
-            <input asp-for="AccountIdentifier" class="cp-input" placeholder="e.g. 2023-104857" required />
+            <input asp-for="AccountIdentifier" class="cp-input" placeholder="e.g. 2023-104857" maxlength="20" autocomplete="off" required />
+            <div class="cp-form-hint">4–20 characters: letters, digits and dashes (e.g. 2023-104857 or EMP-1001).</div>
             <span asp-validation-for="AccountIdentifier" class="cp-field-error"></span>
         </div>
         <div class="cp-form-group">
@@ -70,10 +71,20 @@
             <input asp-for="ConfirmPassword" type="password" class="cp-input" placeholder="Re-enter password" autocomplete="new-password" required />
             <span asp-validation-for="ConfirmPassword" class="cp-field-error"></span>
         </div>
+        <details class="cp-form-group cp-privacy-notice">
+            <summary class="cp-form-label">Data Privacy Notice (read before accepting)</summary>
+            <div class="cp-form-hint">
+                <p>In line with the Data Privacy Act of 2012 (RA 10173), CRAFT collects your name, School/Employee ID, school email, role and department, along with your reservation, borrowing and return history.</p>
+                <p><strong>Purpose:</strong> to verify your identity, process equipment reservations, track borrowed items, and apply accountability for damage, loss or late returns.</p>
+                <p><strong>Access:</strong> only authorised custodians and system administrators can view your records. Your data is not shared with third parties.</p>
+                <p><strong>Retention:</strong> records are kept while your account is active and for as long as school records policy requires, then deleted or anonymised.</p>
+                <p><strong>Your rights:</strong> you may access, correct or request deletion of your data, or withdraw consent, by contacting the system administrator.</p>
+            </div>
+        </details>
         <div class="cp-form-group">
             <label class="cp-form-hint cp-check-row">
-                <input asp-for="PrivacyConsent" />
-                <span>I accept the Data Privacy notice and consent to the processing of my information for equipment borrowing.</span>
+                <input asp-for="PrivacyConsent" required />
+                <span>I have read and accept the Data Privacy Notice above and consent to the processing of my information for equipment borrowing.</span>
             </label>
             <span asp-validation-for="PrivacyConsent" class="cp-field-error"></span>
         </div>

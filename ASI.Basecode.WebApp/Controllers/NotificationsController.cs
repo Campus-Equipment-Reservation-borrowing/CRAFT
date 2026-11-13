@@ -74,6 +74,20 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.View(model);
         }
 
+        /// <summary>Marks the notification read and goes to what it is about.</summary>
+        [HttpGet]
+        public IActionResult Open(long id)
+        {
+            var uid = this._currentUser.GetActorUserId();
+            var target = uid.HasValue ? this._service.OpenNotification(id, uid.Value) : null;
+            // Only local targets — a stored link must never become an open redirect.
+            if (!string.IsNullOrEmpty(target) && this.Url.IsLocalUrl(target))
+            {
+                return this.LocalRedirect(target);
+            }
+            return this.RedirectToAction(nameof(this.Index));
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult MarkRead(long id)

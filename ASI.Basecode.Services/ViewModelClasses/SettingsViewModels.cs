@@ -10,9 +10,15 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public long PolicyVersionId { get; set; }
         public string VersionNumber { get; set; }
         public DateTime EffectiveFromUtc { get; set; } = DateTime.UtcNow;
+        [System.ComponentModel.DataAnnotations.Range(1, 365)]
         public int MaxBorrowDurationDays { get; set; } = 7;
+        [System.ComponentModel.DataAnnotations.Range(1, 100)]
         public int MaxActiveBorrowingUnits { get; set; } = 3;
+        [System.ComponentModel.DataAnnotations.Range(1, 100)]
+        public int MaxUnitsPerBorrower { get; set; } = 3;
+        [System.ComponentModel.DataAnnotations.Range(0, 1440)]
         public int OverdueGracePeriodMinutes { get; set; } = 0;
+        [System.ComponentModel.DataAnnotations.Range(0, 10000)]
         public int LowStockThreshold { get; set; } = 5;
         public bool BlockReservationWhenOverdue { get; set; } = true;
     }
@@ -31,6 +37,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string NotificationType { get; set; }
         public string Title { get; set; }
         public string Message { get; set; }
+        public string LinkUrl { get; set; }
         public bool IsRead { get; set; }
         public DateTime CreatedAtUtc { get; set; }
     }

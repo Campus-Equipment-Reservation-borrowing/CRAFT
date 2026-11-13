@@ -93,6 +93,11 @@ namespace ASI.Basecode.WebApp.Controllers
             model.RoleOptions = this._authService.GetBorrowerRoleOptions();
             model.DepartmentOptions = this._authService.GetDepartmentOptions();
 
+            if (!model.PrivacyConsent)
+            {
+                this.ModelState.AddModelError(nameof(model.PrivacyConsent), "You must accept the Data Privacy Notice to continue.");
+            }
+
             if (!this.ModelState.IsValid)
             {
                 return this.View(model);

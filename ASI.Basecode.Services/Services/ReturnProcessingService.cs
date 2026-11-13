@@ -139,9 +139,9 @@ namespace ASI.Basecode.Services.Services
 
                 var alreadyReturned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
                 var remaining = borrowing.ReleasedQuantity - alreadyReturned;
-                if (form.ReturnedQuantity > remaining)
+                if (form.ReturnedQuantity < 1 || form.ReturnedQuantity > remaining)
                 {
-                    return (false, ErrorMessages.ServerError, 0);
+                    return (false, $"Returned quantity must be between 1 and {remaining}.", 0);
                 }
 
                 var now = form.ReturnedAtUtc == default ? DateTime.UtcNow : DateTime.SpecifyKind(form.ReturnedAtUtc, DateTimeKind.Utc);
@@ -439,7 +439,8 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteNotification(long recipientUserId, string title, string message)
         {
-            this._notifications.Notify(recipientUserId, NotificationTypes.Return, title, message);
+            // Return/inspection outcomes are sent to the borrower.
+            this._notifications.Notify(recipientUserId, NotificationTypes.Return, title, message, "/Borrowings/Mine");
         }
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)

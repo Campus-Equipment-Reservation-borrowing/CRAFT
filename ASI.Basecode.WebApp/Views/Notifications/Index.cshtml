@@ -52,11 +52,25 @@
             {
                 <span class="cp-dot-unread" aria-label="Unread"></span>
             }
-            <div class="cp-list-main" style="flex:1">
-                <div class="cp-notif-title">@n.Title</div>
-                <div class="cp-notif-msg">@n.Message</div>
-                <div class="cp-notif-time">@n.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt")</div>
-            </div>
+            @{
+                var hasTarget = !string.IsNullOrEmpty(n.LinkUrl ?? ASI.Basecode.Services.Services.SettingsService.FallbackLink(n.NotificationType));
+            }
+            @if (hasTarget)
+            {
+                <a class="cp-list-main cp-notif-link" style="flex:1" href="/Notifications/Open/@n.NotificationId">
+                    <div class="cp-notif-title">@n.Title</div>
+                    <div class="cp-notif-msg">@n.Message</div>
+                    <div class="cp-notif-time">@n.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt") · <span class="cp-notif-open">Open ›</span></div>
+                </a>
+            }
+            else
+            {
+                <div class="cp-list-main" style="flex:1">
+                    <div class="cp-notif-title">@n.Title</div>
+                    <div class="cp-notif-msg">@n.Message</div>
+                    <div class="cp-notif-time">@n.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt")</div>
+                </div>
+            }
             @if (!n.IsRead)
             {
                 <form asp-action="MarkRead" asp-route-id="@n.NotificationId" method="post">

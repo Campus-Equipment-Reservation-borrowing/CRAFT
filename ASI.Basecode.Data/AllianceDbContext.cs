@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using ASI.Basecode.Data.Models;
 using Microsoft.EntityFrameworkCore;
@@ -217,6 +217,9 @@ public partial class AllianceDbContext : DbContext
             entity.Property(e => e.BlockReservationWhenOverdue)
                 .HasDefaultValue(true)
                 .HasColumnName("block_reservation_when_overdue");
+            entity.Property(e => e.MaxUnitsPerBorrower)
+                .HasDefaultValue(3)
+                .HasColumnName("max_units_per_borrower");
             entity.Property(e => e.EffectiveFromUtc)
                 .HasPrecision(3)
                 .HasColumnName("effective_from_utc");
@@ -594,6 +597,9 @@ public partial class AllianceDbContext : DbContext
                 .HasDefaultValueSql("(sysutcdatetime())")
                 .HasColumnName("created_at_utc");
             entity.Property(e => e.IsRead).HasColumnName("is_read");
+            entity.Property(e => e.LinkUrl)
+                .HasMaxLength(300)
+                .HasColumnName("link_url");
             entity.Property(e => e.Message)
                 .IsRequired()
                 .HasMaxLength(1000)

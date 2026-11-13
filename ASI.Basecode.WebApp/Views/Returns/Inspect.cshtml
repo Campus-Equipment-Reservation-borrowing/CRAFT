@@ -40,7 +40,7 @@
             <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:0 16px">
                 <div class="cp-form-group">
                     <label asp-for="InspectedQuantity" class="cp-form-label">Inspected Quantity <span class="required">*</span></label>
-                    <input asp-for="InspectedQuantity" type="number" min="1" class="cp-input" />
+                    <input asp-for="InspectedQuantity" type="number" min="1" max="@(ctx?.ReleasedQuantity ?? 1000)" step="1" class="cp-input" />
                 </div>
                 <div class="cp-form-group">
                     <label asp-for="CurrentConditionId" class="cp-form-label">Current Condition <span class="required">*</span></label>
@@ -58,15 +58,15 @@
                 <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:0 16px">
                     <div class="cp-form-group">
                         <label asp-for="GoodQuantity" class="cp-form-label">Good</label>
-                        <input asp-for="GoodQuantity" type="number" min="0" class="cp-input" />
+                        <input asp-for="GoodQuantity" type="number" min="0" max="@(ctx?.ReleasedQuantity ?? 1000)" step="1" class="cp-input" />
                     </div>
                     <div class="cp-form-group">
                         <label asp-for="DamagedQuantity" class="cp-form-label">Damaged</label>
-                        <input asp-for="DamagedQuantity" type="number" min="0" class="cp-input" />
+                        <input asp-for="DamagedQuantity" type="number" min="0" max="@(ctx?.ReleasedQuantity ?? 1000)" step="1" class="cp-input" />
                     </div>
                     <div class="cp-form-group">
                         <label asp-for="LostQuantity" class="cp-form-label">Lost</label>
-                        <input asp-for="LostQuantity" type="number" min="0" class="cp-input" />
+                        <input asp-for="LostQuantity" type="number" min="0" max="@(ctx?.ReleasedQuantity ?? 1000)" step="1" class="cp-input" />
                     </div>
                     <div class="cp-form-group">
                         <label asp-for="RepairCost" class="cp-form-label">Repair cost (₱)</label>

@@ -331,7 +331,8 @@ namespace ASI.Basecode.Services.Services
                         : this._notifications.GetActiveUserIdsInRoles(RoleCodes.Admin);
                 this._notifications.Notify(recipients, NotificationTypes.Support,
                     $"New reply on TKT-{ticket.TicketId}",
-                    $"{this._currentUser.GetActorName()} replied to \"{ticket.Subject}\".");
+                    $"{this._currentUser.GetActorName()} replied to \"{ticket.Subject}\".",
+                    $"/Support/Details/{ticket.TicketId}");
 
                 return (true, null);
             }
@@ -371,7 +372,8 @@ namespace ASI.Basecode.Services.Services
                     $"Resolved ticket '{ticket.Subject}'.");
                 this._notifications.Notify(ticket.RequesterUserId, NotificationTypes.Support,
                     $"Ticket TKT-{ticket.TicketId} resolved",
-                    $"Your ticket \"{ticket.Subject}\" was marked resolved. Open a new ticket if you still need help.");
+                    $"Your ticket \"{ticket.Subject}\" was marked resolved. Open a new ticket if you still need help.",
+                    $"/Support/Details/{ticket.TicketId}");
 
                 return (true, null);
             }

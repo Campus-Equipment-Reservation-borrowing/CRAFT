@@ -12,10 +12,10 @@ namespace ASI.Basecode.Services.Interfaces
         /// Queues one notification per distinct recipient (skipping recipients who opted out of
         /// the type's preference) and saves. Returns how many rows were written.
         /// </summary>
-        int Notify(IEnumerable<long> recipientUserIds, string notificationType, string title, string message);
+        int Notify(IEnumerable<long> recipientUserIds, string notificationType, string title, string message, string linkUrl = null);
 
         /// <summary>Convenience overload for a single recipient.</summary>
-        int Notify(long recipientUserId, string notificationType, string title, string message);
+        int Notify(long recipientUserId, string notificationType, string title, string message, string linkUrl = null);
 
         /// <summary>Active accounts holding any of the given role codes.</summary>
         List<long> GetActiveUserIdsInRoles(params string[] roleCodes);

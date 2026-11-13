@@ -152,6 +152,12 @@ END;");
         private void EnsureLifecycleSchema()
         {
             this.DbContext.Database.ExecuteSqlRaw(@"
+IF COL_LENGTH('dbo.borrowing_policy_versions', 'max_units_per_borrower') IS NULL
+    ALTER TABLE dbo.borrowing_policy_versions ADD max_units_per_borrower int NOT NULL CONSTRAINT DF_policy_max_units DEFAULT (3);
+
+IF COL_LENGTH('dbo.notifications', 'link_url') IS NULL
+    ALTER TABLE dbo.notifications ADD link_url nvarchar(300) NULL;
+
 IF COL_LENGTH('dbo.borrowings', 'due_reminder_sent_at_utc') IS NULL
     ALTER TABLE dbo.borrowings ADD due_reminder_sent_at_utc datetime2 NULL;
 

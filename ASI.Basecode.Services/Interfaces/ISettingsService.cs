@@ -26,6 +26,8 @@ namespace ASI.Basecode.Services.Interfaces
 
         NotificationsIndexViewModel GetNotifications(long userId);
 
+        string OpenNotification(long notificationId, long userId);
+
         void MarkNotificationRead(long notificationId, long userId);
 
         void MarkAllNotificationsRead(long userId);

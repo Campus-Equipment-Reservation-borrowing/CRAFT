@@ -109,7 +109,8 @@ namespace ASI.Basecode.Services.Services
 
                 this._notifications.Notify(entity.UserId, NotificationTypes.Account,
                     "Account verified",
-                    "Your account has been verified. You can now submit equipment reservations.");
+                    "Your account has been verified. You can now submit equipment reservations.",
+                    "/Reservations/Available");
 
                 return (true, null);
             }
@@ -169,7 +170,8 @@ namespace ASI.Basecode.Services.Services
 
                 this._notifications.Notify(entity.UserId, NotificationTypes.Account,
                     "Account verification rejected",
-                    $"Your account could not be verified: {reason} You can submit an appeal from your dashboard.");
+                    $"Your account could not be verified: {reason} You can submit an appeal from your dashboard.",
+                    "/");
 
                 return (true, null);
             }

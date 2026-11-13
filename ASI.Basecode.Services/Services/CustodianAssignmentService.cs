@@ -340,7 +340,8 @@ namespace ASI.Basecode.Services.Services
                 {
                     this._notifications.Notify(custodianUserId.Value, NotificationTypes.Reservation,
                         $"Reservation {reservation.ReservationNumber} assigned to you",
-                        $"An administrator assigned reservation {reservation.ReservationNumber} to you. Review it in the custodian console.");
+                        $"An administrator assigned reservation {reservation.ReservationNumber} to you. Review it in the custodian console.",
+                        $"/Custodian/Review/{reservation.ReservationId}");
                 }
 
                 return (true, null);

@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Data;
+using ASI.Basecode.Data;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
 using ASI.Basecode.WebApp.Mvc;
@@ -108,6 +108,26 @@ namespace ASI.Basecode.WebApp.Controllers
             if (form.Quantity is not null && form.Quantity < 1)
             {
                 this.ModelState.AddModelError("Form.Quantity", ErrorMessages.ReservationQuantityInvalid);
+            }
+
+            if (!form.AcknowledgeRules)
+            {
+                this.ModelState.AddModelError("Form.AcknowledgeRules", "You must accept the borrowing rules.");
+            }
+
+            if (!form.AcknowledgeResponsibility)
+            {
+                this.ModelState.AddModelError("Form.AcknowledgeResponsibility", "You must accept responsibility for overdue items.");
+            }
+
+            var summary = this._reservationService.GetReservationFormViewModel(form.EquipmentId)?.Equipment;
+            if (summary != null && form.Quantity is not null && form.Quantity > summary.MaxUnitsPerBorrower)
+            {
+                this.ModelState.AddModelError("Form.Quantity", $"You can borrow at most {summary.MaxUnitsPerBorrower} units.");
+            }
+            else if (summary != null && form.Quantity is not null && form.Quantity > summary.AvailableUnits)
+            {
+                this.ModelState.AddModelError("Form.Quantity", $"Only {summary.AvailableUnits} units are available.");
             }
 
             if (form.BorrowingDate.HasValue && form.BorrowingTime.HasValue

@@ -10,6 +10,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
     {
         [Display(Name = "School Email or Account ID")]
         [Required(ErrorMessage = "Please enter your username and password.")]
+        [StringLength(200)]
         public string UserId { get; set; }
 
         [Display(Name = "Password")]
@@ -42,7 +43,8 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         [Display(Name = "School ID / Employee ID")]
         [Required(ErrorMessage = "Please complete all required fields.")]
-        [StringLength(100)]
+        [StringLength(20, MinimumLength = 4, ErrorMessage = "School ID must be 4 to 20 characters.")]
+        [RegularExpression(@"^[A-Za-z0-9-]+$", ErrorMessage = "Use letters, digits and dashes only.")]
         public string AccountIdentifier { get; set; }
 
         [Display(Name = "Role")]
@@ -71,7 +73,6 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string ConfirmPassword { get; set; }
 
         [Display(Name = "Data Privacy Consent")]
-        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the Data Privacy consent to continue.")]
         public bool PrivacyConsent { get; set; }
 
         /// <summary>Borrower role choices (Student / Faculty) for the form dropdown.</summary>

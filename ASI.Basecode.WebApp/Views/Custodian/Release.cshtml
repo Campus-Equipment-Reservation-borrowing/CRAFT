@@ -46,7 +46,7 @@
             <div class="cp-grid-2">
                 <div class="cp-form-group">
                     <label asp-for="ReleasedQuantity" class="cp-form-label">Released Quantity <span class="required">*</span></label>
-                    <input asp-for="ReleasedQuantity" type="number" min="1" class="cp-input" />
+                    <input asp-for="ReleasedQuantity" type="number" min="1" max="@(ctx?.ApprovedQuantity ?? 1000)" step="1" class="cp-input" />
                 </div>
                 <div class="cp-form-group">
                     <label asp-for="ReleaseConditionId" class="cp-form-label">Condition at Release <span class="required">*</span></label>

@@ -138,6 +138,7 @@ namespace ASI.Basecode.Services.Services
                     NotificationType = n.NotificationType,
                     Title = n.Title,
                     Message = n.Message,
+                    LinkUrl = n.LinkUrl,
                     IsRead = n.IsRead,
                     CreatedAtUtc = n.CreatedAtUtc,
                 }).ToList(),

@@ -99,6 +99,7 @@ namespace ASI.Basecode.Services.Services
                     ConditionName = row.ConditionName,
                     TotalQuantity = row.TotalQuantity,
                     AvailableUnits = row.AvailableUnits,
+                    MaxUnitsPerBorrower = this.GetActivePolicy().MaxUnitsPerBorrower,
                 },
             };
         }
@@ -489,7 +490,7 @@ namespace ASI.Basecode.Services.Services
                 // borrowing_policy_versions columns map onto the settings as follows; the rest are constants
                 // until Phase 7 extends the table (see notes on the entity's actual property names).
                 MaxBorrowDays = latest.MaxBorrowDurationDays,
-                MaxUnitsPerBorrower = 3,
+                MaxUnitsPerBorrower = latest.MaxUnitsPerBorrower > 0 ? latest.MaxUnitsPerBorrower : 3,
                 MaxActiveTransactions = latest.MaxActiveBorrowingUnits,
                 ReservationLeadTimeDays = 1,
                 MaxAdvanceBookingDays = 30,
@@ -630,7 +631,8 @@ namespace ASI.Basecode.Services.Services
                     .FirstOrDefault();
                 this._notifications.Notify(recipients, NotificationTypes.Reservation,
                     $"New reservation {reservation.ReservationNumber}",
-                    $"{borrowerName} requested {reservation.RequestedQuantity} unit(s) of {equipmentName} starting {reservation.RequestedStartAtUtc:dd MMM yyyy}. Review it in the custodian console.");
+                    $"{borrowerName} requested {reservation.RequestedQuantity} unit(s) of {equipmentName} starting {reservation.RequestedStartAtUtc:dd MMM yyyy}. Review it in the custodian console.",
+                    $"/Custodian/Review/{reservation.ReservationId}");
             }
             catch (Exception ex)
             {

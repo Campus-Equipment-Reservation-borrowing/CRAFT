@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Data;
+using ASI.Basecode.Data;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -170,11 +170,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string AdditionalNotes { get; set; }
 
         [Display(Name = "Borrowing rules acknowledgement")]
-        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the borrowing rules.")]
         public bool AcknowledgeRules { get; set; }
 
         [Display(Name = "Responsibility acknowledgement")]
-        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept responsibility for overdue items.")]
         public bool AcknowledgeResponsibility { get; set; }
     }
 
@@ -198,6 +196,8 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public int TotalQuantity { get; set; }
 
         public int AvailableUnits { get; set; }
+
+        public int MaxUnitsPerBorrower { get; set; }
     }
 
     /// <summary>

@@ -26,12 +26,12 @@ namespace ASI.Basecode.Services.Services
             this._emailSender = emailSender;
         }
 
-        public int Notify(long recipientUserId, string notificationType, string title, string message)
+        public int Notify(long recipientUserId, string notificationType, string title, string message, string linkUrl = null)
         {
-            return this.Notify(new[] { recipientUserId }, notificationType, title, message);
+            return this.Notify(new[] { recipientUserId }, notificationType, title, message, linkUrl);
         }
 
-        public int Notify(IEnumerable<long> recipientUserIds, string notificationType, string title, string message)
+        public int Notify(IEnumerable<long> recipientUserIds, string notificationType, string title, string message, string linkUrl = null)
         {
             var ids = recipientUserIds?.Where(id => id > 0).Distinct().ToList() ?? new List<long>();
             if (ids.Count == 0)
@@ -61,6 +61,7 @@ namespace ASI.Basecode.Services.Services
                     NotificationType = notificationType,
                     Title = title,
                     Message = message,
+                    LinkUrl = linkUrl,
                     IsRead = false,
                     CreatedAtUtc = now,
                 });

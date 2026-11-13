@@ -1,4 +1,4 @@
-﻿@using ASI.Basecode.Services.ViewModelClasses
+@using ASI.Basecode.Services.ViewModelClasses
 @model ReservationFormContextViewModel
 @{
     ViewData["Title"] = "Reservation Form";
@@ -22,8 +22,12 @@
             <div class="cp-form-row">
                 <div class="cp-form-group">
                     <label asp-for="Form.Quantity" class="cp-form-label">Quantity <span class="required">*</span></label>
-                    <input asp-for="Form.Quantity" type="number" class="cp-input" min="1" required />
-                    <div class="cp-form-hint">Maximum 3 units per borrower.</div>
+                    @{
+                        var maxUnits = Model.Equipment?.MaxUnitsPerBorrower > 0 ? Model.Equipment.MaxUnitsPerBorrower : 3;
+                        var maxQty = Model.Equipment != null ? Math.Max(1, Math.Min(maxUnits, Model.Equipment.AvailableUnits)) : maxUnits;
+                    }
+                    <input asp-for="Form.Quantity" type="number" class="cp-input" min="1" max="@maxQty" step="1" required />
+                    <div class="cp-form-hint">Maximum @maxUnits units per borrower.</div>
                     <span asp-validation-for="Form.Quantity" class="cp-form-error"></span>
                 </div>
                 <div class="cp-form-group">

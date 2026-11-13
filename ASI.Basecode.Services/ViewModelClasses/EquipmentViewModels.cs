@@ -72,7 +72,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         [Display(Name = "Total Quantity")]
         [Required(ErrorMessage = "Total quantity is required.")]
-        [Range(1, int.MaxValue, ErrorMessage = "Total quantity must be at least 1.")]
+        [Range(1, 10000, ErrorMessage = "Total quantity must be between 1 and 10,000.")]
         public int TotalQuantity { get; set; }
 
         [Display(Name = "Active")]

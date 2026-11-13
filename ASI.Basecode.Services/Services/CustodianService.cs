@@ -638,7 +638,8 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteNotification(long recipientUserId, string title, string message)
         {
-            this._notifications.Notify(recipientUserId, NotificationTypes.Reservation, title, message);
+            // Decisions on a reservation are sent to its borrower.
+            this._notifications.Notify(recipientUserId, NotificationTypes.Reservation, title, message, "/Reservations/Mine");
         }
 
         /// <summary>

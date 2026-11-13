@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ASI.Basecode.Data.Models;
@@ -22,6 +22,8 @@ public partial class BorrowingPolicyVersion
     public int LowStockThreshold { get; set; }
 
     public bool BlockReservationWhenOverdue { get; set; }
+
+    public int MaxUnitsPerBorrower { get; set; } = 3;
 
     public virtual ICollection<Borrowing> Borrowings { get; set; } = new List<Borrowing>();
 

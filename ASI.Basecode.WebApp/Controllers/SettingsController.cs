@@ -36,82 +36,52 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult SavePolicy(PolicyFormViewModel form)
+        public IActionResult SavePolicy([Bind(Prefix = "Policy")] PolicyFormViewModel form)
         {
-            var (success, error) = this._service.SavePolicy(form);
-            if (success)
+            // Inputs are rendered as Policy.* (bound to SettingsIndexViewModel.Policy), hence the prefix.
+            if (!this.ModelState.IsValid)
             {
-                this.TempData["SuccessMessage"] = "Policy version published.";
+                var first = this.ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault();
+                this.TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(first) ? "Some policy values are out of range." : first;
+                return this.RedirectToAction(nameof(this.Index));
             }
-            else
-            {
-                this.TempData["ErrorMessage"] = error;
-            }
-            return this.RedirectToAction(nameof(this.Index));
+
+            return this.Result(this._service.SavePolicy(form), "#policy");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AddCategory(string code, string name)
         {
-            var (success, error) = this._service.AddCategory(code, name);
-            if (success)
-            {
-                this.TempData["SuccessMessage"] = "Category added.";
-            }
-            else
-            {
-                this.TempData["ErrorMessage"] = error;
-            }
-            return this.RedirectToAction(nameof(this.Index));
+            return this.Result(this._service.AddCategory(code, name), "#categories");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult DeleteCategory(long id)
         {
-            var (success, error) = this._service.DeleteCategory(id);
-            if (success)
-            {
-                this.TempData["SuccessMessage"] = "Category deleted.";
-            }
-            else
-            {
-                this.TempData["ErrorMessage"] = "Category cannot be deleted (equipment references it).";
-            }
-            return this.RedirectToAction(nameof(this.Index));
+            return this.Result(this._service.DeleteCategory(id), "#categories");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AddLocation(string code, string name, bool isPickup)
         {
-            var (success, error) = this._service.AddLocation(code, name, isPickup);
-            if (success)
-            {
-                this.TempData["SuccessMessage"] = "Location added.";
-            }
-            else
-            {
-                this.TempData["ErrorMessage"] = error;
-            }
-            return this.RedirectToAction(nameof(this.Index));
+            return this.Result(this._service.AddLocation(code, name, isPickup), "#locations");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult DeleteLocation(long id)
         {
-            var (success, error) = this._service.DeleteLocation(id);
-            if (success)
-            {
-                this.TempData["SuccessMessage"] = "Location deleted.";
-            }
-            else
-            {
-                this.TempData["ErrorMessage"] = "Location cannot be deleted (equipment references it).";
-            }
-            return this.RedirectToAction(nameof(this.Index));
+            return this.Result(this._service.DeleteLocation(id), "#locations");
+        }
+
+        /// <summary>The service returns its user-facing message in Error for both outcomes.</summary>
+        private IActionResult Result((bool Success, string Error) outcome, string anchor)
+        {
+            this.TempData[outcome.Success ? "SuccessMessage" : "ErrorMessage"] = outcome.Error;
+            return this.Redirect(this.Url.Action(nameof(this.Index)) + anchor);
         }
     }
 }
