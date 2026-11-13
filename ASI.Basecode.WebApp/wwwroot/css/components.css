@@ -1,4 +1,4 @@
-/* Component library — Figma-faithful reusable classes */
+﻿/* Component library — Figma-faithful reusable classes */
 
 /* ===== Top bar ===== */
 .cp-topbar {
@@ -676,7 +676,24 @@
 .validation-summary-valid { display: none !important; }
 .cp-field-error { display: block; margin-top: 4px; font-size: 12px; color: var(--color-error); }
 .cp-field-error:empty, .field-validation-valid { display: none; }
-.input-validation-error { border-color: var(--color-error) !important; }
+/* Field state: red when invalid (server or after user interaction), green once correct.
+   Placed after the :focus rule so it wins while the field is focused. */
+.cp-input.input-validation-error, .cp-select.input-validation-error, .cp-textarea.input-validation-error,
+.cp-input:user-invalid, .cp-select:user-invalid, .cp-textarea:user-invalid {
+    border-color: var(--color-error);
+}
+.cp-input.input-validation-error:focus, .cp-select.input-validation-error:focus, .cp-textarea.input-validation-error:focus,
+.cp-input:user-invalid:focus, .cp-select:user-invalid:focus, .cp-textarea:user-invalid:focus {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(201,74,74,0.15);
+}
+.cp-input:user-valid:not(:placeholder-shown):not(.input-validation-error),
+.cp-textarea:user-valid:not(:placeholder-shown):not(.input-validation-error),
+.cp-select:user-valid:required:not(.input-validation-error),
+.cp-input[type=date]:user-valid:required:not(.input-validation-error),
+.cp-input[type=time]:user-valid:required:not(.input-validation-error) {
+    border-color: var(--color-primary);
+}
 
 /* Layout utilities (replacing one-off inline styles in views) */
 .cp-btn-block { width: 100%; justify-content: center; }

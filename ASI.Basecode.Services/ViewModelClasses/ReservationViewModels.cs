@@ -1,4 +1,4 @@
-using ASI.Basecode.Data;
+﻿using ASI.Basecode.Data;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -137,21 +137,27 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public long EquipmentId { get; set; }
 
         [Display(Name = "Quantity")]
+        [Required(ErrorMessage = "Enter how many units you need.")]
         public int? Quantity { get; set; }
 
         [Display(Name = "Pickup Point")]
+        [Required(ErrorMessage = "Choose a pickup point.")]
         public long? PickupLocationId { get; set; }
 
         [Display(Name = "Borrowing Date")]
+        [Required(ErrorMessage = "Choose a borrowing date.")]
         public DateOnly? BorrowingDate { get; set; }
 
         [Display(Name = "Borrowing Time")]
+        [Required(ErrorMessage = "Choose a borrowing time.")]
         public TimeOnly? BorrowingTime { get; set; }
 
         [Display(Name = "Expected Return Date")]
+        [Required(ErrorMessage = "Choose a return date.")]
         public DateOnly? ExpectedReturnDate { get; set; }
 
         [Display(Name = "Expected Return Time")]
+        [Required(ErrorMessage = "Choose a return time.")]
         public TimeOnly? ExpectedReturnTime { get; set; }
 
         [Display(Name = "Purpose of Borrowing")]
@@ -164,9 +170,11 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string AdditionalNotes { get; set; }
 
         [Display(Name = "Borrowing rules acknowledgement")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the borrowing rules.")]
         public bool AcknowledgeRules { get; set; }
 
         [Display(Name = "Responsibility acknowledgement")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept responsibility for overdue items.")]
         public bool AcknowledgeResponsibility { get; set; }
     }
 

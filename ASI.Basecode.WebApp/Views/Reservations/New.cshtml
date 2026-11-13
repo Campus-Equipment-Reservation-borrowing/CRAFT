@@ -1,4 +1,4 @@
-@using ASI.Basecode.Services.ViewModelClasses
+﻿@using ASI.Basecode.Services.ViewModelClasses
 @model ReservationFormContextViewModel
 @{
     ViewData["Title"] = "Reservation Form";
@@ -12,24 +12,23 @@
     </div>
 </div>
 
-<div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
-
 <div class="cp-grid-2">
     <div class="cp-card">
         <form asp-controller="Reservations" asp-action="New" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Form.EquipmentId" />
+            <div asp-validation-summary="ModelOnly" class="cp-alert cp-alert-error"></div>
 
             <div class="cp-form-row">
                 <div class="cp-form-group">
                     <label asp-for="Form.Quantity" class="cp-form-label">Quantity <span class="required">*</span></label>
-                    <input asp-for="Form.Quantity" type="number" class="cp-input" min="1" />
+                    <input asp-for="Form.Quantity" type="number" class="cp-input" min="1" required />
                     <div class="cp-form-hint">Maximum 3 units per borrower.</div>
                     <span asp-validation-for="Form.Quantity" class="cp-form-error"></span>
                 </div>
                 <div class="cp-form-group">
                     <label class="cp-form-label">Pickup Point <span class="required">*</span></label>
-                    <select asp-for="Form.PickupLocationId" class="cp-select" asp-items="@(ViewBag.PickupOptions as SelectList)"></select>
+                    <select asp-for="Form.PickupLocationId" class="cp-select" required asp-items="@(ViewBag.PickupOptions as SelectList)"></select>
                     <span asp-validation-for="Form.PickupLocationId" class="cp-form-error"></span>
                 </div>
             </div>
@@ -38,12 +37,12 @@
             <div class="cp-form-row">
                 <div class="cp-form-group">
                     <label asp-for="Form.BorrowingDate" class="cp-form-label">Borrowing Date <span class="required">*</span></label>
-                    <input asp-for="Form.BorrowingDate" type="date" class="cp-input" />
+                    <input asp-for="Form.BorrowingDate" type="date" class="cp-input" required />
                     <span asp-validation-for="Form.BorrowingDate" class="cp-form-error"></span>
                 </div>
                 <div class="cp-form-group">
                     <label asp-for="Form.BorrowingTime" class="cp-form-label">Borrowing Time <span class="required">*</span></label>
-                    <input asp-for="Form.BorrowingTime" type="time" class="cp-input" />
+                    <input asp-for="Form.BorrowingTime" type="time" class="cp-input" required />
                     <span asp-validation-for="Form.BorrowingTime" class="cp-form-error"></span>
                 </div>
             </div>
@@ -52,12 +51,12 @@
             <div class="cp-form-row">
                 <div class="cp-form-group">
                     <label asp-for="Form.ExpectedReturnDate" class="cp-form-label">Expected Return Date <span class="required">*</span></label>
-                    <input asp-for="Form.ExpectedReturnDate" type="date" class="cp-input" />
+                    <input asp-for="Form.ExpectedReturnDate" type="date" class="cp-input" required />
                     <span asp-validation-for="Form.ExpectedReturnDate" class="cp-form-error"></span>
                 </div>
                 <div class="cp-form-group">
                     <label asp-for="Form.ExpectedReturnTime" class="cp-form-label">Expected Return Time <span class="required">*</span></label>
-                    <input asp-for="Form.ExpectedReturnTime" type="time" class="cp-input" />
+                    <input asp-for="Form.ExpectedReturnTime" type="time" class="cp-input" required />
                     <span asp-validation-for="Form.ExpectedReturnTime" class="cp-form-error"></span>
                 </div>
             </div>
@@ -65,7 +64,7 @@
             <div class="cp-section-title">Purpose &amp; Notes</div>
             <div class="cp-form-group">
                 <label asp-for="Form.Purpose" class="cp-form-label">Purpose of Borrowing <span class="required">*</span></label>
-                <textarea asp-for="Form.Purpose" class="cp-textarea" rows="3" placeholder="Be specific — the custodian uses this to prioritise competing requests."></textarea>
+                <textarea asp-for="Form.Purpose" class="cp-textarea" required rows="3" placeholder="Be specific — the custodian uses this to prioritise competing requests."></textarea>
                 <span asp-validation-for="Form.Purpose" class="cp-form-error"></span>
             </div>
             <div class="cp-form-group">
@@ -77,15 +76,17 @@
             <div class="cp-section-title">Acknowledgements</div>
             <div class="cp-form-group">
                 <label class="cp-check">
-                    <input type="checkbox" asp-for="Form.AcknowledgeRules" />
+                    <input type="checkbox" asp-for="Form.AcknowledgeRules" required />
                     I acknowledge the borrowing rules and accept accountability for damage, loss or late return of this equipment.
                 </label>
+                <span asp-validation-for="Form.AcknowledgeRules" class="cp-form-error"></span>
             </div>
             <div class="cp-form-group">
                 <label class="cp-check">
-                    <input type="checkbox" asp-for="Form.AcknowledgeResponsibility" />
+                    <input type="checkbox" asp-for="Form.AcknowledgeResponsibility" required />
                     I understand that overdue items may suspend my borrowing privileges for the remainder of the term.
                 </label>
+                <span asp-validation-for="Form.AcknowledgeResponsibility" class="cp-form-error"></span>
             </div>
 
             <div class="cp-row-between">

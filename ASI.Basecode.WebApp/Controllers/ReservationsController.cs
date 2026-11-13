@@ -1,4 +1,4 @@
-using ASI.Basecode.Data;
+﻿using ASI.Basecode.Data;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
 using ASI.Basecode.WebApp.Mvc;
@@ -105,9 +105,17 @@ namespace ASI.Basecode.WebApp.Controllers
         {
             // Server-side check for the quantity floor — [Range] is intentionally not used
             // because business limits come from the policy, not from view-annotations.
-            if (form.Quantity is null || form.Quantity < 1)
+            if (form.Quantity is not null && form.Quantity < 1)
             {
-                this.ModelState.AddModelError("Quantity", ErrorMessages.ReservationQuantityInvalid);
+                this.ModelState.AddModelError("Form.Quantity", ErrorMessages.ReservationQuantityInvalid);
+            }
+
+            if (form.BorrowingDate.HasValue && form.BorrowingTime.HasValue
+                && form.ExpectedReturnDate.HasValue && form.ExpectedReturnTime.HasValue
+                && form.ExpectedReturnDate.Value.ToDateTime(form.ExpectedReturnTime.Value)
+                    <= form.BorrowingDate.Value.ToDateTime(form.BorrowingTime.Value))
+            {
+                this.ModelState.AddModelError("Form.ExpectedReturnDate", "The return must be after the borrowing date and time.");
             }
 
             if (!this.ModelState.IsValid)
