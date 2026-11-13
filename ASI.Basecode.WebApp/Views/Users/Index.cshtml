@@ -57,7 +57,7 @@
 </div>
 
 <!-- Quick presets -->
-<div class="tabs" style="margin-bottom:12px">
+<div class="tabs cp-mb-12">
     @foreach (var p in presets.Where(p => p.Label == "All" || p.Role != null || p.Status != null))
     {
         var on = presetFiltersOnly && p.Role == currentRole && p.Status == currentStatus;
@@ -67,7 +67,7 @@
 
 <!-- Filter bar -->
 <div class="cp-filter-bar">
-    <form method="get" asp-action="Index" style="display:contents;">
+    <form method="get" asp-action="Index" class="cp-contents">
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by name, account ID or email..." />
         <select name="role" class="cp-select" asp-items="@(ViewBag.RoleOptions as SelectList)"></select>
         <select name="department" class="cp-select" asp-items="@(ViewBag.DepartmentOptions as SelectList)"></select>
@@ -122,8 +122,8 @@ else
                         </td>
                         <td class="text-center">
                             <a asp-action="Edit" asp-route-id="@u.UserId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
-                            <form method="post" asp-action="Delete" asp-route-id="@u.UserId" style="display:inline"
-                                  onsubmit="return confirm('Delete this user account?');">
+                            <form method="post" asp-action="Delete" asp-route-id="@u.UserId" class="cp-inline"
+                                  data-confirm="Delete @u.FirstName @u.LastName's account? This can't be undone." onsubmit="return confirm(this.dataset.confirm);">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
                             </form>

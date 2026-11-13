@@ -15,7 +15,7 @@
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" asp-action="AuditLogs" style="display:contents">
+    <form method="get" asp-action="AuditLogs" class="cp-contents">
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search details, reference, action..." />
         <select name="entityType" class="cp-select">
             @foreach (var et in Model.EntityTypes)

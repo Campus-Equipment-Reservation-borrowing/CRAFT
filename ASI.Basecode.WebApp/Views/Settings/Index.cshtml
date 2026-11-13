@@ -90,7 +90,7 @@
                             <td>
                                 <form asp-action="DeleteCategory" asp-route-id="@c.EquipmentCategoryId" method="post">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm" onclick="return confirm('Delete this category?');">Delete</button>
+                                    <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm" data-confirm="Delete the category “@c.CategoryName”? This can't be undone." onclick="return confirm(this.dataset.confirm);">Delete</button>
                                 </form>
                             </td>
                         </tr>
@@ -125,7 +125,7 @@
                             <td>
                                 <form asp-action="DeleteLocation" asp-route-id="@l.LocationId" method="post">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm" onclick="return confirm('Delete this location?');">Delete</button>
+                                    <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm" data-confirm="Delete the location “@l.LocationName”? This can't be undone." onclick="return confirm(this.dataset.confirm);">Delete</button>
                                 </form>
                             </td>
                         </tr>

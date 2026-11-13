@@ -15,7 +15,7 @@
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" asp-action="Available" style="display:contents">
+    <form method="get" asp-action="Available" class="cp-contents">
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by equipment name or asset code..." />
         <select name="category" class="cp-select">
             <option value="">All categories</option>
@@ -58,7 +58,7 @@ else
                 @if (!string.IsNullOrWhiteSpace(eq.ImagePath))
                 {
                     <div class="eq-img">
-                        <img src="@eq.ImagePath" alt="@eq.EquipmentName" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />
+                        <img src="@eq.ImagePath" alt="@eq.EquipmentName" class="cp-img-fill" />
                     </div>
                 }
                 <div class="eq-b">

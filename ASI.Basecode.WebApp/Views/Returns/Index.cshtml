@@ -12,7 +12,7 @@
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" asp-action="Index" style="display:contents;">
+    <form method="get" asp-action="Index" class="cp-contents">
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by borrower, equipment or transaction..." />
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>

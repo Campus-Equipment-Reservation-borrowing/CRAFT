@@ -133,7 +133,7 @@
     <value>New total quantity is lower than units currently held for borrowers (reserved or released).</value>
   </data>
   <data name="EquipmentDeleteBlocked" xml:space="preserve">
-    <value>This equipment record cannot be deleted because borrowing, reservation or inspection records reference it.</value>
+    <value>This equipment record cannot be deleted because borrowing, reservation or inspection records reference it. Mark it as retired or under maintenance instead.</value>
   </data>
   <data name="EquipmentUpdateConflict" xml:space="preserve">
     <value>This equipment record was changed by another user while you were editing. Reload and try again.</value>
@@ -148,7 +148,7 @@
     <value>School email must be unique across the system. Another user account already uses it.</value>
   </data>
   <data name="UserDeleteBlocked" xml:space="preserve">
-    <value>This user account cannot be deleted because borrowing, reservation or inventory movement records reference it.</value>
+    <value>This user account cannot be deleted because borrowing, reservation or inventory movement records reference it. Deactivate the account instead.</value>
   </data>
   <data name="UserUpdateConflict" xml:space="preserve">
     <value>This user account was changed by another user while you were editing. Reload and try again.</value>

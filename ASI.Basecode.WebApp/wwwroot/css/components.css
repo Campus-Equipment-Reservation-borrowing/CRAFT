@@ -671,3 +671,26 @@
 .cp-filter-bar .cp-input { flex: 1 1 200px; width: auto; min-width: 0; }
 .cp-filter-bar .cp-select { flex: 0 1 160px; width: auto; min-width: 0; }
 .cp-filter-bar .cp-btn { flex-shrink: 0; }
+
+/* Validation: hide empty summaries everywhere, show field errors inline */
+.validation-summary-valid { display: none !important; }
+.cp-field-error { display: block; margin-top: 4px; font-size: 12px; color: var(--color-error); }
+.cp-field-error:empty, .field-validation-valid { display: none; }
+.input-validation-error { border-color: var(--color-error) !important; }
+
+/* Layout utilities (replacing one-off inline styles in views) */
+.cp-btn-block { width: 100%; justify-content: center; }
+.cp-auth-footnote { font-size: 12.5px; color: var(--color-text-gray); margin: 16px 0 0; }
+.cp-auth-footnote--flush { margin: 0; }
+.cp-contents { display: contents; }
+.cp-inline { display: inline; }
+.cp-mb-12 { margin-bottom: 12px; }
+.cp-mt-12 { margin-top: 12px; }
+.cp-mt-16 { margin-top: 16px; }
+.cp-m-0 { margin: 0; }
+.cp-text-12 { font-size: 12px; }
+.cp-check-row { display: flex; gap: 8px; align-items: flex-start; }
+.cp-link-button { background: none; border: 0; cursor: pointer; font: inherit; font-size: 12.5px; }
+.cp-img-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cp-break-all { word-break: break-all; }
+#inviteLink { overflow-wrap: anywhere; }

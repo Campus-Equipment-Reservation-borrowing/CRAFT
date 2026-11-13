@@ -33,7 +33,7 @@
                             </div>
                             <div class="cp-page-actions">
                                 <span class="@StatusBadge.Css(a.IsActive ? "ACTIVE" : "EXPIRED")">@(a.IsActive ? (a.ExpiresAtUtc.HasValue ? "Until " + a.ExpiresAtUtc.Value.ToLocalTime().AddDays(-1).ToString("dd MMM") : "Active") : "Expired")</span>
-                                <form method="post" asp-action="Delete" asp-route-id="@a.AnnouncementId" onsubmit="return confirm('Delete this announcement?');">
+                                <form method="post" asp-action="Delete" asp-route-id="@a.AnnouncementId" data-confirm="Delete the announcement “@a.Title”? This can't be undone." onsubmit="return confirm(this.dataset.confirm);">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
                                 </form>

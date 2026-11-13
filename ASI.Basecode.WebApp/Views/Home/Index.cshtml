@@ -1,5 +1,8 @@
+@model ASI.Basecode.Services.ViewModelClasses.LandingViewModel
 @{
     Layout = null;
+    var decision = Model.MedianDecisionHours;
+    var decisionText = decision == null ? "â€”" : decision < 1 ? "<1h" : decision < 48 ? $"~{Math.Round(decision.Value)}h" : $"~{Math.Round(decision.Value / 24)}d";
     ViewData["Title"] = "CRAFT: Campus Reservation and Asset Flow Tracker";
 }
 <!DOCTYPE html>
@@ -31,16 +34,12 @@
             <a href="#rules">Borrowing Rules</a>
             <a href="#support">Support</a>
         </div>
-        <div class="lp-nav-actions">
-            <a href="/Account/Login" class="lp-btn lp-btn-outline">Sign In</a>
-            <a href="/Account/Register" class="lp-btn lp-btn-primary">Create Account</a>
-        </div>
     </nav>
 
     <!-- Hero -->
     <section class="lp-hero" id="overview">
         <div class="lp-hero-content">
-            <span class="lp-hero-badge">Property Office · A.Y. 2026–2027</span>
+            <span class="lp-hero-badge">Property Office Â· A.Y. 2026â€“2027</span>
             <h1>Reserve campus equipment<br />without the paper queue.</h1>
             <p class="lp-hero-desc">
                 CRAFT is the university's equipment operations portal. Check live availability
@@ -54,16 +53,16 @@
             </div>
             <div class="lp-hero-stats">
                 <div class="lp-stat">
-                    <div class="lp-stat-value">1,284</div>
+                    <div class="lp-stat-value">@Model.ItemsInCatalog.ToString("N0")</div>
                     <div class="lp-stat-label">Items in catalog</div>
                 </div>
                 <div class="lp-stat">
-                    <div class="lp-stat-value">6</div>
+                    <div class="lp-stat-value">@Model.CategoryCount</div>
                     <div class="lp-stat-label">Equipment categories</div>
                 </div>
                 <div class="lp-stat">
-                    <div class="lp-stat-value">&le;24h</div>
-                    <div class="lp-stat-label">Typical approval time</div>
+                    <div class="lp-stat-value">@decisionText</div>
+                    <div class="lp-stat-label">Median decision time</div>
                 </div>
             </div>
         </div>
@@ -72,43 +71,22 @@
         <div class="lp-availability-card">
             <div class="lp-availability-header">
                 <span class="lp-availability-title">Live Availability Snapshot</span>
-                <span class="lp-availability-updated">Updated 07 Sep 2026 · 09:41 AM</span>
+                <span class="lp-availability-updated">Updated @Model.UpdatedAtLocal.ToString("dd MMM yyyy Â· hh:mm tt")</span>
             </div>
-            <div class="lp-availability-row">
-                <div>
-                    <div class="lp-availability-name">Laptops &amp; Notebooks</div>
-                    <div class="lp-availability-bar"><div class="lp-availability-bar-fill" style="width: 70%;"></div></div>
+            @if (!Model.Categories.Any())
+            {
+                <p class="lp-availability-empty">No equipment is in the catalog yet.</p>
+            }
+            @foreach (var c in Model.Categories.Take(5))
+            {
+                <div class="lp-availability-row">
+                    <div>
+                        <div class="lp-availability-name">@c.Name</div>
+                        <div class="lp-availability-bar"><div class="lp-availability-bar-fill" style="--pct: @(c.PercentAvailable)%;"></div></div>
+                    </div>
+                    <div class="lp-availability-count">@c.Available / @c.Total</div>
                 </div>
-                <div class="lp-availability-count">42 / 60</div>
-            </div>
-            <div class="lp-availability-row">
-                <div>
-                    <div class="lp-availability-name">Projectors</div>
-                    <div class="lp-availability-bar"><div class="lp-availability-bar-fill" style="width: 75%;"></div></div>
-                </div>
-                <div class="lp-availability-count">18 / 24</div>
-            </div>
-            <div class="lp-availability-row">
-                <div>
-                    <div class="lp-availability-name">Cameras &amp; DSLR</div>
-                    <div class="lp-availability-bar"><div class="lp-availability-bar-fill" style="width: 64%;"></div></div>
-                </div>
-                <div class="lp-availability-count">9 / 14</div>
-            </div>
-            <div class="lp-availability-row">
-                <div>
-                    <div class="lp-availability-name">Audio &amp; Speakers</div>
-                    <div class="lp-availability-bar"><div class="lp-availability-bar-fill" style="width: 69%;"></div></div>
-                </div>
-                <div class="lp-availability-count">11 / 16</div>
-            </div>
-            <div class="lp-availability-row">
-                <div>
-                    <div class="lp-availability-name">Laboratory Tools</div>
-                    <div class="lp-availability-bar"><div class="lp-availability-bar-fill" style="width: 68%;"></div></div>
-                </div>
-                <div class="lp-availability-count">27 / 40</div>
-            </div>
+            }
         </div>
     </section>
 
@@ -125,7 +103,7 @@
             <div class="lp-step">
                 <div class="lp-step-number">2</div>
                 <div class="lp-step-title">Custodian review</div>
-                <div class="lp-step-desc">Approved or rejected within one working day</div>
+                <div class="lp-step-desc">Reviewed by a custodian, usually within one working day</div>
             </div>
             <div class="lp-step">
                 <div class="lp-step-number">3</div>
@@ -173,48 +151,16 @@
         <h2 class="lp-section-title">Equipment categories</h2>
         <p class="lp-section-subtitle">Sign in to see live quantities and reserve.</p>
         <div class="lp-categories">
-            <div class="lp-category-card">
-                <div>
-                    <div class="lp-category-name">Laptops &amp; Notebooks</div>
-                    <div class="lp-category-count">60 units on catalog</div>
+            @foreach (var c in Model.Categories)
+            {
+                <div class="lp-category-card">
+                    <div>
+                        <div class="lp-category-name">@c.Name</div>
+                        <div class="lp-category-count">@c.Total units on catalog</div>
+                    </div>
+                    <span class="lp-category-badge">@(c.Available > 0 ? "Available" : "Fully booked")</span>
                 </div>
-                <span class="lp-category-badge">Available</span>
-            </div>
-            <div class="lp-category-card">
-                <div>
-                    <div class="lp-category-name">Projectors</div>
-                    <div class="lp-category-count">24 units on catalog</div>
-                </div>
-                <span class="lp-category-badge">Available</span>
-            </div>
-            <div class="lp-category-card">
-                <div>
-                    <div class="lp-category-name">Cameras &amp; DSLR</div>
-                    <div class="lp-category-count">14 units on catalog</div>
-                </div>
-                <span class="lp-category-badge">Available</span>
-            </div>
-            <div class="lp-category-card">
-                <div>
-                    <div class="lp-category-name">Audio &amp; Speakers</div>
-                    <div class="lp-category-count">16 units on catalog</div>
-                </div>
-                <span class="lp-category-badge">Available</span>
-            </div>
-            <div class="lp-category-card">
-                <div>
-                    <div class="lp-category-name">Laboratory Tools</div>
-                    <div class="lp-category-count">40 units on catalog</div>
-                </div>
-                <span class="lp-category-badge">Available</span>
-            </div>
-            <div class="lp-category-card">
-                <div>
-                    <div class="lp-category-name">Network Devices</div>
-                    <div class="lp-category-count">12 units on catalog</div>
-                </div>
-                <span class="lp-category-badge">Available</span>
-            </div>
+            }
         </div>
         <div class="text-center mt-4">
             <a href="/Reservations/Available" class="lp-btn lp-btn-outline">View full catalog</a>
@@ -224,9 +170,6 @@
     <!-- Footer -->
     <footer class="lp-footer" id="support">
         CRAFT: Campus Reservation and Asset Flow Tracker &middot; Property Office &middot; A.Y. 2026-2027
-        <a href="#">Support</a> &nbsp;|&nbsp;
-        <a href="#">Borrowing Rules</a> &nbsp;|&nbsp;
-        <a href="/Account/Login">Sign In</a>
     </footer>
 
 </div>

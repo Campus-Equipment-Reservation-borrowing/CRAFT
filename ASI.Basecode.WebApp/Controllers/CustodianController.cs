@@ -173,6 +173,7 @@ namespace ASI.Basecode.WebApp.Controllers
             else
             {
                 this.TempData["ErrorMessage"] = error;
+                return this.RedirectToAction(nameof(this.Review), new { id });
             }
             return this.RedirectToAction(nameof(this.Reservations));
         }

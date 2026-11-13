@@ -17,7 +17,7 @@
         }
         @if (Model.CanCancel)
         {
-            <form method="post" asp-controller="Reservations" asp-action="Cancel" asp-route-id="@Model.ReservationId" style="display:inline;"
+            <form method="post" asp-controller="Reservations" asp-action="Cancel" asp-route-id="@Model.ReservationId" class="cp-inline"
                   onsubmit="return confirm('Cancel this reservation request?');">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Cancel Reservation</button>

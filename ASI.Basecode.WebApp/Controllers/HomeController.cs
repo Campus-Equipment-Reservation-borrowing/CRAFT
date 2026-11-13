@@ -1,4 +1,5 @@
 ﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
@@ -14,11 +15,15 @@ namespace ASI.Basecode.WebApp.Controllers
     /// </summary>
     public class HomeController : ControllerBase<HomeController>
     {
+        private readonly ILandingService _landingService;
+
         public HomeController(IHttpContextAccessor httpContextAccessor,
                               ILoggerFactory loggerFactory,
                               IConfiguration configuration,
+                              ILandingService landingService,
                               IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
+            this._landingService = landingService;
         }
 
         /// <summary>
@@ -28,7 +33,7 @@ namespace ASI.Basecode.WebApp.Controllers
         {
             if (this.User?.Identity?.IsAuthenticated != true)
             {
-                return this.View();
+                return this.View(this._landingService.GetLanding());
             }
 
             return this.RedirectToRoleHome(this.User.FindFirst(ClaimTypes.Role)?.Value);
@@ -46,7 +51,7 @@ namespace ASI.Basecode.WebApp.Controllers
                 case RoleCodes.Faculty:
                     return this.RedirectToAction("Dashboard", "Borrower");
                 default:
-                    return this.View("Index");
+                    return this.View("Index", this._landingService.GetLanding());
             }
         }
     }

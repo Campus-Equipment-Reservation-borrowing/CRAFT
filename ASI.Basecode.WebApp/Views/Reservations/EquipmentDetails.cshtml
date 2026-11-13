@@ -21,7 +21,7 @@
             @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
             {
                 <div class="eq-img">
-                    <img src="@Model.ImagePath" alt="@Model.EquipmentName" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />
+                    <img src="@Model.ImagePath" alt="@Model.EquipmentName" class="cp-img-fill" />
                 </div>
             }
             <div class="cp-card-header">Details</div>

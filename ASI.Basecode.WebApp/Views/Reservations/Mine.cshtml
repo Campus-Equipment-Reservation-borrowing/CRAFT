@@ -15,7 +15,7 @@
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" action="/Reservations/Mine" style="display:contents">
+    <form method="get" action="/Reservations/Mine" class="cp-contents">
         <input type="text" name="search" value="@search" class="cp-input" placeholder="Search by reservation ID or equipment name..." />
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a href="/Reservations/Mine" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
@@ -54,7 +54,7 @@
                         <a class="cp-btn cp-btn-secondary cp-btn-sm" href="/Reservations/Details/@r.ReservationId">View</a>
                         @if (r.CanCancel)
                         {
-                            <form method="post" action="/Reservations/Cancel/@r.ReservationId" style="display:inline" onsubmit="return confirm('Cancel this reservation request?');">
+                            <form method="post" action="/Reservations/Cancel/@r.ReservationId" class="cp-inline" onsubmit="return confirm('Cancel this reservation request?');">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="cp-btn cp-btn-outline cp-btn-sm">Cancel</button>
                             </form>

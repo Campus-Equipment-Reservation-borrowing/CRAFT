@@ -12,7 +12,7 @@
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" asp-action="Reservations" style="display:contents;">
+    <form method="get" asp-action="Reservations" class="cp-contents">
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by borrower, equipment or reservation number..." />
         <select name="status" class="cp-select" asp-items="@(ViewBag.StatusOptions as SelectList)"></select>
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
@@ -75,7 +75,7 @@ else
                         <td class="text-center">
                             @if (claimable && User.IsInRole("TECHNICIAN"))
                             {
-                                <form method="post" asp-action="Claim" asp-route-id="@r.ReservationId" style="display:inline">
+                                <form method="post" asp-action="Claim" asp-route-id="@r.ReservationId" class="cp-inline">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="cp-btn cp-btn-primary cp-btn-sm">Assign to me</button>
                                 </form>

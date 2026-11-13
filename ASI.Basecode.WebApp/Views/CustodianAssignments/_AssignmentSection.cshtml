@@ -54,7 +54,7 @@
                             <td><a asp-controller="Users" asp-action="Details" asp-route-id="@a.CustodianUserId" class="name-link">@a.CustodianName</a></td>
                             <td>@a.AssignedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
                             <td class="text-center">
-                                <form method="post" asp-action="Unassign" asp-route-id="@a.AssignmentId" style="display:inline"
+                                <form method="post" asp-action="Unassign" asp-route-id="@a.AssignmentId" class="cp-inline"
                                       onsubmit="return confirm('Remove this assignment? New reservations will go to the shared pool.');">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Remove</button>

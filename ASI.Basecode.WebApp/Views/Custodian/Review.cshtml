@@ -117,7 +117,7 @@
                 <summary class="cp-cell-name">
                     @(Model.StatusCode == "PARTIALLY_RELEASED" ? "Close out the unreleased units" : "Cancel or expire this reservation")
                 </summary>
-                <form asp-action="Cancel" asp-route-id="@Model.ReservationId" method="post" style="margin-top:12px">
+                <form asp-action="Cancel" asp-route-id="@Model.ReservationId" method="post" class="cp-mt-12">
                     @Html.AntiForgeryToken()
                     <div class="cp-form-group">
                         <label class="cp-form-label" for="cancelReason">Reason (required, sent to the borrower)</label>

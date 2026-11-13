@@ -487,3 +487,8 @@
         gap: 16px;
     }
 }
+/* Live snapshot: bar width comes from the --pct custom property set per row */
+.lp-availability-bar-fill { width: var(--pct, 0%); }
+.lp-availability-empty { margin: 0; font-size: 13px; color: var(--lp-muted, #6b7280); }
+.lp-page .text-center { text-align: center; }
+.lp-page .mt-4 { margin-top: 24px; }
