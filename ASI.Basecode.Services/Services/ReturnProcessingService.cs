@@ -120,9 +120,14 @@ namespace ASI.Basecode.Services.Services
 
         public (bool Success, string Error, long ReturnId) CreateReturn(ReturnFormViewModel form)
         {
-            if (form == null || form.ReturnedQuantity < 1)
+            if (form == null)
             {
                 return (false, ErrorMessages.ServerError, 0);
+            }
+
+            if (form.ReturnedQuantity < 1)
+            {
+                return (false, "Returned quantity must be at least 1.", 0);
             }
 
             try
@@ -296,25 +301,24 @@ namespace ASI.Basecode.Services.Services
                 this._unitOfWork.SaveChanges();
 
                 // photo upload (best-effort, capped at 6 files, 5 MB each)
+                string photoNote = null;
                 if (photos != null)
                 {
                     var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
                     var dir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "inspections", inspection.InspectionId.ToString());
                     Directory.CreateDirectory(dir);
                     var count = 0;
+                    var skipped = new List<string>();
                     foreach (var file in photos)
                     {
                         if (count >= 6 || file == null || file.Length == 0)
                         {
                             continue;
                         }
-                        if (file.Length > 5 * 1024 * 1024)
-                        {
-                            continue;
-                        }
                         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-                        if (!allowed.Contains(ext))
+                        if (file.Length > 5 * 1024 * 1024 || !allowed.Contains(ext))
                         {
+                            skipped.Add(Path.GetFileName(file.FileName));
                             continue;
                         }
                         var safeName = $"photo_{count + 1}{ext}";
@@ -324,6 +328,11 @@ namespace ASI.Basecode.Services.Services
                             file.CopyTo(stream);
                         }
                         count++;
+                    }
+
+                    if (skipped.Count > 0)
+                    {
+                        photoNote = $"Skipped {skipped.Count} photo(s) ({string.Join(", ", skipped)}): use JPG, PNG or WEBP up to 5 MB.";
                     }
                 }
 
@@ -350,7 +359,8 @@ namespace ASI.Basecode.Services.Services
                     $"Inspected {form.InspectedQuantity} unit(s) of {borrowing.Equipment.AssetCode}: condition={form.CurrentConditionId}, status={inspectionStatus?.Code}." +
                     (string.IsNullOrWhiteSpace(form.InspectionNotes) ? string.Empty : " Notes: " + form.InspectionNotes.Trim()));
 
-                return (true, null, inspection.InspectionId);
+                // On success the second value carries an optional note about skipped photos.
+                return (true, photoNote, inspection.InspectionId);
             }
             catch (Exception ex)
             {
@@ -441,7 +451,8 @@ namespace ASI.Basecode.Services.Services
                 this._notifications.Notify(staff, NotificationTypes.Alert,
                     $"Damage/loss recorded: {borrowing.TransactionNumber}",
                     $"{item}: {form.DamagedQuantity} damaged (moved to maintenance), {form.LostQuantity} lost (unreconciled)." +
-                    (form.RepairCost > 0 ? $" Estimated repair cost {form.RepairCost:N2}." : string.Empty));
+                    (form.RepairCost > 0 ? $" Estimated repair cost {form.RepairCost:N2}." : string.Empty),
+                    "/Equipment/Details/" + borrowing.EquipmentId);
             }
         }
 

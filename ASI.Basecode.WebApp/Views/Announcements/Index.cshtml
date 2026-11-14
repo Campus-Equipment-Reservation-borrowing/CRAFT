@@ -72,7 +72,7 @@
             </fieldset>
             <div class="cp-form-group">
                 <label class="cp-form-label" for="annExpires">Show until (optional)</label>
-                <input id="annExpires" type="date" name="ExpiresOn" value="@(Model.Form?.ExpiresOn?.ToString("yyyy-MM-dd"))" class="cp-input" />
+                <input id="annExpires" type="date" name="ExpiresOn" value="@(Model.Form?.ExpiresOn?.ToString("yyyy-MM-dd"))" min="@DateTime.Now.ToString("yyyy-MM-dd")" class="cp-input" />
                 <div class="cp-form-hint">Leave empty to keep it on dashboards until you delete it.</div>
             </div>
             <button type="submit" class="cp-btn cp-btn-primary">Publish</button>

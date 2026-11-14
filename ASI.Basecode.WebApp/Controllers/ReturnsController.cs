@@ -128,7 +128,9 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.View(form);
             }
 
-            this.TempData["SuccessMessage"] = "Condition inspection recorded.";
+            this.TempData["SuccessMessage"] = string.IsNullOrEmpty(error)
+                ? "Condition inspection recorded."
+                : "Condition inspection recorded. " + error;
             return this.RedirectToAction(nameof(this.Index));
         }
         private SelectList ToSelectList(IEnumerable<LookupViewModel> options, long? selected, string emptyText)

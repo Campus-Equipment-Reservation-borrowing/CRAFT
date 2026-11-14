@@ -72,7 +72,8 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         [Display(Name = "Account Identifier")]
         [Required(ErrorMessage = "Account identifier is required.")]
-        [StringLength(100, ErrorMessage = "Account identifier must be at most 100 characters long.")]
+        [StringLength(20, MinimumLength = 4, ErrorMessage = "Account identifier must be 4 to 20 characters.")]
+        [RegularExpression(@"^[A-Za-z0-9-]+$", ErrorMessage = "Use letters, digits and dashes only.")]
         public string AccountIdentifier { get; set; }
 
         [Display(Name = "School Email")]

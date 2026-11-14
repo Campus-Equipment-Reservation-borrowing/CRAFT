@@ -143,7 +143,7 @@ namespace ASI.Basecode.WebApp.Controllers
             }
 
             model.LinkSent = true;
-            model.GeneratedResetUrl = this.Url.Action(
+            model.GeneratedResetUrl = token == null ? null : this.Url.Action(
                 nameof(ResetPassword), "Account",
                 new { token },
                 this.Request.Scheme);

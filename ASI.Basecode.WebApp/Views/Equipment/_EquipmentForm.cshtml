@@ -76,6 +76,7 @@
         <img src="@Model.ImagePath" alt="@Model.EquipmentName" style="display:block;width:104px;height:104px;object-fit:cover;border-radius:12px;margin-bottom:8px" />
     }
     <input type="file" id="imageFile" name="imageFile" accept=".jpg,.jpeg,.png,.webp,.gif" class="cp-input" />
+    <span asp-validation-for="ImagePath" class="cp-form-error"></span>
     <div class="cp-form-hint">JPG, PNG, WEBP or GIF, up to 5 MB.</div>
     @if (!string.IsNullOrWhiteSpace(Model.ImagePath))
     {

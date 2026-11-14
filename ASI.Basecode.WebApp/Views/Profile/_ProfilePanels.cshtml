@@ -48,11 +48,11 @@
                     <div class="cp-profile-grid">
                         <div class="cp-form-group">
                             <label class="cp-form-label" for="ContactNumber">Contact Number <span class="required">*</span></label>
-                            <input id="ContactNumber" name="ContactNumber" value="@Model.ContactNumber" class="cp-input" placeholder="+63 917 555 0142" required />
+                            <input id="ContactNumber" name="ContactNumber" value="@Model.ContactNumber" class="cp-input" placeholder="+63 917 555 0142" maxlength="50" required />
                         </div>
                         <div class="cp-form-group">
                             <label class="cp-form-label" for="AlternateContact">Alternate Contact</label>
-                            <input id="AlternateContact" name="AlternateContact" value="@Model.AlternateContact" class="cp-input" placeholder="Optional" />
+                            <input id="AlternateContact" name="AlternateContact" value="@Model.AlternateContact" class="cp-input" placeholder="Optional" maxlength="100" />
                         </div>
                     </div>
                     <div class="cp-form-hint">Notifications and password resets are sent to your school email.</div>

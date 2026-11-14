@@ -21,7 +21,7 @@
 
 <div class="cp-filter-bar">
     <form method="get" asp-action="Verifications" class="cp-contents">
-        <input type="hidden" name="tab" value="@Model.Tab" />
+        <input type="hidden" name="tab" aria-label="Transaction type" maxlength="100" value="@Model.Tab" />
         <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by name, account ID or email..." aria-label="Search accounts" />
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Verifications" asp-route-tab="@Model.Tab" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>

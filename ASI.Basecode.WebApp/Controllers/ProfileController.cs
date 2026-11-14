@@ -1,3 +1,4 @@
+using System.Linq;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
@@ -92,7 +93,9 @@ namespace ASI.Basecode.WebApp.Controllers
 
             if (!this.ModelState.IsValid)
             {
-                this.TempData["ErrorMessage"] = "Please complete all required fields.";
+                // Show the first real reason (e.g. "Passwords do not match.") rather than a generic one.
+                var first = this.ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault(m => !string.IsNullOrWhiteSpace(m));
+                this.TempData["ErrorMessage"] = first ?? "Please complete all required fields.";
                 return this.RedirectToAction(nameof(this.Index));
             }
 

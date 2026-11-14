@@ -243,16 +243,27 @@ namespace ASI.Basecode.Services.Services
                 CanRelease = (entity.Status.Code == "APPROVED" || entity.Status.Code == "PARTIALLY_RELEASED") &&
                              this.RemainingHold(entity) > 0,
                 ConditionOptions = this.DbContext.Conditions.AsNoTracking()
+                    .Where(c => !NonReleasableConditions.Contains(c.Code))
                     .OrderBy(c => c.Code).Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description }).ToList(),
                 ActiveBorrowingExists = this._repository.CountActiveBorrowingsForReservation(reservationId) > 0,
             };
         }
+
+        /// <summary>Conditions that mean the item can't go out to a borrower.</summary>
+        private static readonly string[] NonReleasableConditions = { "DAMAGED", "LOST", "UNDER_MAINTENANCE" };
 
         public (bool Success, string Error, long BorrowingId) Release(ReleaseFormViewModel form)
         {
             if (form == null || form.ReleasedQuantity < 1 || !form.ReleaseConditionId.HasValue || form.ReleaseConditionId.Value < 1)
             {
                 return (false, ErrorMessages.CustodianReleaseQuantityInvalid, 0);
+            }
+
+            var conditionCode = this.DbContext.Conditions.AsNoTracking()
+                .Where(c => c.ConditionId == form.ReleaseConditionId.Value).Select(c => c.Code).FirstOrDefault();
+            if (conditionCode == null || NonReleasableConditions.Contains(conditionCode))
+            {
+                return (false, "Choose the condition the equipment is released in (damaged, lost or under-maintenance items can't be released).", 0);
             }
 
             try
@@ -697,7 +708,8 @@ namespace ASI.Basecode.Services.Services
                 this._notifications.GetActiveUserIdsInRoles(RoleCodes.Technician, RoleCodes.Admin),
                 NotificationTypes.Alert,
                 $"Low stock: {equipment.EquipmentName}",
-                $"{equipment.EquipmentName} ({equipment.AssetCode}) has {Math.Max(0, available)} unit(s) available, at or below the low-stock threshold of {threshold}.");
+                $"{equipment.EquipmentName} ({equipment.AssetCode}) has {Math.Max(0, available)} unit(s) available, at or below the low-stock threshold of {threshold}.",
+                "/Equipment/Details/" + equipment.EquipmentId);
         }
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)

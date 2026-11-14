@@ -63,7 +63,11 @@ namespace ASI.Basecode.WebApp.Controllers
 
             if (!string.IsNullOrWhiteSpace(type) && !string.Equals(type, "all", StringComparison.OrdinalIgnoreCase))
             {
-                items = items.Where(n => string.Equals(n.NotificationType, type, StringComparison.OrdinalIgnoreCase));
+                // "BORROWING" groups the loan-related types (no notification is stored with that type itself).
+                var types = string.Equals(type, "BORROWING", StringComparison.OrdinalIgnoreCase)
+                    ? new[] { "DUE_REMINDER", "OVERDUE", "RETURN" }
+                    : new[] { type };
+                items = items.Where(n => types.Contains(n.NotificationType, StringComparer.OrdinalIgnoreCase));
             }
 
             model.Notifications = items.ToList();

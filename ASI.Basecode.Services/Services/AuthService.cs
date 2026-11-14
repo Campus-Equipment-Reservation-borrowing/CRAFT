@@ -53,7 +53,8 @@ namespace ASI.Basecode.Services.Services
 
             if (user == null)
             {
-                return (SignInResult.UserNotFound, null, "User Account does not exist.");
+                // Same wording as a wrong password, so the response does not reveal which IDs exist.
+                return (SignInResult.UserNotFound, null, "Invalid username or password.");
             }
 
             var now = DateTime.UtcNow;
@@ -232,7 +233,8 @@ namespace ASI.Basecode.Services.Services
             var user = this.DbContext.Users.FirstOrDefault(u => u.SchoolEmail.ToLower() == key);
             if (user == null)
             {
-                return (false, "User Account does not exist.", null);
+                // Report success without a token so the page reads the same for unknown emails.
+                return (true, null, null);
             }
 
             var token = PasswordManager.NewToken();

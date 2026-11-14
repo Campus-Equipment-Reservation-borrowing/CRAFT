@@ -79,6 +79,11 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.AnnouncementInvalid);
                 }
 
+                if (form.ExpiresOn.HasValue && form.ExpiresOn.Value.Date < DateTime.Now.Date)
+                {
+                    return (false, "The expiry date can't be in the past.");
+                }
+
                 var entity = new Announcement
                 {
                     Title = title.Length > 200 ? title.Substring(0, 200) : title,
@@ -293,7 +298,7 @@ namespace ASI.Basecode.Services.Services
                 var actorId = this._currentUser.GetActorUserId();
                 if (string.IsNullOrWhiteSpace(body) || actorId == null)
                 {
-                    return (false, ErrorMessages.TicketInvalid);
+                    return (false, "Enter a reply message.");
                 }
 
                 var isStaff = this.IsStaff();

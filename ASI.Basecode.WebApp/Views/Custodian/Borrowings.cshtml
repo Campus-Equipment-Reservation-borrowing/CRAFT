@@ -13,7 +13,7 @@
 
 <div class="cp-filter-bar">
     <form method="get" asp-action="Borrowings" class="cp-contents">
-        <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by borrower, equipment or transaction number..." />
+        <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by borrower, equipment or transaction number..." aria-label="Search borrowings" maxlength="100" />
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Borrowings" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
@@ -40,6 +40,7 @@ else
                     <th>Status</th>
                     <th>Released By</th>
                     <th>Inspection</th>
+                    <th class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -67,6 +68,9 @@ else
                         </td>
                         <td>@(b.ReleasedBy ?? "—")</td>
                         <td>@b.InspectionStatus</td>
+                        <td class="text-center">
+                            <a asp-controller="Returns" asp-action="Create" asp-route-id="@b.BorrowingId" class="cp-btn cp-btn-primary cp-btn-sm">Record return</a>
+                        </td>
                     </tr>
                 }
             </tbody>

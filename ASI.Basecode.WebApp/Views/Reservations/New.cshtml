@@ -31,7 +31,7 @@
                     <span asp-validation-for="Form.Quantity" class="cp-form-error"></span>
                 </div>
                 <div class="cp-form-group">
-                    <label class="cp-form-label">Pickup Point <span class="required">*</span></label>
+                    <label asp-for="Form.PickupLocationId" class="cp-form-label">Pickup Point <span class="required">*</span></label>
                     <select asp-for="Form.PickupLocationId" class="cp-select" required asp-items="@(ViewBag.PickupOptions as SelectList)"></select>
                     <span asp-validation-for="Form.PickupLocationId" class="cp-form-error"></span>
                 </div>

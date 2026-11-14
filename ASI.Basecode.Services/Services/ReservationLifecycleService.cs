@@ -173,7 +173,8 @@ namespace ASI.Basecode.Services.Services
 
                 this._notifications.Notify(staff, NotificationTypes.Overdue,
                     $"Overdue: {borrowing.TransactionNumber}",
-                    $"{item} ({borrowing.TransactionNumber}) is overdue since {borrowing.DueAtUtc:dd MMM yyyy}. Follow up with the borrower.");
+                    $"{item} ({borrowing.TransactionNumber}) is overdue since {borrowing.DueAtUtc:dd MMM yyyy}. Follow up with the borrower.",
+                    "/Custodian/Borrowings?search=" + borrowing.TransactionNumber);
             }
 
             return late.Count;
