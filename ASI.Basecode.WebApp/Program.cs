@@ -18,6 +18,10 @@ appBuilder.Configuration.AddJsonFile("appsettings.json",
     optional: true,
     reloadOnChange: true);
 
+// Re-apply env vars so they still override appsettings.json (e.g. ConnectionStrings__AllianceConnection
+// for running against a non-LocalDB SQL Server on macOS/Linux).
+appBuilder.Configuration.AddEnvironmentVariables();
+
 appBuilder.WebHost.UseIISIntegration();
 
 appBuilder.Logging
