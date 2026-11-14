@@ -22,5 +22,8 @@ public partial class UserPreference
 
     public DateTime UpdatedAtUtc { get; set; }
 
+    /// <summary>When the user finished or skipped the first-sign-in walkthrough; null until then.</summary>
+    public DateTime? TourCompletedAtUtc { get; set; }
+
     public virtual User User { get; set; }
 }

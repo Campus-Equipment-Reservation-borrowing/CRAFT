@@ -10,5 +10,11 @@ namespace ASI.Basecode.Services.Interfaces
         ProfileViewModel GetProfile(long userId);
 
         (bool Success, string Error) SaveContact(long userId, ProfileContactFormViewModel form);
+
+        /// <summary>Whether the user has finished or skipped the first-sign-in walkthrough.</summary>
+        bool HasCompletedTour(long userId);
+
+        /// <summary>Records the walkthrough as done (completed = true) or resets it so it plays again.</summary>
+        void SetTourCompleted(long userId, bool completed);
     }
 }
