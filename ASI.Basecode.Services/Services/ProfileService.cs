@@ -2,6 +2,7 @@ using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -53,12 +54,12 @@ namespace ASI.Basecode.Services.Services
                 .AsNoTracking()
                 .Count(b => b.BorrowerUserId == userId && b.Status.Code == "RETURNED");
 
+            var overdueCutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
             var overdue = this.DbContext.Borrowings
                 .AsNoTracking()
                 .Count(b => b.BorrowerUserId == userId
-                    && b.Status.Code != "RETURNED"
-                    && b.Status.Code != "LOST"
-                    && b.DueAtUtc < now);
+                    && BorrowingRules.OpenStatusCodes.Contains(b.Status.Code)
+                    && b.DueAtUtc < overdueCutoff);
 
             return new ProfileViewModel
             {

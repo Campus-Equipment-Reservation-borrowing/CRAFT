@@ -94,13 +94,17 @@ namespace ASI.Basecode.WebApp.Controllers
             var form = new InspectionFormViewModel
             {
                 BorrowingId = id,
-                // Inspection follows a return: default to the units already handed back.
-                InspectedQuantity = ctx.AlreadyReturned > 0 ? ctx.AlreadyReturned : ctx.ReleasedQuantity,
-                GoodQuantity = ctx.AlreadyReturned > 0 ? ctx.AlreadyReturned : ctx.ReleasedQuantity,
-                InspectionStatusId = 1,
+                // Default to the returned units that haven't been through a completed inspection yet.
+                InspectedQuantity = ctx.AwaitingInspection,
+                GoodQuantity = ctx.AwaitingInspection,
+                InspectionStatusId = ctx.PendingInspectionStatusId,
             };
+            if (ctx.AwaitingInspection < 1)
+            {
+                this.ViewBag.InfoMessage = "No returned units are waiting for inspection. Record a return first.";
+            }
             this.ViewBag.ConditionOptions = this.ToSelectList(this._service.GetConditionOptions(), null, "-- Select condition --");
-            this.ViewBag.InspectionStatusOptions = this.ToSelectList(this._service.GetInspectionStatusOptions(), 1, "-- Select status --");
+            this.ViewBag.InspectionStatusOptions = this.ToSelectList(this._service.GetInspectionStatusOptions(), ctx.PendingInspectionStatusId, "-- Select status --");
             return this.View(form);
         }
 

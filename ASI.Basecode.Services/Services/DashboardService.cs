@@ -2,6 +2,7 @@ using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -32,7 +33,9 @@ namespace ASI.Basecode.Services.Services
         public BorrowerDashboardViewModel GetBorrowerDashboard(long userId)
         {
             var now = DateTime.UtcNow;
-            var today = now.Date;
+            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
+            bool Overdue(Borrowing b) => BorrowingRules.IsOverdue(b.Status?.Code, b.DueAtUtc, cutoff);
+            bool DueToday(Borrowing b) => BorrowingRules.IsLocalToday(b.DueAtUtc, now);
 
             var user = this.DbContext.Users
                 .AsNoTracking()
@@ -73,7 +76,7 @@ namespace ASI.Basecode.Services.Services
                 .Count(b => b.BorrowerUserId == userId && b.Status.Code == "RETURNED");
 
             var overdueRows = openBorrowings
-                .Where(b => b.DueAtUtc < now)
+                .Where(Overdue)
                 .ToList();
 
             var model = new BorrowerDashboardViewModel
@@ -100,11 +103,11 @@ namespace ASI.Basecode.Services.Services
                     Quantity = b.ReleasedQuantity,
                     ReleasedAtUtc = b.ReleasedAtUtc,
                     DueAtUtc = b.DueAtUtc,
-                    StatusCode = b.DueAtUtc < now ? "OVERDUE" : b.Status.Code,
-                    StatusDescription = b.DueAtUtc < now ? "Overdue" : b.Status.Description,
-                    IsOverdue = b.DueAtUtc < now,
-                    IsDueToday = b.DueAtUtc.Date == today,
-                    DaysOverdue = b.DueAtUtc < now ? (int)Math.Floor((now - b.DueAtUtc).TotalDays) : 0,
+                    StatusCode = Overdue(b) ? "OVERDUE" : b.Status.Code,
+                    StatusDescription = Overdue(b) ? "Overdue" : b.Status.Description,
+                    IsOverdue = Overdue(b),
+                    IsDueToday = DueToday(b),
+                    DaysOverdue = Overdue(b) ? BorrowingRules.DaysOverdue(b.DueAtUtc, now) : 0,
                 }).ToList(),
 
                 RecentReservations = reservations.Take(5).Select(r => new BorrowerReservationRowViewModel
@@ -125,11 +128,11 @@ namespace ASI.Basecode.Services.Services
                     EquipmentName = b.Equipment?.EquipmentName,
                     AssetCode = b.Equipment?.AssetCode,
                     DueAtUtc = b.DueAtUtc,
-                    StatusCode = b.DueAtUtc < now ? "OVERDUE" : b.Status.Code,
-                    StatusDescription = b.DueAtUtc < now ? "Overdue" : (b.DueAtUtc.Date == today ? "Due Today" : b.Status.Description),
-                    IsOverdue = b.DueAtUtc < now,
-                    IsDueToday = b.DueAtUtc.Date == today,
-                    DaysOverdue = b.DueAtUtc < now ? (int)Math.Floor((now - b.DueAtUtc).TotalDays) : 0,
+                    StatusCode = Overdue(b) ? "OVERDUE" : b.Status.Code,
+                    StatusDescription = Overdue(b) ? "Overdue" : (DueToday(b) ? "Due Today" : b.Status.Description),
+                    IsOverdue = Overdue(b),
+                    IsDueToday = DueToday(b),
+                    DaysOverdue = Overdue(b) ? BorrowingRules.DaysOverdue(b.DueAtUtc, now) : 0,
                 }).ToList(),
 
                 Notifications = notifications.Select(n => new NotificationRowViewModel
@@ -166,7 +169,7 @@ namespace ASI.Basecode.Services.Services
         public CustodianDashboardViewModel GetCustodianDashboard()
         {
             var now = DateTime.UtcNow;
-            var today = now.Date;
+            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
 
             var policy = this.DbContext.BorrowingPolicyVersions
                 .AsNoTracking()
@@ -209,15 +212,15 @@ namespace ASI.Basecode.Services.Services
 
             var releasesToday = reservations
                 .Where(r => (r.Status.Code == "READY_FOR_RELEASE" || r.Status.Code == "APPROVED")
-                    && r.RequestedStartAtUtc.Date == today)
+                    && BorrowingRules.IsLocalToday(r.RequestedStartAtUtc, now))
                 .ToList();
 
             var openBorrowings = borrowings
-                .Where(b => b.Status.Code != "RETURNED" && b.Status.Code != "LOST")
+                .Where(b => BorrowingRules.IsOpen(b.Status.Code))
                 .ToList();
 
-            var returnsToday = openBorrowings.Where(b => b.DueAtUtc.Date == today).ToList();
-            var overdue = openBorrowings.Where(b => b.DueAtUtc < now).ToList();
+            var returnsToday = openBorrowings.Where(b => BorrowingRules.IsLocalToday(b.DueAtUtc, now)).ToList();
+            var overdue = openBorrowings.Where(b => BorrowingRules.IsOverdue(b.Status.Code, b.DueAtUtc, cutoff)).ToList();
             var awaitingInspection = borrowings
                 .Where(b => b.Status.Code == "RETURNED"
                     && string.Equals(b.InspectionStatus?.Code, "PENDING", StringComparison.OrdinalIgnoreCase))

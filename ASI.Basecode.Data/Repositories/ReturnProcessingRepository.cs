@@ -58,6 +58,8 @@ namespace ASI.Basecode.Data.Repositories
             {
                 var term = search.Trim();
                 query = query.Where(r =>
+                    r.Borrowing.TransactionNumber.Contains(term) ||
+                    (r.Borrowing.Reservation != null && r.Borrowing.Reservation.ReservationNumber.Contains(term)) ||
                     r.Borrowing.Equipment.EquipmentName.Contains(term) ||
                     r.Borrowing.Equipment.AssetCode.Contains(term) ||
                     r.Borrowing.BorrowerUser.FirstName.Contains(term) ||

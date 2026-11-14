@@ -34,6 +34,21 @@
                         <div class="cp-form-hint">Pending or approved reservations a borrower may have at the same time.</div>
                     </div>
                     <div class="cp-form-group">
+                        <label asp-for="Policy.FacultyMaxBorrowDays" class="cp-form-label">Faculty Max Borrow Days</label>
+                        <input asp-for="Policy.FacultyMaxBorrowDays" type="number" min="1" max="365" class="cp-input" />
+                        <div class="cp-form-hint">Must be at least the student max borrow days.</div>
+                    </div>
+                    <div class="cp-form-group">
+                        <label asp-for="Policy.ReservationLeadTimeDays" class="cp-form-label">Reservation Lead Time (days)</label>
+                        <input asp-for="Policy.ReservationLeadTimeDays" type="number" min="0" max="30" class="cp-input" />
+                        <div class="cp-form-hint">Minimum days between submitting a request and pickup.</div>
+                    </div>
+                    <div class="cp-form-group">
+                        <label asp-for="Policy.MaxAdvanceBookingDays" class="cp-form-label">Max Advance Booking (days)</label>
+                        <input asp-for="Policy.MaxAdvanceBookingDays" type="number" min="1" max="365" class="cp-input" />
+                        <div class="cp-form-hint">How far ahead a pickup can be booked.</div>
+                    </div>
+                    <div class="cp-form-group">
                         <label asp-for="Policy.OverdueGracePeriodMinutes" class="cp-form-label">Overdue Grace (min)</label>
                         <input asp-for="Policy.OverdueGracePeriodMinutes" type="number" min="0" max="1440" class="cp-input" />
                     </div>

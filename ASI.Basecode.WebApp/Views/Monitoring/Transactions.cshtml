@@ -7,7 +7,7 @@
 <div class="cp-page-header">
     <div>
         <h1 class="cp-page-title">Transaction Monitoring</h1>
-        <p class="cp-page-subtitle">All reservations and borrowings in one view.</p>
+        <p class="cp-page-subtitle">Reservations, releases, returns and inspections in one view.</p>
     </div>
 </div>
 
@@ -17,7 +17,10 @@
         <select name="tab" aria-label="Transaction type" class="cp-select">
             <option value="All" selected="@(Model.Tab == "All")">All transactions</option>
             <option value="Reservations" selected="@(Model.Tab == "Reservations")">Reservations only</option>
-            <option value="Borrowings" selected="@(Model.Tab == "Borrowings")">Borrowings only</option>
+            <option value="Borrowings" selected="@(Model.Tab == "Borrowings")">Releases (borrowings) only</option>
+            <option value="Returns" selected="@(Model.Tab == "Returns")">Returns only</option>
+            <option value="Inspections" selected="@(Model.Tab == "Inspections")">Inspections only</option>
+            <option value="Overdue" selected="@(Model.Tab == "Overdue")">Overdue only</option>
         </select>
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Transactions" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>

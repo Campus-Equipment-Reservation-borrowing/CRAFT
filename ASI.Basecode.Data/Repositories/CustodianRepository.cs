@@ -153,9 +153,11 @@ namespace ASI.Basecode.Data.Repositories
         public string GetNextTransactionNumber(int year)
         {
             var prefix = $"TXN-{year}-";
+            // Order by length first so "TXN-2026-10000" ranks above "TXN-2026-9999" (plain string order doesn't).
             var last = this.Context.Borrowings
                 .Where(b => b.TransactionNumber.StartsWith(prefix))
-                .OrderByDescending(b => b.TransactionNumber)
+                .OrderByDescending(b => b.TransactionNumber.Length)
+                .ThenByDescending(b => b.TransactionNumber)
                 .Select(b => b.TransactionNumber)
                 .FirstOrDefault();
 

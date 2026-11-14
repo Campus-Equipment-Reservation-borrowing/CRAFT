@@ -536,5 +536,41 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("TicketClosed", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a valid availability status (Available or Under Maintenance)..
+        /// </summary>
+        public static string EquipmentInvalidOperationalStatus {
+            get {
+                return ResourceManager.GetString("EquipmentInvalidOperationalStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a valid condition classification (Good, Minor Damage, Damaged, Missing Parts or Lost)..
+        /// </summary>
+        public static string EquipmentInvalidCondition {
+            get {
+                return ResourceManager.GetString("EquipmentInvalidCondition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment is under maintenance and can't be reserved right now..
+        /// </summary>
+        public static string ReservationEquipmentUnderMaintenance {
+            get {
+                return ResourceManager.GetString("ReservationEquipmentUnderMaintenance", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment is flagged as damaged, missing parts or lost and can't be reserved right now..
+        /// </summary>
+        public static string ReservationEquipmentConditionBlocked {
+            get {
+                return ResourceManager.GetString("ReservationEquipmentConditionBlocked", resourceCulture);
+            }
+        }
     }
 }

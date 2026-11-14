@@ -155,6 +155,15 @@ END;");
 IF COL_LENGTH('dbo.borrowing_policy_versions', 'max_units_per_borrower') IS NULL
     ALTER TABLE dbo.borrowing_policy_versions ADD max_units_per_borrower int NOT NULL CONSTRAINT DF_policy_max_units DEFAULT (3);
 
+IF COL_LENGTH('dbo.borrowing_policy_versions', 'reservation_lead_time_days') IS NULL
+    ALTER TABLE dbo.borrowing_policy_versions ADD reservation_lead_time_days int NOT NULL CONSTRAINT DF_policy_lead_time DEFAULT (1);
+
+IF COL_LENGTH('dbo.borrowing_policy_versions', 'max_advance_booking_days') IS NULL
+    ALTER TABLE dbo.borrowing_policy_versions ADD max_advance_booking_days int NOT NULL CONSTRAINT DF_policy_max_advance DEFAULT (30);
+
+IF COL_LENGTH('dbo.borrowing_policy_versions', 'faculty_max_borrow_days') IS NULL
+    ALTER TABLE dbo.borrowing_policy_versions ADD faculty_max_borrow_days int NOT NULL CONSTRAINT DF_policy_faculty_days DEFAULT (21);
+
 IF COL_LENGTH('dbo.notifications', 'link_url') IS NULL
     ALTER TABLE dbo.notifications ADD link_url nvarchar(300) NULL;
 

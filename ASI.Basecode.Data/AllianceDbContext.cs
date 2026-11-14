@@ -220,6 +220,15 @@ public partial class AllianceDbContext : DbContext
             entity.Property(e => e.MaxUnitsPerBorrower)
                 .HasDefaultValue(3)
                 .HasColumnName("max_units_per_borrower");
+            entity.Property(e => e.ReservationLeadTimeDays)
+                .HasDefaultValue(1)
+                .HasColumnName("reservation_lead_time_days");
+            entity.Property(e => e.MaxAdvanceBookingDays)
+                .HasDefaultValue(30)
+                .HasColumnName("max_advance_booking_days");
+            entity.Property(e => e.FacultyMaxBorrowDays)
+                .HasDefaultValue(21)
+                .HasColumnName("faculty_max_borrow_days");
             entity.Property(e => e.EffectiveFromUtc)
                 .HasPrecision(3)
                 .HasColumnName("effective_from_utc");

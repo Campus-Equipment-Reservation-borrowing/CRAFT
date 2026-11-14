@@ -130,7 +130,7 @@
     <value>Asset code must be unique across the system. Another equipment record already uses it.</value>
   </data>
   <data name="EquipmentQuantityBelowCommitted" xml:space="preserve">
-    <value>New total quantity is lower than units currently held for borrowers (reserved or released).</value>
+    <value>New total quantity is lower than the units already committed (reserved, released, awaiting inspection, under maintenance, or damaged/lost and not yet reconciled).</value>
   </data>
   <data name="EquipmentDeleteBlocked" xml:space="preserve">
     <value>This equipment record cannot be deleted because borrowing, reservation or inspection records reference it. Mark it as retired or under maintenance instead.</value>
@@ -275,5 +275,17 @@
   </data>
   <data name="TicketClosed" xml:space="preserve">
     <value>This ticket is resolved. Open a new ticket if you need more help.</value>
+  </data>
+  <data name="EquipmentInvalidOperationalStatus" xml:space="preserve">
+    <value>Select a valid availability status (Available or Under Maintenance).</value>
+  </data>
+  <data name="EquipmentInvalidCondition" xml:space="preserve">
+    <value>Select a valid condition classification (Good, Minor Damage, Damaged, Missing Parts or Lost).</value>
+  </data>
+  <data name="ReservationEquipmentUnderMaintenance" xml:space="preserve">
+    <value>This equipment is under maintenance and can't be reserved right now.</value>
+  </data>
+  <data name="ReservationEquipmentConditionBlocked" xml:space="preserve">
+    <value>This equipment is flagged as damaged, missing parts or lost and can't be reserved right now.</value>
   </data>
 </root>

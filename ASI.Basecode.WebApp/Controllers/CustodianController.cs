@@ -202,24 +202,40 @@ namespace ASI.Basecode.WebApp.Controllers
         {
             if (!this.ModelState.IsValid)
             {
-                var ctx = this._custodianService.GetReleaseContext(form.ReservationId);
-                this.ViewBag.ConditionOptions = this.ToSelectList(ctx.ConditionOptions, form.ReleaseConditionId, "-- Select condition --");
-                this.ViewBag.Context = ctx;
-                return this.View(form);
+                return this.RedisplayRelease(form, null);
             }
 
             var (success, error, _) = this._custodianService.Release(form);
             if (!success)
             {
-                this.ModelState.AddModelError(string.Empty, error);
-                var ctx = this._custodianService.GetReleaseContext(form.ReservationId);
-                this.ViewBag.ConditionOptions = this.ToSelectList(ctx.ConditionOptions, form.ReleaseConditionId, "-- Select condition --");
-                this.ViewBag.Context = ctx;
-                return this.View(form);
+                return this.RedisplayRelease(form, error);
             }
 
             this.TempData["SuccessMessage"] = "Equipment released successfully.";
             return this.RedirectToAction(nameof(this.Borrowings));
+        }
+
+        /// <summary>
+        /// Re-shows the release form with errors. If the reservation can't be loaded (unknown id, or one
+        /// this custodian can't act on) there's no form to show, so go back to the list with a message.
+        /// </summary>
+        private IActionResult RedisplayRelease(ReleaseFormViewModel form, string error)
+        {
+            var ctx = form == null ? null : this._custodianService.GetReleaseContext(form.ReservationId);
+            if (ctx == null)
+            {
+                this.TempData["ErrorMessage"] = error ?? ASI.Basecode.Resources.Messages.Errors.CustodianReservationNotFound;
+                return this.RedirectToAction(nameof(this.Reservations));
+            }
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                this.ModelState.AddModelError(string.Empty, error);
+            }
+
+            this.ViewBag.ConditionOptions = this.ToSelectList(ctx.ConditionOptions, form.ReleaseConditionId, "-- Select condition --");
+            this.ViewBag.Context = ctx;
+            return this.View(nameof(this.Release), form);
         }
 
         public IActionResult Borrowings(string search, int page = 1, int pageSize = 10)

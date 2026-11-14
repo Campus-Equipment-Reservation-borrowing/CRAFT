@@ -106,6 +106,21 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.EquipmentAssetCodeDuplicate, form.EquipmentId);
                 }
 
+                // Status and condition share one codebook; make sure each field holds a code of its own kind.
+                var statusCode = this.DbContext.Conditions.AsNoTracking()
+                    .Where(c => c.ConditionId == form.OperationalStatusId).Select(c => c.Code).FirstOrDefault();
+                if (statusCode == null || !OperationalStatusCodes.Contains(statusCode))
+                {
+                    return (false, ErrorMessages.EquipmentInvalidOperationalStatus, form.EquipmentId);
+                }
+
+                var conditionCode = this.DbContext.Conditions.AsNoTracking()
+                    .Where(c => c.ConditionId == form.CurrentConditionId).Select(c => c.Code).FirstOrDefault();
+                if (conditionCode == null || OperationalStatusCodes.Contains(conditionCode))
+                {
+                    return (false, ErrorMessages.EquipmentInvalidCondition, form.EquipmentId);
+                }
+
                 return form.EquipmentId > 0
                     ? this.Update(form)
                     : this.Create(form);
@@ -187,12 +202,28 @@ namespace ASI.Basecode.Services.Services
                 .ToList();
         }
 
+        /// <summary>
+        /// Codes in the shared <c>conditions</c> codebook that describe availability (operational status)
+        /// rather than physical condition. Everything else is a condition classification.
+        /// </summary>
+        internal static readonly string[] OperationalStatusCodes = { "AVAILABLE", "UNDER_MAINTENANCE" };
+
         public List<LookupViewModel> GetConditionOptions()
         {
             return this.DbContext.Conditions
                 .AsNoTracking()
-                .OrderBy(c => c.Code)
-                .ThenBy(c => c.Description)
+                .Where(c => !OperationalStatusCodes.Contains(c.Code))
+                .OrderBy(c => c.ConditionId)
+                .Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description })
+                .ToList();
+        }
+
+        public List<LookupViewModel> GetOperationalStatusOptions()
+        {
+            return this.DbContext.Conditions
+                .AsNoTracking()
+                .Where(c => OperationalStatusCodes.Contains(c.Code))
+                .OrderBy(c => c.ConditionId)
                 .Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description })
                 .ToList();
         }
@@ -251,7 +282,9 @@ namespace ASI.Basecode.Services.Services
                 this.DbContext.EquipmentInventoryBalances.Add(balance);
             }
 
-            var committed = balance.ReservedQuantity + balance.ReleasedQuantity + balance.AwaitingInspectionQuantity;
+            // Every unit not on the shelf counts: held, out, awaiting inspection, in maintenance, or damaged/lost.
+            var committed = balance.ReservedQuantity + balance.ReleasedQuantity + balance.AwaitingInspectionQuantity
+                + balance.MaintenanceQuantity + balance.UnreconciledQuantity;
             if (form.TotalQuantity < committed)
             {
                 return (false, ErrorMessages.EquipmentQuantityBelowCommitted, form.EquipmentId);

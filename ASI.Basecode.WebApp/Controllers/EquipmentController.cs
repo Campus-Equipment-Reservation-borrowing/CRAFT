@@ -67,7 +67,7 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.ViewBag.ConditionOptions = this.ToSelectList(
                     this._equipmentService.GetConditionOptions(), model.ConditionId, "All Conditions");
                 this.ViewBag.OperationalStatusOptions = this.ToSelectList(
-                    this._equipmentService.GetConditionOptions(), model.OperationalStatusId, "All Statuses");
+                    this._equipmentService.GetOperationalStatusOptions(), model.OperationalStatusId, "All Statuses");
 
                 return this.View(model);
             }
@@ -84,7 +84,7 @@ namespace ASI.Basecode.WebApp.Controllers
             this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), null, "-- Select category --");
             this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), null, "-- Select location --");
             this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), null, "-- Select condition --");
-            this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), null, "-- Select status --");
+            this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetOperationalStatusOptions(), null, "-- Select status --");
 
             return this.View(new EquipmentFormViewModel());
         }
@@ -111,7 +111,7 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), form.EquipmentCategoryId, "-- Select category --");
                 this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), form.LocationId, "-- Select location --");
                 this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.OperationalStatusId, "-- Select status --");
+                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetOperationalStatusOptions(), form.OperationalStatusId, "-- Select status --");
                 return this.View(form);
             }
 
@@ -122,7 +122,7 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), form.EquipmentCategoryId, "-- Select category --");
                 this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), form.LocationId, "-- Select location --");
                 this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.OperationalStatusId, "-- Select status --");
+                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetOperationalStatusOptions(), form.OperationalStatusId, "-- Select status --");
                 return this.View(form);
             }
 
@@ -142,7 +142,7 @@ namespace ASI.Basecode.WebApp.Controllers
             this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), form.EquipmentCategoryId, "-- Select category --");
             this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), form.LocationId, "-- Select location --");
             this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-            this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.OperationalStatusId, "-- Select status --");
+            this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetOperationalStatusOptions(), form.OperationalStatusId, "-- Select status --");
 
             return this.View(form);
         }
@@ -175,7 +175,7 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), form.EquipmentCategoryId, "-- Select category --");
                 this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), form.LocationId, "-- Select location --");
                 this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.OperationalStatusId, "-- Select status --");
+                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetOperationalStatusOptions(), form.OperationalStatusId, "-- Select status --");
                 return this.View(form);
             }
 
@@ -186,7 +186,7 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), form.EquipmentCategoryId, "-- Select category --");
                 this.ViewBag.LocationOptions = this.ToSelectList(this._equipmentService.GetLocationOptions(), form.LocationId, "-- Select location --");
                 this.ViewBag.ConditionOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetConditionOptions(), form.OperationalStatusId, "-- Select status --");
+                this.ViewBag.OperationalStatusOptions = this.ToSelectList(this._equipmentService.GetOperationalStatusOptions(), form.OperationalStatusId, "-- Select status --");
                 return this.View(form);
             }
 

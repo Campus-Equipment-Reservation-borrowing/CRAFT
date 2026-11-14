@@ -94,6 +94,14 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.RedirectToAction(nameof(this.Available));
             }
 
+            // Don't offer the form for items that can't be reserved (maintenance, damaged, none free).
+            var details = this._reservationService.GetEquipmentDetailsViewModel(id);
+            if (details != null && !details.CanReserve)
+            {
+                this.TempData["ErrorMessage"] = details.UnavailableReason;
+                return this.RedirectToAction(nameof(this.EquipmentDetails), new { id });
+            }
+
             this.PopulateFormContext(context.Form);
             return this.View(context);
         }

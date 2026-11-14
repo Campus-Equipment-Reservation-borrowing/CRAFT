@@ -115,11 +115,7 @@ namespace ASI.Basecode.Services.Services
                 return 0;
             }
 
-            var graceMinutes = this.DbContext.BorrowingPolicyVersions.AsNoTracking()
-                .Where(p => p.IsCurrent)
-                .Select(p => (int?)p.OverdueGracePeriodMinutes)
-                .FirstOrDefault() ?? 0;
-            var dueBefore = now.AddMinutes(-Math.Max(0, graceMinutes));
+            var dueBefore = Manager.BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
 
             var late = this.DbContext.Borrowings
                 .Include(b => b.Equipment)

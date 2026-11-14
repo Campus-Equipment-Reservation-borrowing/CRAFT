@@ -42,6 +42,8 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public int Quantity { get; set; }
         public string Status { get; set; }
         public string StatusCode { get; set; }
+        /// <summary>Due time (borrowing rows only), used to flag overdue rows.</summary>
+        public DateTime? DueAtUtc { get; set; }
     }
 
     public class TransactionMonitoringViewModel

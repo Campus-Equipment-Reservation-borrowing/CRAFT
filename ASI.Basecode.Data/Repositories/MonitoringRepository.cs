@@ -11,7 +11,7 @@ namespace ASI.Basecode.Data.Repositories
     {
         (int totalReservations, int pending, int approved, int rejected, int cancelled, int completed, int expired) GetReservationCounts();
 
-        (int totalBorrowings, int active, int partiallyReturned, int returned, int overdue, int lost) GetBorrowingCounts();
+        (int totalBorrowings, int active, int partiallyReturned, int returned, int overdue, int lost) GetBorrowingCounts(DateTime overdueCutoffUtc);
 
         (int totalEquipment, int totalUnits, int availableUnits) GetEquipmentCounts();
 
@@ -42,19 +42,19 @@ namespace ASI.Basecode.Data.Repositories
                 all.Count(x => x.StatusId == e));
         }
 
-        public (int totalBorrowings, int active, int partiallyReturned, int returned, int overdue, int lost) GetBorrowingCounts()
+        /// <param name="overdueCutoffUtc">Now minus the policy grace period: open borrowings due before it are overdue.</param>
+        public (int totalBorrowings, int active, int partiallyReturned, int returned, int overdue, int lost) GetBorrowingCounts(DateTime overdueCutoffUtc)
         {
             var q = this.Context.BorrowingStatuses.AsNoTracking().ToList();
             int Code(string c) => (int)(q.FirstOrDefault(s => s.Code == c)?.StatusId ?? -1);
             var active = Code("ACTIVE"); var partial = Code("PARTIALLY_RETURNED");
             var returned = Code("RETURNED"); var overdue = Code("OVERDUE"); var lost = Code("LOST");
             var all = this.Context.Borrowings.AsNoTracking();
-            var now = DateTime.UtcNow;
             return (all.Count(),
                 all.Count(x => x.StatusId == active),
                 all.Count(x => x.StatusId == partial),
                 all.Count(x => x.StatusId == returned),
-                all.Count(x => x.StatusId == overdue || (x.StatusId == active && x.DueAtUtc < now)),
+                all.Count(x => (x.StatusId == active || x.StatusId == partial || x.StatusId == overdue) && x.DueAtUtc < overdueCutoffUtc),
                 all.Count(x => x.StatusId == lost));
         }
 
