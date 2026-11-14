@@ -22,6 +22,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string AssetCode { get; set; }
         public int ReleasedQuantity { get; set; }
         public int AlreadyReturned { get; set; }
+        /// <summary>Units already covered by a completed inspection.</summary>
+        public int AlreadyInspected { get; set; }
+        /// <summary>Returned units still waiting for a completed inspection.</summary>
+        public int AwaitingInspection { get; set; }
+        /// <summary>Id of the PENDING inspection status (default selection on the inspection form).</summary>
+        public long PendingInspectionStatusId { get; set; }
         public DateTime DueAtUtc { get; set; }
         public bool IsOverdue { get; set; }
         public int DaysOverdue { get; set; }

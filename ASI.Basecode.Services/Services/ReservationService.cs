@@ -3,6 +3,7 @@ using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
@@ -119,9 +120,8 @@ namespace ASI.Basecode.Services.Services
             var isMaintenance = string.Equals(
                 entity.OperationalStatus?.Code, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase);
 
-            var reason = isMaintenance
-                ? "Equipment is currently under maintenance."
-                : (available <= 0 ? "Equipment is not available for reservation." : null);
+            var reason = GetReservationBlock(entity)
+                ?? (available <= 0 ? "Equipment is not available for reservation." : null);
 
             return new EquipmentDetailsViewModel
             {
@@ -148,6 +148,32 @@ namespace ASI.Basecode.Services.Services
             };
         }
 
+        /// <summary>
+        /// Returns why an item can't be reserved right now (status not Available, or a current condition flagged
+        /// <c>AffectsAvailability</c>: damaged, missing parts, lost), or null when it can be.
+        /// </summary>
+        private static string GetReservationBlock(Equipment equipment)
+        {
+            var status = equipment.OperationalStatus?.Code;
+            if (string.Equals(status, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase))
+            {
+                return ErrorMessages.ReservationEquipmentUnderMaintenance;
+            }
+
+            // Broken, retired or any other non-Available status takes the item out of circulation.
+            if (status != null && !string.Equals(status, "AVAILABLE", StringComparison.OrdinalIgnoreCase))
+            {
+                return ErrorMessages.ReservationEquipmentOutOfService;
+            }
+
+            if (equipment.CurrentCondition?.AffectsAvailability == true)
+            {
+                return ErrorMessages.ReservationEquipmentConditionBlocked;
+            }
+
+            return null;
+        }
+
         public (bool Success, string Error, long ReservationId) Create(ReservationFormViewModel form)
         {
             try
@@ -167,6 +193,13 @@ namespace ASI.Basecode.Services.Services
                 if (equipment == null)
                 {
                     return (false, ErrorMessages.ReservationEquipmentNotFound, form.EquipmentId);
+                }
+
+                // Maintenance / damaged items can't be reserved, whatever the client sends.
+                var block = GetReservationBlock(equipment);
+                if (block != null)
+                {
+                    return (false, block, form.EquipmentId);
                 }
 
                 var policy = this.GetActivePolicy();
@@ -305,7 +338,19 @@ namespace ASI.Basecode.Services.Services
                     .First(b => b.EquipmentId == equipment.EquipmentId);
                 balanceToUpdate.ReservedQuantity += form.Quantity.Value;
 
-                this._unitOfWork.SaveChanges();
+                // Two borrowers submitting at once can draw the same number; retry with a fresh one.
+                for (var attempt = 1; ; attempt++)
+                {
+                    try
+                    {
+                        this._unitOfWork.SaveChanges();
+                        break;
+                    }
+                    catch (DbUpdateException ex) when (attempt < 5 && IsUniqueIndexViolation(ex, "UQ_reservations_reservation_number"))
+                    {
+                        reservation.ReservationNumber = this.GenerateReservationNumber(DateTime.UtcNow);
+                    }
+                }
 
                 var notesSuffix = string.IsNullOrWhiteSpace(form.AdditionalNotes)
                     ? string.Empty
@@ -487,15 +532,14 @@ namespace ASI.Basecode.Services.Services
             {
                 PolicyVersionId = latest.PolicyVersionId,
                 VersionNumber = latest.VersionNumber,
-                // borrowing_policy_versions columns map onto the settings as follows; the rest are constants
-                // until Phase 7 extends the table (see notes on the entity's actual property names).
                 MaxBorrowDays = latest.MaxBorrowDurationDays,
                 MaxUnitsPerBorrower = latest.MaxUnitsPerBorrower > 0 ? latest.MaxUnitsPerBorrower : 3,
                 MaxActiveTransactions = latest.MaxActiveBorrowingUnits,
-                ReservationLeadTimeDays = 1,
-                MaxAdvanceBookingDays = 30,
+                ReservationLeadTimeDays = Math.Max(0, latest.ReservationLeadTimeDays),
+                MaxAdvanceBookingDays = latest.MaxAdvanceBookingDays > 0 ? latest.MaxAdvanceBookingDays : 30,
                 AutoCancelHours = this._lifecycle.AutoCancelHours,
-                FacultyMaxBorrowDays = 21,
+                // Faculty never get a shorter limit than students.
+                FacultyMaxBorrowDays = Math.Max(latest.FacultyMaxBorrowDays, latest.MaxBorrowDurationDays),
                 BlockReservationWhenOverdue = latest.BlockReservationWhenOverdue,
             };
         }
@@ -529,18 +573,12 @@ namespace ASI.Basecode.Services.Services
 
         private bool HasOverdueBorrowing(long borrowerUserId, DateTime now)
         {
-            // An open overdue item blocks new requests: every borrowing state counts except a
-            // clean RETURNED close (ACTIVE, PARTIALLY_RETURNED, OVERDUE, LOST).
-            var openStatusIds = this.DbContext.BorrowingStatuses
-                .AsNoTracking()
-                .Where(s => s.Code != BorrowingStatusReturned)
-                .Select(s => s.StatusId)
-                .ToList();
-
+            // Same overdue rule as every other screen: open borrowing, past due plus the grace period.
+            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
             return this.DbContext.Borrowings
                 .Any(b => b.BorrowerUserId == borrowerUserId
-                    && b.DueAtUtc < now
-                    && openStatusIds.Contains(b.StatusId));
+                    && BorrowingRules.OpenStatusCodes.Contains(b.Status.Code)
+                    && b.DueAtUtc < cutoff);
         }
 
         private Dictionary<string, long> GetReservationStatusIds()
@@ -555,19 +593,23 @@ namespace ASI.Basecode.Services.Services
         /// </summary>
         private string GenerateReservationNumber(DateTime submittedAt)
         {
-            var year = submittedAt.Year;
-            var generatedThisYear = this.DbContext.Reservations.Count(r => r.SubmittedAtUtc.Year == year) + 1;
+            // Continue from the highest number issued this year. Order by length first so "-10000" ranks above
+            // "-9999". Concurrent submits can still race; Create retries on the unique index.
+            var prefix = $"RSV-{submittedAt.Year}-";
+            var last = this.DbContext.Reservations
+                .Where(r => r.ReservationNumber.StartsWith(prefix))
+                .OrderByDescending(r => r.ReservationNumber.Length)
+                .ThenByDescending(r => r.ReservationNumber)
+                .Select(r => r.ReservationNumber)
+                .FirstOrDefault();
 
-            // Bump past collisions (e.g. cancelled-sequence gaps from manual data fixes).
-            string number;
-            do
+            var next = 1;
+            if (last != null && int.TryParse(last.Substring(prefix.Length), out var n))
             {
-                number = $"RSV-{year}-{generatedThisYear:D4}";
-                generatedThisYear++;
+                next = n + 1;
             }
-            while (this.DbContext.Reservations.Any(r => r.ReservationNumber == number));
 
-            return number;
+            return $"{prefix}{next:D4}";
         }
 
         private bool IsOpenStatus(string statusCode)

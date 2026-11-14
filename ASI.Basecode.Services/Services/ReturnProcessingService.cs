@@ -97,6 +97,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             var alreadyReturned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
+            var alreadyInspected = this.SumCompletedInspections(borrowing.BorrowingId);
             var now = DateTime.UtcNow;
             var overdue = borrowing.DueAtUtc < now;
             var daysOverdue = overdue ? (int)Math.Floor((now - borrowing.DueAtUtc).TotalDays) : 0;
@@ -117,6 +118,10 @@ namespace ASI.Basecode.Services.Services
                 AssetCode = borrowing.Equipment.AssetCode,
                 ReleasedQuantity = borrowing.ReleasedQuantity,
                 AlreadyReturned = alreadyReturned,
+                AlreadyInspected = alreadyInspected,
+                AwaitingInspection = Math.Max(0, alreadyReturned - alreadyInspected),
+                PendingInspectionStatusId = this.DbContext.InspectionStatuses.AsNoTracking()
+                    .Where(s => s.Code == "PENDING").Select(s => s.StatusId).FirstOrDefault(),
                 DueAtUtc = borrowing.DueAtUtc,
                 IsOverdue = overdue,
                 DaysOverdue = daysOverdue,
@@ -125,8 +130,20 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetConditionOptions()
         {
+            // Physical conditions only — "Available"/"Under Maintenance" are availability statuses.
             return this.DbContext.Conditions.AsNoTracking()
-                .OrderBy(c => c.Code).Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description }).ToList();
+                .Where(c => !EquipmentService.OperationalStatusCodes.Contains(c.Code))
+                .OrderBy(c => c.ConditionId).Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description }).ToList();
+        }
+
+        /// <summary>Units of a borrowing already covered by COMPLETED inspections.</summary>
+        private int SumCompletedInspections(long borrowingId, long? excludeInspectionId = null)
+        {
+            return this.DbContext.ConditionInspections
+                .Where(i => i.BorrowingId == borrowingId
+                    && i.InspectionStatus.Code == "COMPLETED"
+                    && (excludeInspectionId == null || i.InspectionId != excludeInspectionId))
+                .Sum(i => (int?)i.InspectedQuantity) ?? 0;
         }
 
         public List<LookupViewModel> GetInspectionStatusOptions()
@@ -267,23 +284,31 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.CustodianNotAssigned, 0);
                 }
 
-                var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.StatusId == form.InspectionStatusId);
+                var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.StatusId == form.InspectionStatusId)
+                    ?? this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == "PENDING");
                 if (inspectionStatus == null)
                 {
-                    inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == "PENDING");
+                    return (false, ErrorMessages.ServerError, 0);
                 }
 
-                var finalize = inspectionStatus?.Code == "COMPLETED";
+                var condition = this.DbContext.Conditions.AsNoTracking()
+                    .FirstOrDefault(c => c.ConditionId == form.CurrentConditionId);
+                if (condition == null || EquipmentService.OperationalStatusCodes.Contains(condition.Code))
+                {
+                    return (false, ErrorMessages.EquipmentInvalidCondition, 0);
+                }
+
+                // Pending or completed, an inspection can only cover returned units not yet finalized.
+                var returned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
+                var awaiting = returned - this.SumCompletedInspections(borrowing.BorrowingId);
+                if (form.InspectedQuantity > awaiting)
+                {
+                    return (false, ErrorMessages.InspectionQuantityInvalid, 0);
+                }
+
+                var finalize = inspectionStatus.Code == "COMPLETED";
                 if (finalize)
                 {
-                    var returned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
-                    var alreadyFinalized = this.DbContext.ConditionInspections
-                        .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionStatus.Code == "COMPLETED")
-                        .Sum(i => (int?)i.InspectedQuantity) ?? 0;
-                    if (form.InspectedQuantity > returned - alreadyFinalized)
-                    {
-                        return (false, ErrorMessages.InspectionQuantityInvalid, 0);
-                    }
                     if (form.GoodQuantity < 0 || form.DamagedQuantity < 0 || form.LostQuantity < 0
                         || form.GoodQuantity + form.DamagedQuantity + form.LostQuantity != form.InspectedQuantity)
                     {
@@ -305,7 +330,7 @@ namespace ASI.Basecode.Services.Services
                     InspectedQuantity = form.InspectedQuantity,
                     InspectionNotes = form.InspectionNotes,
                     InspectedByUserId = this._currentUser.GetActorUserId() ?? borrowing.ReleasedByUserId,
-                    InspectionStatusId = inspectionStatus?.StatusId ?? 1,
+                    InspectionStatusId = inspectionStatus.StatusId,
                     GoodQuantity = finalize ? form.GoodQuantity : null,
                     DamagedQuantity = finalize ? form.DamagedQuantity : null,
                     LostQuantity = finalize ? form.LostQuantity : null,
@@ -353,11 +378,13 @@ namespace ASI.Basecode.Services.Services
                     }
                 }
 
-                // update equipment current condition
+                // The equipment's condition describes the units on the shelf, so only a completed inspection
+                // that puts good units back can change it, and only to a condition that keeps them usable.
+                // Damaged and lost units are tracked in the maintenance/unreconciled buckets instead.
                 var equipment = borrowing.Equipment;
-                if (equipment != null)
+                if (equipment != null && finalize && form.GoodQuantity > 0 && !condition.AffectsAvailability)
                 {
-                    equipment.CurrentConditionId = form.CurrentConditionId;
+                    equipment.CurrentConditionId = condition.ConditionId;
                 }
 
                 if (finalize)
@@ -428,9 +455,7 @@ namespace ASI.Basecode.Services.Services
             Move(form.LostQuantity, "UNRECONCILED");
 
             var returned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
-            var finalizedBefore = this.DbContext.ConditionInspections
-                .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionId != inspection.InspectionId && i.InspectionStatus.Code == "COMPLETED")
-                .Sum(i => (int?)i.InspectedQuantity) ?? 0;
+            var finalizedBefore = this.SumCompletedInspections(borrowing.BorrowingId, inspection.InspectionId);
             var allReturned = returned >= borrowing.ReleasedQuantity;
             if (allReturned && finalizedBefore + form.InspectedQuantity >= returned)
             {
@@ -438,6 +463,19 @@ namespace ASI.Basecode.Services.Services
                 if (completed != null)
                 {
                     borrowing.InspectionStatusId = completed.StatusId;
+                }
+
+                // Fully inspected: a transaction with any unit lost closes as LOST rather than RETURNED.
+                var lostBefore = this.DbContext.ConditionInspections
+                    .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionId != inspection.InspectionId && i.InspectionStatus.Code == "COMPLETED")
+                    .Sum(i => (int?)i.LostQuantity) ?? 0;
+                if (lostBefore + form.LostQuantity > 0)
+                {
+                    var lostStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == "LOST");
+                    if (lostStatus != null)
+                    {
+                        borrowing.StatusId = lostStatus.StatusId;
+                    }
                 }
             }
         }

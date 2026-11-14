@@ -16,6 +16,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public int MaxActiveBorrowingUnits { get; set; } = 3;
         [System.ComponentModel.DataAnnotations.Range(1, 100)]
         public int MaxUnitsPerBorrower { get; set; } = 3;
+        [System.ComponentModel.DataAnnotations.Range(0, 30)]
+        public int ReservationLeadTimeDays { get; set; } = 1;
+        [System.ComponentModel.DataAnnotations.Range(1, 365)]
+        public int MaxAdvanceBookingDays { get; set; } = 30;
+        [System.ComponentModel.DataAnnotations.Range(1, 365)]
+        public int FacultyMaxBorrowDays { get; set; } = 21;
         [System.ComponentModel.DataAnnotations.Range(0, 1440)]
         public int OverdueGracePeriodMinutes { get; set; } = 0;
         [System.ComponentModel.DataAnnotations.Range(0, 10000)]

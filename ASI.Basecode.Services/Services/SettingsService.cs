@@ -50,6 +50,9 @@ namespace ASI.Basecode.Services.Services
                     MaxBorrowDurationDays = policy.MaxBorrowDurationDays,
                     MaxActiveBorrowingUnits = policy.MaxActiveBorrowingUnits,
                     MaxUnitsPerBorrower = policy.MaxUnitsPerBorrower,
+                    ReservationLeadTimeDays = policy.ReservationLeadTimeDays,
+                    MaxAdvanceBookingDays = policy.MaxAdvanceBookingDays,
+                    FacultyMaxBorrowDays = policy.FacultyMaxBorrowDays,
                     OverdueGracePeriodMinutes = policy.OverdueGracePeriodMinutes,
                     LowStockThreshold = policy.LowStockThreshold,
                     BlockReservationWhenOverdue = policy.BlockReservationWhenOverdue,
@@ -70,12 +73,25 @@ namespace ASI.Basecode.Services.Services
 
             try
             {
+                if (form.FacultyMaxBorrowDays < form.MaxBorrowDurationDays)
+                {
+                    return (false, "Faculty max borrow days can't be lower than the student max borrow days.");
+                }
+
+                if (form.MaxAdvanceBookingDays <= form.ReservationLeadTimeDays)
+                {
+                    return (false, "Max advance booking days must be greater than the reservation lead time.");
+                }
+
                 // versioning: never update — create a new row, mark previous current=false
                 var previous = this._repository.GetCurrentPolicy();
                 if (previous != null
                     && previous.MaxBorrowDurationDays == form.MaxBorrowDurationDays
                     && previous.MaxActiveBorrowingUnits == form.MaxActiveBorrowingUnits
                     && previous.MaxUnitsPerBorrower == form.MaxUnitsPerBorrower
+                    && previous.ReservationLeadTimeDays == form.ReservationLeadTimeDays
+                    && previous.MaxAdvanceBookingDays == form.MaxAdvanceBookingDays
+                    && previous.FacultyMaxBorrowDays == form.FacultyMaxBorrowDays
                     && previous.OverdueGracePeriodMinutes == form.OverdueGracePeriodMinutes
                     && previous.LowStockThreshold == form.LowStockThreshold
                     && previous.BlockReservationWhenOverdue == form.BlockReservationWhenOverdue)
@@ -106,6 +122,9 @@ namespace ASI.Basecode.Services.Services
                     MaxBorrowDurationDays = form.MaxBorrowDurationDays,
                     MaxActiveBorrowingUnits = form.MaxActiveBorrowingUnits,
                     MaxUnitsPerBorrower = form.MaxUnitsPerBorrower,
+                    ReservationLeadTimeDays = form.ReservationLeadTimeDays,
+                    MaxAdvanceBookingDays = form.MaxAdvanceBookingDays,
+                    FacultyMaxBorrowDays = form.FacultyMaxBorrowDays,
                     OverdueGracePeriodMinutes = form.OverdueGracePeriodMinutes,
                     LowStockThreshold = form.LowStockThreshold,
                     BlockReservationWhenOverdue = form.BlockReservationWhenOverdue,

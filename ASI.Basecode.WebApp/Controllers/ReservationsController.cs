@@ -45,7 +45,8 @@ namespace ASI.Basecode.WebApp.Controllers
         /// Search matches name, asset code or category; filter narrows to a category.
         /// </summary>
         [Authorize(Roles = RoleCodes.Borrower)]
-        public IActionResult Available(string search, long? category, int page = 1, int pageSize = 10)
+        // 12 per page fills whole rows at every grid width (4, 3, 2 or 1 columns; see .cp-equip-grid).
+        public IActionResult Available(string search, long? category, int page = 1, int pageSize = 12)
         {
             try
             {
@@ -92,6 +93,14 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 this.TempData["ErrorMessage"] = ErrorMessages.ReservationEquipmentNotFound;
                 return this.RedirectToAction(nameof(this.Available));
+            }
+
+            // Don't offer the form for items that can't be reserved (maintenance, damaged, none free).
+            var details = this._reservationService.GetEquipmentDetailsViewModel(id);
+            if (details != null && !details.CanReserve)
+            {
+                this.TempData["ErrorMessage"] = details.UnavailableReason;
+                return this.RedirectToAction(nameof(this.EquipmentDetails), new { id });
             }
 
             this.PopulateFormContext(context.Form);
