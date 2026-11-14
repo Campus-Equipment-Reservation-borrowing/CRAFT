@@ -24,7 +24,8 @@ namespace ASI.Basecode.WebApp.Mvc
             "PENDING" or "PARTIALLY_RETURNED" or "DUE_TODAY" or "OPEN" => "warning",
             "APPROVED" or "READY_FOR_RELEASE" or "PARTIALLY_RELEASED" or "ACTIVE" => "info",
             "COMPLETED" or "RETURNED" or "RESOLVED" or "AVAILABLE" or "GOOD" => "success",
-            "REJECTED" or "OVERDUE" or "LOST" or "DAMAGED" or "UNDER_MAINTENANCE" or "OUT_OF_STOCK" => "error",
+            "REJECTED" or "OVERDUE" or "LOST" or "DAMAGED" or "UNDER_MAINTENANCE" or "OUT_OF_STOCK"
+                or "BROKEN" or "BROKEN_/_OUT_OF_SERVICE" or "RETIRED" => "error",
             "MINOR_DAMAGE" or "MISSING_PARTS" => "warning",
             _ => "neutral",
         };

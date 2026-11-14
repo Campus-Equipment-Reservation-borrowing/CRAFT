@@ -60,6 +60,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         public string OperationalStatusName { get; set; }
 
+        /// <summary>Why the item can't be reserved (status not Available, or a blocking condition); null when it can.</summary>
+        public string UnavailableReason { get; set; }
+
         public string ImagePath { get; set; }
 
         public int TotalQuantity { get; set; }
@@ -198,6 +201,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public int AvailableUnits { get; set; }
 
         public int MaxUnitsPerBorrower { get; set; }
+
+        /// <summary>Policy: minimum days between now and pickup (drives the date/time pickers' minimum).</summary>
+        public int ReservationLeadTimeDays { get; set; }
+
+        /// <summary>Policy: how many days ahead a pickup may be booked (drives the date picker's maximum).</summary>
+        public int MaxAdvanceBookingDays { get; set; }
     }
 
     /// <summary>
