@@ -294,4 +294,7 @@
   <data name="CustodianReleaseEquipmentOutOfService" xml:space="preserve">
     <value>This equipment's status isn't Available (under maintenance, broken or retired), so it can't be released. Update the equipment status first.</value>
   </data>
+  <data name="CustodianApproveEquipmentOutOfService" xml:space="preserve">
+    <value>This equipment's status isn't Available (under maintenance, broken or retired), so the reservation can't be approved. Reject it, or set the equipment back to Available first.</value>
+  </data>
 </root>

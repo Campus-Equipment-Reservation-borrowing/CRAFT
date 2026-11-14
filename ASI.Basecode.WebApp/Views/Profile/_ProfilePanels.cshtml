@@ -11,7 +11,32 @@
 <div class="cp-stack">
     <div class="cp-card">
         <div class="cp-profile-header">
-            <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+            <div class="cp-profile-photo">
+                @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
+                {
+                    <img class="cp-avatar-lg cp-avatar-img" src="@Model.ProfileImagePath" alt="Profile photo of @Model.FullName" />
+                }
+                else
+                {
+                    <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+                }
+                <form method="post" action="/Profile/UploadPhoto" enctype="multipart/form-data" class="cp-profile-photo-form">
+                    @Html.AntiForgeryToken()
+                    <input type="file" id="profilePhotoInput" name="photo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                           class="cp-visually-hidden" onchange="if (this.files.length) this.form.submit();" />
+                    <label class="cp-btn cp-btn-secondary cp-btn-sm" for="profilePhotoInput">
+                        @(string.IsNullOrWhiteSpace(Model.ProfileImagePath) ? "Upload photo" : "Change photo")
+                    </label>
+                </form>
+                @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
+                {
+                    <form method="post" action="/Profile/RemovePhoto" class="cp-profile-photo-form">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="cp-link-btn">Remove</button>
+                    </form>
+                }
+                <div class="cp-form-hint">JPG, PNG or WEBP, up to 2 MB.</div>
+            </div>
             <div class="cp-stack">
                 <div>
                     <div class="cp-profile-name">@Model.FullName</div>

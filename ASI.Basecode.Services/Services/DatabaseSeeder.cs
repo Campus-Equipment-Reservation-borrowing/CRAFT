@@ -370,6 +370,9 @@ IF COL_LENGTH('dbo.users', 'contact_number') IS NULL
 IF COL_LENGTH('dbo.users', 'alternate_contact') IS NULL
     ALTER TABLE dbo.users ADD alternate_contact nvarchar(100) NULL;
 
+IF COL_LENGTH('dbo.users', 'profile_image_path') IS NULL
+    ALTER TABLE dbo.users ADD profile_image_path nvarchar(500) NULL;
+
 IF COL_LENGTH('dbo.equipment', 'image_path') IS NULL
     ALTER TABLE dbo.equipment ADD image_path nvarchar(500) NULL;
 

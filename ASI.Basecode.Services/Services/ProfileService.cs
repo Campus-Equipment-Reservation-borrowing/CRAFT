@@ -77,6 +77,7 @@ namespace ASI.Basecode.Services.Services
                 CreatedAtUtc = user.CreatedAtUtc,
                 ContactNumber = user.ContactNumber,
                 AlternateContact = user.AlternateContact,
+                ProfileImagePath = user.ProfileImagePath,
                 ActiveBorrowings = activeBorrowings,
                 CompletedBorrowings = completed,
                 OverdueItems = overdue,
@@ -144,6 +145,50 @@ namespace ASI.Basecode.Services.Services
             {
                 this._logger.LogError(ex, "Failed to save profile for user {UserId}.", userId);
                 return (false, "Unable to save changes. Please try again.");
+            }
+        }
+
+        public string GetProfileImagePath(long userId)
+        {
+            return this.DbContext.Users.AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.ProfileImagePath)
+                .FirstOrDefault();
+        }
+
+        public (bool Success, string Error, string PreviousPath) UpdateProfileImage(long userId, string imagePath)
+        {
+            try
+            {
+                var user = this.DbContext.Users.FirstOrDefault(u => u.UserId == userId);
+                if (user == null)
+                {
+                    return (false, "User Account does not exist.", null);
+                }
+
+                var previous = user.ProfileImagePath;
+                user.ProfileImagePath = string.IsNullOrWhiteSpace(imagePath) ? null : imagePath;
+
+                this.DbContext.AuditLogs.Add(new AuditLog
+                {
+                    ActorUserId = userId,
+                    ActionType = "UPDATE",
+                    EntityType = "UserProfile",
+                    EntityId = userId,
+                    ReferenceNumber = user.AccountIdentifier,
+                    Details = user.ProfileImagePath == null
+                        ? $"Removed the profile photo for '{user.FirstName} {user.LastName}'."
+                        : $"Updated the profile photo for '{user.FirstName} {user.LastName}'.",
+                    OccurredAtUtc = DateTime.UtcNow,
+                });
+
+                this._unitOfWork.SaveChanges();
+                return (true, null, previous);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogError(ex, "Failed to update profile photo for user {UserId}.", userId);
+                return (false, "Unable to save the photo. Please try again.", null);
             }
         }
 

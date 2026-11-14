@@ -94,9 +94,22 @@ namespace ASI.Basecode.Services.Services
                 ExpectedReturnAtUtc = entity.ExpectedReturnAtUtc,
                 Purpose = entity.Purpose,
                 SubmittedAtUtc = entity.SubmittedAtUtc,
-                CanApprove = entity.Status.Code == "PENDING",
+                CanApprove = entity.Status.Code == "PENDING" && !IsOutOfService(entity.Equipment),
+                ApproveBlockedReason = entity.Status.Code == "PENDING" && IsOutOfService(entity.Equipment)
+                    ? ErrorMessages.CustodianApproveEquipmentOutOfService
+                    : null,
                 CanReject = entity.Status.Code == "PENDING",
             };
+        }
+
+        /// <summary>
+        /// True when the equipment's availability status is anything other than Available
+        /// (under maintenance, broken or retired). Such items can't be approved or released.
+        /// </summary>
+        private static bool IsOutOfService(Equipment equipment)
+        {
+            var status = equipment?.OperationalStatus?.Code;
+            return status != null && !string.Equals(status, "AVAILABLE", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>Longest note or reason accepted; it is quoted into audit and notification text.</summary>
@@ -129,6 +142,11 @@ namespace ASI.Basecode.Services.Services
                 if (entity.Status.Code != "PENDING")
                 {
                     return (false, ErrorMessages.CustodianReservationNotPending);
+                }
+                // The item may have gone under maintenance (or been retired) after the request was made.
+                if (IsOutOfService(entity.Equipment))
+                {
+                    return (false, ErrorMessages.CustodianApproveEquipmentOutOfService);
                 }
                 this.ClaimIfPooled(entity);
 

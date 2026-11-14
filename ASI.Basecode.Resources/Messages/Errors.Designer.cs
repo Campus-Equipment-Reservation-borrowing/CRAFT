@@ -590,5 +590,14 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("CustodianReleaseEquipmentOutOfService", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment's status isn't Available (under maintenance, broken or retired), so the reservation can't be approved. Reject it, or set the equipment back to Available first..
+        /// </summary>
+        public static string CustodianApproveEquipmentOutOfService {
+            get {
+                return ResourceManager.GetString("CustodianApproveEquipmentOutOfService", resourceCulture);
+            }
+        }
     }
 }

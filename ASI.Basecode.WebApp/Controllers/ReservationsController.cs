@@ -45,7 +45,8 @@ namespace ASI.Basecode.WebApp.Controllers
         /// Search matches name, asset code or category; filter narrows to a category.
         /// </summary>
         [Authorize(Roles = RoleCodes.Borrower)]
-        public IActionResult Available(string search, long? category, int page = 1, int pageSize = 10)
+        // 12 per page fills whole rows at every grid width (4, 3, 2 or 1 columns; see .cp-equip-grid).
+        public IActionResult Available(string search, long? category, int page = 1, int pageSize = 12)
         {
             try
             {

@@ -17,6 +17,7 @@
     // Walkthrough: the overview auto-starts once per account (see wwwroot/js/guide.js).
     var signedInId = long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : (long?)null;
     var tourDone = signedInId == null || ProfileService.HasCompletedTour(signedInId.Value);
+    var profilePhoto = signedInId == null ? null : ProfileService.GetProfileImagePath(signedInId.Value);
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -68,7 +69,14 @@
                     <div class="uname">@displayName</div>
                     <div class="urole">@roleLabel</div>
                 </div>
-                <div class="avatar accent">@initials</div>
+                @if (!string.IsNullOrWhiteSpace(profilePhoto))
+                {
+                    <div class="avatar has-photo"><img src="@profilePhoto" alt="" /></div>
+                }
+                else
+                {
+                    <div class="avatar accent">@initials</div>
+                }
             </a>
         </div>
     </header>

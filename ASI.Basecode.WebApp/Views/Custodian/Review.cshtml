@@ -77,14 +77,23 @@
             @if (Model.CanApprove || Model.CanReject)
             {
                 <div class="cp-stack">
-                    <form asp-action="Approve" asp-route-id="@Model.ReservationId" method="post">
-                        @Html.AntiForgeryToken()
-                        <div class="cp-form-group">
-                            <label class="cp-form-label">Approval notes (optional)</label>
-                            <textarea name="notes" class="cp-textarea" rows="2" maxlength="500"></textarea>
+                    @if (Model.CanApprove)
+                    {
+                        <form asp-action="Approve" asp-route-id="@Model.ReservationId" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="cp-form-group">
+                                <label class="cp-form-label">Approval notes (optional)</label>
+                                <textarea name="notes" class="cp-textarea" rows="2" maxlength="500"></textarea>
+                            </div>
+                            <button type="submit" class="cp-btn cp-btn-success">Approve Reservation</button>
+                        </form>
+                    }
+                    else if (!string.IsNullOrEmpty(Model.ApproveBlockedReason))
+                    {
+                        <div class="banner err" role="alert">
+                            <div class="banner-b"><div class="banner-t">Can't be approved</div><div>@Model.ApproveBlockedReason</div></div>
                         </div>
-                        <button type="submit" class="cp-btn cp-btn-success">Approve Reservation</button>
-                    </form>
+                    }
                     <form asp-action="Reject" asp-route-id="@Model.ReservationId" method="post">
                         @Html.AntiForgeryToken()
                         <div class="cp-form-group">
