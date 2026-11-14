@@ -277,7 +277,7 @@
     <value>This ticket is resolved. Open a new ticket if you need more help.</value>
   </data>
   <data name="EquipmentInvalidOperationalStatus" xml:space="preserve">
-    <value>Select a valid availability status (Available or Under Maintenance).</value>
+    <value>Select a valid availability status (Available, Under Maintenance, Broken / Out of Service or Retired).</value>
   </data>
   <data name="EquipmentInvalidCondition" xml:space="preserve">
     <value>Select a valid condition classification (Good, Minor Damage, Damaged, Missing Parts or Lost).</value>
@@ -287,5 +287,11 @@
   </data>
   <data name="ReservationEquipmentConditionBlocked" xml:space="preserve">
     <value>This equipment is flagged as damaged, missing parts or lost and can't be reserved right now.</value>
+  </data>
+  <data name="ReservationEquipmentOutOfService" xml:space="preserve">
+    <value>This equipment is out of service (broken or retired) and can't be reserved right now.</value>
+  </data>
+  <data name="CustodianReleaseEquipmentOutOfService" xml:space="preserve">
+    <value>This equipment's status isn't Available (under maintenance, broken or retired), so it can't be released. Update the equipment status first.</value>
   </data>
 </root>

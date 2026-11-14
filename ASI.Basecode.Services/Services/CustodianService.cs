@@ -282,6 +282,11 @@ namespace ASI.Basecode.Services.Services
                 {
                     return (false, ErrorMessages.CustodianReleaseNotApproved, 0);
                 }
+                var equipmentStatus = entity.Equipment?.OperationalStatus?.Code;
+                if (equipmentStatus != null && equipmentStatus != "AVAILABLE")
+                {
+                    return (false, ErrorMessages.CustodianReleaseEquipmentOutOfService, 0);
+                }
                 this.ClaimIfPooled(entity);
 
                 var maxQty = this.RemainingHold(entity);

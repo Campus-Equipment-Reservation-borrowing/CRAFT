@@ -78,6 +78,7 @@ namespace ASI.Basecode.Data.Repositories
                 .Include(r => r.Equipment).ThenInclude(e => e.EquipmentCategory)
                 .Include(r => r.Equipment).ThenInclude(e => e.Location)
                 .Include(r => r.Equipment).ThenInclude(e => e.CurrentCondition)
+                .Include(r => r.Equipment).ThenInclude(e => e.OperationalStatus)
                 .Include(r => r.Equipment).ThenInclude(e => e.EquipmentInventoryBalance)
                 .Include(r => r.PickupLocation)
                 .Include(r => r.Status)

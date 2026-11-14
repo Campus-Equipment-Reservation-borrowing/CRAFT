@@ -572,5 +572,23 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("ReservationEquipmentConditionBlocked", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment is out of service (broken or retired) and can't be reserved right now..
+        /// </summary>
+        public static string ReservationEquipmentOutOfService {
+            get {
+                return ResourceManager.GetString("ReservationEquipmentOutOfService", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment's status isn't Available (under maintenance, broken or retired), so it can't be released. Update the equipment status first..
+        /// </summary>
+        public static string CustodianReleaseEquipmentOutOfService {
+            get {
+                return ResourceManager.GetString("CustodianReleaseEquipmentOutOfService", resourceCulture);
+            }
+        }
     }
 }

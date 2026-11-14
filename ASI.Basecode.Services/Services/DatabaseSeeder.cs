@@ -329,6 +329,16 @@ END;");
                 }
             }
 
+            // Equipment availability statuses beyond Available / Under Maintenance (shared conditions table).
+            foreach (var (code, description) in new[] { ("BROKEN", "Broken / Out of Service"), ("RETIRED", "Retired") })
+            {
+                if (!db.Conditions.Any(c => c.Code == code))
+                {
+                    db.Conditions.Add(new Condition { Code = code, Description = description, AffectsAvailability = true });
+                    changed = true;
+                }
+            }
+
             if (changed)
             {
                 this._unitOfWork.SaveChanges();

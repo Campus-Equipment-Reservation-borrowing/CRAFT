@@ -149,14 +149,21 @@ namespace ASI.Basecode.Services.Services
         }
 
         /// <summary>
-        /// Returns why an item can't be reserved right now (under maintenance, or a current condition flagged
+        /// Returns why an item can't be reserved right now (status not Available, or a current condition flagged
         /// <c>AffectsAvailability</c>: damaged, missing parts, lost), or null when it can be.
         /// </summary>
         private static string GetReservationBlock(Equipment equipment)
         {
-            if (string.Equals(equipment.OperationalStatus?.Code, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase))
+            var status = equipment.OperationalStatus?.Code;
+            if (string.Equals(status, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase))
             {
                 return ErrorMessages.ReservationEquipmentUnderMaintenance;
+            }
+
+            // Broken, retired or any other non-Available status takes the item out of circulation.
+            if (status != null && !string.Equals(status, "AVAILABLE", StringComparison.OrdinalIgnoreCase))
+            {
+                return ErrorMessages.ReservationEquipmentOutOfService;
             }
 
             if (equipment.CurrentCondition?.AffectsAvailability == true)

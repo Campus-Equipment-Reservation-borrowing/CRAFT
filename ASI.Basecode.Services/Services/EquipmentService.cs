@@ -206,7 +206,7 @@ namespace ASI.Basecode.Services.Services
         /// Codes in the shared <c>conditions</c> codebook that describe availability (operational status)
         /// rather than physical condition. Everything else is a condition classification.
         /// </summary>
-        internal static readonly string[] OperationalStatusCodes = { "AVAILABLE", "UNDER_MAINTENANCE" };
+        internal static readonly string[] OperationalStatusCodes = { "AVAILABLE", "UNDER_MAINTENANCE", "BROKEN", "RETIRED" };
 
         public List<LookupViewModel> GetConditionOptions()
         {
