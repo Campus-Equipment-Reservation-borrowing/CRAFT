@@ -158,6 +158,9 @@ IF COL_LENGTH('dbo.borrowing_policy_versions', 'max_units_per_borrower') IS NULL
 IF COL_LENGTH('dbo.notifications', 'link_url') IS NULL
     ALTER TABLE dbo.notifications ADD link_url nvarchar(300) NULL;
 
+IF COL_LENGTH('dbo.user_preferences', 'tour_completed_at_utc') IS NULL
+    ALTER TABLE dbo.user_preferences ADD tour_completed_at_utc datetime2 NULL;
+
 IF COL_LENGTH('dbo.borrowings', 'due_reminder_sent_at_utc') IS NULL
     ALTER TABLE dbo.borrowings ADD due_reminder_sent_at_utc datetime2 NULL;
 

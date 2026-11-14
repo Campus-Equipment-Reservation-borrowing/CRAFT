@@ -56,6 +56,24 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.View(this.ResolveView(model.RoleCode), model);
         }
 
+        /// <summary>
+        /// Records that the signed-in user finished or skipped the walkthrough (completed=true),
+        /// or resets it so the overview plays again (completed=false). Called from guide.js.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult TourCompleted(bool completed = true)
+        {
+            // The walkthrough belongs to the person signed in, not the operator they act as.
+            if (!long.TryParse(this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId))
+            {
+                return this.Unauthorized();
+            }
+
+            this._profileService.SetTourCompleted(userId, completed);
+            return this.NoContent();
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult SaveContact(ProfileContactFormViewModel form)

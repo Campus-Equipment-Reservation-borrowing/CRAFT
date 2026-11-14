@@ -146,6 +146,19 @@ namespace ASI.Basecode.Services.Services
             }
         }
 
+        public bool HasCompletedTour(long userId)
+        {
+            return this.DbContext.UserPreferences.AsNoTracking()
+                .Any(p => p.UserId == userId && p.TourCompletedAtUtc != null);
+        }
+
+        public void SetTourCompleted(long userId, bool completed)
+        {
+            var preference = this.EnsurePreference(userId);
+            preference.TourCompletedAtUtc = completed ? DateTime.UtcNow : null;
+            this._unitOfWork.SaveChanges();
+        }
+
         private UserPreference EnsurePreference(long userId)
         {
             var preference = this.DbContext.UserPreferences.FirstOrDefault(p => p.UserId == userId);

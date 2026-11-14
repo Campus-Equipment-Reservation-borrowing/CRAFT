@@ -1,6 +1,7 @@
-﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http
 @using System.Security.Claims
 @inject IHttpContextAccessor HttpContextAccessor
+@inject ASI.Basecode.Services.Interfaces.IProfileService ProfileService
 @{
     var role = User.FindFirst(ClaimTypes.Role)?.Value;
     var isAdmin = string.Equals(role, "ADMIN", StringComparison.OrdinalIgnoreCase);
@@ -13,6 +14,9 @@
     var initials = displayName.Length > 0 ? displayName.Substring(0, 1).ToUpperInvariant() : "U";
     var roleLabel = isBorrower ? "Student" : (isAdmin ? "Administrator" : "Custodian");
     var crumb = ViewData["Title"]?.ToString() ?? "Dashboard";
+    // Walkthrough: the overview auto-starts once per account (see wwwroot/js/guide.js).
+    var signedInId = long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : (long?)null;
+    var tourDone = signedInId == null || ProfileService.HasCompletedTour(signedInId.Value);
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -28,9 +32,10 @@
     <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/craft.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/guide.css" asp-append-version="true" />
     @RenderSection("Styles", required: false)
 </head>
-<body>
+<body data-guide-role="@(role?.ToUpperInvariant())" data-guide-done="@(tourDone ? "true" : "false")">
 <div class="craft-shell" id="craftShell">
     <header class="craft-header">
         <div class="craft-header-left">
@@ -48,6 +53,15 @@
             </div>
         </div>
         <div class="craft-header-right">
+            @if (signedInId != null)
+            {
+                <div class="cp-guide-launcher">
+                    <button type="button" class="icon-btn" data-guide-launcher aria-haspopup="menu" aria-expanded="false" title="Guide: how to use CRAFT" aria-label="Guide: how to use CRAFT">
+                        <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>
+                    </button>
+                    <div class="cp-guide-menu" role="menu" hidden></div>
+                </div>
+            }
             @await Component.InvokeAsync("NotificationBadge")
             <a class="user" href="/Profile" title="Profile &amp; Settings">
                 <div class="uinfo end">
@@ -204,6 +218,8 @@
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <partial name="_ValidationScriptsPartial" />
 <script src="~/js/submit-guard.js" asp-append-version="true"></script>
+<script src="~/js/guide-tours.js" asp-append-version="true"></script>
+<script src="~/js/guide.js" asp-append-version="true"></script>
 <script>
     (function() {
         @* JSON-encode so names/reasons inside messages can't break out of the script. *@

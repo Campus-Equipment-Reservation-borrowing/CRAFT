@@ -46,6 +46,21 @@ namespace ASI.Basecode.Services.Services
         public ReturnsIndexViewModel GetReturnsIndex(string search, int page, int pageSize)
         {
             var result = this._repository.GetReturnsPaged(search, page, pageSize, this._currentUser.GetCustodianScope());
+
+            // Borrowings on this page with returned units not yet covered by a completed inspection.
+            var borrowingIds = result.Items.Select(r => r.BorrowingId).Distinct().ToList();
+            var awaitingInspection = this.DbContext.Borrowings.AsNoTracking()
+                .Where(b => borrowingIds.Contains(b.BorrowingId))
+                .Select(b => new
+                {
+                    b.BorrowingId,
+                    Returned = b.BorrowingReturns.Sum(x => (int?)x.ReturnedQuantity) ?? 0,
+                    Inspected = b.ConditionInspections.Where(i => i.InspectionStatus.Code == "COMPLETED").Sum(i => (int?)i.InspectedQuantity) ?? 0,
+                })
+                .Where(x => x.Returned > x.Inspected)
+                .Select(x => x.BorrowingId)
+                .ToHashSet();
+
             return new ReturnsIndexViewModel
             {
                 Page = new PagedResult<ReturnRowViewModel>
@@ -53,6 +68,8 @@ namespace ASI.Basecode.Services.Services
                     Items = result.Items.Select(r => new ReturnRowViewModel
                     {
                         ReturnId = r.ReturnId,
+                        BorrowingId = r.BorrowingId,
+                        NeedsInspection = awaitingInspection.Contains(r.BorrowingId),
                         TransactionNumber = r.Borrowing.TransactionNumber,
                         BorrowerName = r.Borrowing.BorrowerUser.FirstName + " " + r.Borrowing.BorrowerUser.LastName,
                         EquipmentName = r.Borrowing.Equipment.EquipmentName,

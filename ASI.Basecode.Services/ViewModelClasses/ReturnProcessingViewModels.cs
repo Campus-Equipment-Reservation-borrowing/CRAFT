@@ -30,6 +30,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
     public class ReturnRowViewModel
     {
         public long ReturnId { get; set; }
+        public long BorrowingId { get; set; }
+        /// <summary>Returned units on this borrowing still await a completed inspection.</summary>
+        public bool NeedsInspection { get; set; }
         public string TransactionNumber { get; set; }
         public string BorrowerName { get; set; }
         public string EquipmentName { get; set; }

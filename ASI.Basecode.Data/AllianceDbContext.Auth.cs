@@ -82,6 +82,7 @@ public partial class AllianceDbContext
             entity.Property(e => e.UpdatedAtUtc)
                 .HasDefaultValueSql("(sysutcdatetime())")
                 .HasColumnName("updated_at_utc");
+            entity.Property(e => e.TourCompletedAtUtc).HasColumnName("tour_completed_at_utc");
 
             entity.HasOne(d => d.User).WithOne(p => p.Preference)
                 .HasForeignKey<UserPreference>(d => d.UserId)
