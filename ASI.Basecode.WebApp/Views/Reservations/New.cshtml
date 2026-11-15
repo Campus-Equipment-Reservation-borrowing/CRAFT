@@ -23,7 +23,7 @@
 
 @if (!canReserve)
 {
-    <div class="banner warn" style="margin-bottom:12px"><div class="banner-b">@unavailableReason</div></div>
+    <div class="banner warn" id="reserveBlocked" style="margin-bottom:12px"><div class="banner-b">@unavailableReason</div></div>
 }
 
 <div class="cp-grid-2">
@@ -115,7 +115,7 @@
 
             <div class="cp-row-between">
                 <a asp-controller="Reservations" asp-action="Available" class="cp-btn cp-btn-secondary">Back</a>
-                <button type="submit" class="cp-btn cp-btn-success" disabled="@(!canReserve)" title="@(canReserve ? null : unavailableReason)">Submit Reservation</button>
+                <button type="submit" class="cp-btn cp-btn-success" disabled="@(!canReserve)" aria-describedby="@(canReserve ? null : "reserveBlocked")">Submit Reservation</button>
             </div>
         </form>
     </div>

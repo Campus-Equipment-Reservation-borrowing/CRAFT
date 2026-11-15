@@ -108,7 +108,7 @@
             <div class="cp-page-actions">
                 <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
                 <button type="submit" class="cp-btn cp-btn-success" disabled="@(inspectable == 0)"
-                        title="@(inspectable == 0 ? "No returned units are waiting for inspection" : null)">Record Inspection</button>
+                        aria-describedby="@(inspectable == 0 ? "insQtyHint" : null)">Record Inspection</button>
             </div>
         </form>
     </div>

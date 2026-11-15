@@ -84,7 +84,7 @@
                         <input id="maintQty" type="number" name="quantity" class="cp-input cp-input-qty" min="1" max="@balance.MaintenanceQuantity" value="1" required />
                         <button type="submit" name="adjustment" value="@StockAdjustments.Repaired" class="cp-btn cp-btn-success cp-btn-sm">Mark repaired</button>
                         <button type="submit" name="adjustment" value="@StockAdjustments.WriteOffDamaged" class="cp-btn cp-btn-danger cp-btn-sm"
-                                onclick="return confirm('Write these units off? The total quantity goes down permanently.');">Write off</button>
+                                style="margin-left:auto" onclick="return confirm('Write off ' + document.getElementById('maintQty').value + ' unit(s)? The total quantity goes down permanently.');">Write off</button>
                     </div>
                 </form>
             }
@@ -98,7 +98,7 @@
                         <input id="lostQty" type="number" name="quantity" class="cp-input cp-input-qty" min="1" max="@balance.UnreconciledQuantity" value="1" required />
                         <button type="submit" name="adjustment" value="@StockAdjustments.Found" class="cp-btn cp-btn-success cp-btn-sm">Mark found</button>
                         <button type="submit" name="adjustment" value="@StockAdjustments.WriteOffLost" class="cp-btn cp-btn-danger cp-btn-sm"
-                                onclick="return confirm('Write these units off? The total quantity goes down permanently.');">Write off</button>
+                                style="margin-left:auto" onclick="return confirm('Write off ' + document.getElementById('lostQty').value + ' unit(s)? The total quantity goes down permanently.');">Write off</button>
                     </div>
                 </form>
             }

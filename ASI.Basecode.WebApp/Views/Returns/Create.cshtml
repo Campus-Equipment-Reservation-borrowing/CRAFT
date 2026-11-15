@@ -83,16 +83,24 @@
             <div class="cp-page-actions">
                 <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
                 <button type="submit" class="cp-btn cp-btn-success" disabled="@(outstanding == 0)"
-                        title="@(outstanding == 0 ? "Every unit has already been returned" : null)">Record Return</button>
+                        aria-describedby="@(outstanding == 0 ? "returnBlocked" : null)">Record Return</button>
                 @if (ctx != null && inspectable > 0)
                 {
                     <a asp-action="Inspect" asp-route-id="@ctx.Form.BorrowingId" class="cp-btn cp-btn-primary">Record Inspection</a>
                 }
                 else if (ctx != null)
                 {
-                    <button type="button" class="cp-btn cp-btn-primary" disabled title="Record a return first; there are no returned units to inspect">Record Inspection</button>
+                    <button type="button" class="cp-btn cp-btn-primary" disabled aria-describedby="inspectBlocked">Record Inspection</button>
                 }
             </div>
+            @if (outstanding == 0)
+            {
+                <div class="cp-form-hint" id="returnBlocked">Every unit under this transaction has already been returned.</div>
+            }
+            @if (ctx != null && inspectable == 0)
+            {
+                <div class="cp-form-hint" id="inspectBlocked">Inspection opens once a returned unit is waiting; record a return first.</div>
+            }
         </form>
     </div>
 </div>

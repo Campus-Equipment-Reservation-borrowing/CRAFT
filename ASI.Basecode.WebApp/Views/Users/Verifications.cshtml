@@ -22,7 +22,7 @@
 
 @if (!hasCustodians)
 {
-    <div class="banner warn" style="margin-bottom:12px">
+    <div class="banner warn" id="noCustodians" style="margin-bottom:12px">
         <div class="banner-b">
             Approving an account requires assigning a custodian, and there are no active custodian accounts yet.
             <a asp-action="Create">Create a custodian account</a> first.
@@ -84,7 +84,7 @@ else
                                     data-user-id="@u.UserId" data-user-name="@u.FirstName @u.LastName"
                                     data-current-custodian="@(Model.CurrentCustodianByUser.TryGetValue(u.UserId, out var cur) ? cur.ToString() : "")"
                                     disabled="@(!hasCustodians)"
-                                    title="@(hasCustodians ? "Approve and assign a custodian" : "No active custodian to assign")">Approve</button>
+                                    aria-describedby="@(hasCustodians ? null : "noCustodians")">Approve</button>
                             @if (!isRejectedTab)
                             {
                                 <button type="button" class="cp-btn cp-btn-danger cp-btn-sm js-reject"
@@ -203,7 +203,17 @@ else
             document.querySelectorAll('.cp-modal-overlay').forEach(function (m) {
                 m.addEventListener('click', function (e) { if (e.target === m) close(); });
             });
-            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+            document.addEventListener('keydown', function (e) {
+                if (!openModal) return;
+                if (e.key === 'Escape') { close(); return; }
+                if (e.key !== 'Tab') return;
+                // Keep keyboard focus inside the open dialog.
+                var items = openModal.querySelectorAll('button:not([disabled]), select, textarea, input:not([type=hidden])');
+                if (!items.length) return;
+                var first = items[0], last = items[items.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            });
         })();
     </script>
 }
