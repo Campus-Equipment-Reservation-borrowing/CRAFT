@@ -54,11 +54,29 @@
                             <td><a asp-controller="Users" asp-action="Details" asp-route-id="@a.CustodianUserId" class="name-link">@a.CustodianName</a></td>
                             <td>@a.AssignedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
                             <td class="text-center">
-                                <form method="post" asp-action="Unassign" asp-route-id="@a.AssignmentId" style="display:inline"
-                                      onsubmit="return confirm('Remove this assignment? New reservations will go to the shared pool.');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Remove</button>
-                                </form>
+                                @if (a.RemovalLocked)
+                                {
+                                    <form method="post" asp-action="Assign" class="cp-inline-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="scopeType" value="@Model.ScopeType" />
+                                        <input type="hidden" name="targetId" value="@a.TargetId" />
+                                        <select name="custodianUserId" class="cp-select" required aria-label="New custodian for @a.TargetName">
+                                            @foreach (var c in Model.CustodianOptions)
+                                            {
+                                                <option value="@c.Id" selected="@(c.Id == a.CustodianUserId)">@c.Text</option>
+                                            }
+                                        </select>
+                                        <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Change</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-action="Unassign" asp-route-id="@a.AssignmentId" style="display:inline"
+                                          onsubmit="return confirm('Remove this assignment? New reservations will go to the shared pool.');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Remove</button>
+                                    </form>
+                                }
                             </td>
                         </tr>
                     }

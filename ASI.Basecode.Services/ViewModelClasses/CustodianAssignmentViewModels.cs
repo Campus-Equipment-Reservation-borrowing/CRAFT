@@ -14,6 +14,28 @@ namespace ASI.Basecode.Services.ViewModelClasses
         /// <summary>Secondary text: account ID for borrowers, code for locations/categories.</summary>
         public string TargetDetail { get; set; }
         public DateTime AssignedAtUtc { get; set; }
+
+        /// <summary>
+        /// Borrower rows for an ACTIVE borrower can be changed but not removed: an active
+        /// borrower must always have a custodian.
+        /// </summary>
+        public bool RemovalLocked { get; set; }
+    }
+
+    /// <summary>
+    /// Result of staging a borrower → custodian assignment on the shared DbContext without
+    /// saving, so the caller can commit it together with its own changes.
+    /// </summary>
+    public class BorrowerAssignmentStage
+    {
+        public bool Success { get; set; }
+        public string Error { get; set; }
+        public ASI.Basecode.Data.Models.CustodianAssignment Assignment { get; set; }
+        public string BorrowerName { get; set; }
+        public string CustodianName { get; set; }
+        public string Details { get; set; }
+
+        public static BorrowerAssignmentStage Fail(string error) => new BorrowerAssignmentStage { Error = error };
     }
 
     /// <summary>Admin → Custodian Assignments screen.</summary>
