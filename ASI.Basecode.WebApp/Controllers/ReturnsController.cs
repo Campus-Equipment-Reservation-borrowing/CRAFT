@@ -100,8 +100,8 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 BorrowingId = id,
                 // Inspection follows a return: default to the units already handed back.
-                InspectedQuantity = ctx.AlreadyReturned > 0 ? ctx.AlreadyReturned : ctx.ReleasedQuantity,
-                GoodQuantity = ctx.AlreadyReturned > 0 ? ctx.AlreadyReturned : ctx.ReleasedQuantity,
+                InspectedQuantity = ctx.InspectableQuantity,
+                GoodQuantity = ctx.InspectableQuantity,
                 InspectionStatusId = 1,
             };
             this.ViewBag.ConditionOptions = this.ToSelectList(this._service.GetConditionOptions(), null, "-- Select condition --");

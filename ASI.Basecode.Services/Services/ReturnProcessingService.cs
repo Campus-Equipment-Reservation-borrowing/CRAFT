@@ -80,6 +80,9 @@ namespace ASI.Basecode.Services.Services
             }
 
             var alreadyReturned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
+            var finalized = this.DbContext.ConditionInspections
+                .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionStatus.Code == "COMPLETED")
+                .Sum(i => (int?)i.InspectedQuantity) ?? 0;
             var now = DateTime.UtcNow;
             var overdue = borrowing.DueAtUtc < now;
             var daysOverdue = overdue ? (int)Math.Floor((now - borrowing.DueAtUtc).TotalDays) : 0;
@@ -99,6 +102,7 @@ namespace ASI.Basecode.Services.Services
                 AssetCode = borrowing.Equipment.AssetCode,
                 ReleasedQuantity = borrowing.ReleasedQuantity,
                 AlreadyReturned = alreadyReturned,
+                InspectableQuantity = Math.Max(0, alreadyReturned - finalized),
                 DueAtUtc = borrowing.DueAtUtc,
                 IsOverdue = overdue,
                 DaysOverdue = daysOverdue,

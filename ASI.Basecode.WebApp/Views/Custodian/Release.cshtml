@@ -5,6 +5,7 @@
 }
 @{
     var ctx = ViewBag.Context as ReleaseContextViewModel;
+    var remaining = ctx?.ApprovedQuantity ?? 0;
 }
 
 <div class="cp-page-header">
@@ -45,8 +46,19 @@
 
             <div class="cp-grid-2">
                 <div class="cp-form-group">
-                    <label asp-for="ReleasedQuantity" class="cp-form-label">Released Quantity <span class="required">*</span></label>
-                    <input asp-for="ReleasedQuantity" type="number" min="1" class="cp-input" />
+                    @if (remaining == 1)
+                    {
+                        <span class="cp-form-label" id="relQtyLabel">Released Quantity</span>
+                        <div class="cp-input cp-input-static" aria-labelledby="relQtyLabel" aria-describedby="relQtyHint">1 unit</div>
+                        <input type="hidden" name="ReleasedQuantity" value="1" />
+                        <div class="cp-form-hint" id="relQtyHint">Only 1 unit is left to release.</div>
+                    }
+                    else
+                    {
+                        <label asp-for="ReleasedQuantity" class="cp-form-label">Released Quantity <span class="required">*</span></label>
+                        <input asp-for="ReleasedQuantity" type="number" min="1" max="@remaining" class="cp-input" aria-describedby="relQtyHint" />
+                        <div class="cp-form-hint" id="relQtyHint">Up to @remaining units; any rest can be released later.</div>
+                    }
                 </div>
                 <div class="cp-form-group">
                     <label asp-for="ReleaseConditionId" class="cp-form-label">Condition at Release <span class="required">*</span></label>

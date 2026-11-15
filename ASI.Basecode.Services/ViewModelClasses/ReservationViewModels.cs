@@ -190,6 +190,13 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public int TotalQuantity { get; set; }
 
         public int AvailableUnits { get; set; }
+
+        public int MaxUnitsPerBorrower { get; set; }
+
+        public bool IsUnderMaintenance { get; set; }
+
+        /// <summary>The most units this borrower can request right now (policy cap and stock).</summary>
+        public int MaxSelectable => this.IsUnderMaintenance ? 0 : System.Math.Max(0, System.Math.Min(this.MaxUnitsPerBorrower, this.AvailableUnits));
     }
 
     /// <summary>

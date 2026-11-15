@@ -57,6 +57,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string AdditionalNotes { get; set; }
         public DateTime SubmittedAtUtc { get; set; }
         public bool CanApprove { get; set; }
+
+        /// <summary>Why a PENDING request can't be approved right now (shown next to the disabled button).</summary>
+        public string ApproveBlockedReason { get; set; }
         public bool CanReject { get; set; }
     }
 

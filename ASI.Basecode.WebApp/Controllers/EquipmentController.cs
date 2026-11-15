@@ -213,6 +213,15 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.View(entity);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult AdjustStock(long id, string adjustment, int quantity, string note)
+        {
+            var (success, error) = this._equipmentService.AdjustStock(id, adjustment, quantity, note);
+            this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Stock updated." : error;
+            return this.RedirectToAction(nameof(this.Details), new { id });
+        }
+
         /// <summary>
         /// Printable QR label. The code opens Custodian/Scan for the asset, which lists the
         /// releases and returns waiting on it.

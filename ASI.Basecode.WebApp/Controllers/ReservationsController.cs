@@ -78,6 +78,13 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.RedirectToAction(nameof(this.Available));
             }
 
+            var blocked = model.CanReserve ? this._reservationService.GetReserveBlockReason(id) : null;
+            if (blocked != null)
+            {
+                model.CanReserve = false;
+                model.UnavailableReason = blocked;
+            }
+
             return this.View(model);
         }
 

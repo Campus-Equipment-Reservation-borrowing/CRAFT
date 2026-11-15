@@ -86,20 +86,28 @@ namespace ASI.Basecode.Services.Services
             }
 
             var row = this.MapToAvailabilityRow(entity);
+            var summary = new ReservationEquipmentSummaryViewModel
+            {
+                EquipmentId = row.EquipmentId,
+                EquipmentName = row.EquipmentName,
+                AssetCode = row.AssetCode,
+                CategoryName = row.CategoryName,
+                LocationName = row.LocationName,
+                ConditionName = row.ConditionName,
+                TotalQuantity = row.TotalQuantity,
+                AvailableUnits = row.AvailableUnits,
+                MaxUnitsPerBorrower = this.GetActivePolicy().MaxUnitsPerBorrower,
+                IsUnderMaintenance = string.Equals(entity.OperationalStatus?.Code, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase),
+            };
+
             return new ReservationFormContextViewModel
             {
-                Form = new ReservationFormViewModel { EquipmentId = entity.EquipmentId },
-                Equipment = new ReservationEquipmentSummaryViewModel
+                Form = new ReservationFormViewModel
                 {
-                    EquipmentId = row.EquipmentId,
-                    EquipmentName = row.EquipmentName,
-                    AssetCode = row.AssetCode,
-                    CategoryName = row.CategoryName,
-                    LocationName = row.LocationName,
-                    ConditionName = row.ConditionName,
-                    TotalQuantity = row.TotalQuantity,
-                    AvailableUnits = row.AvailableUnits,
+                    EquipmentId = entity.EquipmentId,
+                    Quantity = summary.MaxSelectable >= 1 ? 1 : null,
                 },
+                Equipment = summary,
             };
         }
 

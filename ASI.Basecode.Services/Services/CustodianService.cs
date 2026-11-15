@@ -69,8 +69,22 @@ namespace ASI.Basecode.Services.Services
                 return null;
             }
 
+            string approveBlocked = null;
+            if (entity.Status.Code == "PENDING")
+            {
+                if (!this.IsBorrowerActive(entity.BorrowerUserId))
+                {
+                    approveBlocked = ErrorMessages.CustodianBorrowerNotActive;
+                }
+                else if (entity.RequestedStartAtUtc < DateTime.UtcNow)
+                {
+                    approveBlocked = ErrorMessages.CustodianPickupPassed;
+                }
+            }
+
             return new ReservationReviewViewModel
             {
+                ApproveBlockedReason = approveBlocked,
                 AssignedCustodianName = entity.AssignedCustodianUser == null ? null : entity.AssignedCustodianUser.FirstName + " " + entity.AssignedCustodianUser.LastName,
                 CanClaim = entity.AssignedCustodianUserId == null && (entity.Status.Code == "PENDING" || entity.Status.Code == "APPROVED"),
                 ReservationId = entity.ReservationId,
@@ -93,7 +107,7 @@ namespace ASI.Basecode.Services.Services
                 ExpectedReturnAtUtc = entity.ExpectedReturnAtUtc,
                 Purpose = entity.Purpose,
                 SubmittedAtUtc = entity.SubmittedAtUtc,
-                CanApprove = entity.Status.Code == "PENDING",
+                CanApprove = entity.Status.Code == "PENDING" && approveBlocked == null,
                 CanReject = entity.Status.Code == "PENDING",
             };
         }

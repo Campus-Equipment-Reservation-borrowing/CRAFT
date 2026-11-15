@@ -22,6 +22,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string AssetCode { get; set; }
         public int ReleasedQuantity { get; set; }
         public int AlreadyReturned { get; set; }
+
+        /// <summary>Units still with the borrower.</summary>
+        public int OutstandingQuantity => System.Math.Max(0, this.ReleasedQuantity - this.AlreadyReturned);
+
+        /// <summary>Returned units not yet covered by a completed inspection.</summary>
+        public int InspectableQuantity { get; set; }
         public DateTime DueAtUtc { get; set; }
         public bool IsOverdue { get; set; }
         public int DaysOverdue { get; set; }

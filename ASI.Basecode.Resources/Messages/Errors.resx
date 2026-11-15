@@ -348,4 +348,10 @@
   <data name="SettingsLocationInUse" xml:space="preserve">
     <value>This location can't be deleted while equipment is stored there.</value>
   </data>
+  <data name="EquipmentHasOpenReservations" xml:space="preserve">
+    <value>This item has {0} open reservation(s). Cancel or complete them before deactivating it or putting it under maintenance.</value>
+  </data>
+  <data name="EquipmentAdjustInvalid" xml:space="preserve">
+    <value>Enter a quantity between 1 and the units currently in that state.</value>
+  </data>
 </root>

@@ -5,6 +5,8 @@
 }
 @{
     var ctx = ViewBag.Context as ReturnFormContextViewModel;
+    var outstanding = ctx?.OutstandingQuantity ?? 0;
+    var inspectable = ctx?.InspectableQuantity ?? 0;
 }
 
 <div class="cp-page-header">
@@ -47,12 +49,29 @@
 
             <div class="cp-grid-2">
                 <div class="cp-form-group">
-                    <label asp-for="ReturnedQuantity" class="cp-form-label">Returned Quantity <span class="required">*</span></label>
-                    <input asp-for="ReturnedQuantity" type="number" min="1" class="cp-input" />
+                    @if (outstanding == 0)
+                    {
+                        <span class="cp-form-label" id="retQtyLabel">Returned Quantity</span>
+                        <div class="cp-input cp-input-static" aria-labelledby="retQtyLabel">Nothing left to return</div>
+                    }
+                    else if (outstanding == 1)
+                    {
+                        <span class="cp-form-label" id="retQtyLabel">Returned Quantity</span>
+                        <div class="cp-input cp-input-static" aria-labelledby="retQtyLabel" aria-describedby="retQtyHint">1 unit</div>
+                        <input type="hidden" name="ReturnedQuantity" value="1" />
+                        <div class="cp-form-hint" id="retQtyHint">Only 1 unit is still out.</div>
+                    }
+                    else
+                    {
+                        <label asp-for="ReturnedQuantity" class="cp-form-label">Returned Quantity <span class="required">*</span></label>
+                        <input asp-for="ReturnedQuantity" type="number" min="1" max="@outstanding" class="cp-input" aria-describedby="retQtyHint" />
+                        <div class="cp-form-hint" id="retQtyHint">Up to @outstanding units still out.</div>
+                    }
                 </div>
                 <div class="cp-form-group">
-                    <label asp-for="ReturnedAtUtc" class="cp-form-label">Return Date/Time</label>
-                    <input asp-for="ReturnedAtUtc" type="datetime-local" class="cp-input" />
+                    <span class="cp-form-label" id="retAtLabel">Return Date/Time</span>
+                    <div class="cp-input cp-input-static" aria-labelledby="retAtLabel" aria-describedby="retAtHint">Recorded when you save</div>
+                    <div class="cp-form-hint" id="retAtHint">Set by the system to the time the return is recorded.</div>
                 </div>
             </div>
 
@@ -63,10 +82,15 @@
 
             <div class="cp-page-actions">
                 <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
-                <button type="submit" class="cp-btn cp-btn-success">Record Return</button>
-                @if (ctx != null)
+                <button type="submit" class="cp-btn cp-btn-success" disabled="@(outstanding == 0)"
+                        title="@(outstanding == 0 ? "Every unit has already been returned" : null)">Record Return</button>
+                @if (ctx != null && inspectable > 0)
                 {
                     <a asp-action="Inspect" asp-route-id="@ctx.Form.BorrowingId" class="cp-btn cp-btn-primary">Record Inspection</a>
+                }
+                else if (ctx != null)
+                {
+                    <button type="button" class="cp-btn cp-btn-primary" disabled title="Record a return first; there are no returned units to inspect">Record Inspection</button>
                 }
             </div>
         </form>

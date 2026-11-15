@@ -752,5 +752,23 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("SettingsLocationInUse", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This item has {0} open reservation(s). Cancel or complete them before deactivating it or putting it under maintenance..
+        /// </summary>
+        public static string EquipmentHasOpenReservations {
+            get {
+                return ResourceManager.GetString("EquipmentHasOpenReservations", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter a quantity between 1 and the units currently in that state..
+        /// </summary>
+        public static string EquipmentAdjustInvalid {
+            get {
+                return ResourceManager.GetString("EquipmentAdjustInvalid", resourceCulture);
+            }
+        }
     }
 }

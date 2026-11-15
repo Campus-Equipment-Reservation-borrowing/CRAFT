@@ -1,3 +1,4 @@
+@using ASI.Basecode.Resources.Constants
 @using ASI.Basecode.Data.Models
 @model Equipment
 @{
@@ -68,7 +69,39 @@
                 <dt>Total Quantity</dt><dd>@balance.TotalQuantity</dd>
                 <dt>Reserved</dt><dd>@balance.ReservedQuantity</dd>
                 <dt>Released</dt><dd>@balance.ReleasedQuantity</dd>
+                <dt>Awaiting inspection</dt><dd>@balance.AwaitingInspectionQuantity</dd>
+                <dt>In maintenance</dt><dd>@balance.MaintenanceQuantity</dd>
+                <dt>Unreconciled (lost)</dt><dd>@balance.UnreconciledQuantity</dd>
             </dl>
+
+            @if (balance.MaintenanceQuantity > 0)
+            {
+                <form method="post" asp-action="AdjustStock" asp-route-id="@Model.EquipmentId" class="cp-adjust-form">
+                    @Html.AntiForgeryToken()
+                    <div class="cp-form-label">Units in maintenance</div>
+                    <div class="cp-inline-form">
+                        <label class="sr-only" for="maintQty">Quantity</label>
+                        <input id="maintQty" type="number" name="quantity" class="cp-input cp-input-qty" min="1" max="@balance.MaintenanceQuantity" value="1" required />
+                        <button type="submit" name="adjustment" value="@StockAdjustments.Repaired" class="cp-btn cp-btn-success cp-btn-sm">Mark repaired</button>
+                        <button type="submit" name="adjustment" value="@StockAdjustments.WriteOffDamaged" class="cp-btn cp-btn-danger cp-btn-sm"
+                                onclick="return confirm('Write these units off? The total quantity goes down permanently.');">Write off</button>
+                    </div>
+                </form>
+            }
+            @if (balance.UnreconciledQuantity > 0)
+            {
+                <form method="post" asp-action="AdjustStock" asp-route-id="@Model.EquipmentId" class="cp-adjust-form">
+                    @Html.AntiForgeryToken()
+                    <div class="cp-form-label">Units reported lost</div>
+                    <div class="cp-inline-form">
+                        <label class="sr-only" for="lostQty">Quantity</label>
+                        <input id="lostQty" type="number" name="quantity" class="cp-input cp-input-qty" min="1" max="@balance.UnreconciledQuantity" value="1" required />
+                        <button type="submit" name="adjustment" value="@StockAdjustments.Found" class="cp-btn cp-btn-success cp-btn-sm">Mark found</button>
+                        <button type="submit" name="adjustment" value="@StockAdjustments.WriteOffLost" class="cp-btn cp-btn-danger cp-btn-sm"
+                                onclick="return confirm('Write these units off? The total quantity goes down permanently.');">Write off</button>
+                    </div>
+                </form>
+            }
         }
     </div>
 </div>

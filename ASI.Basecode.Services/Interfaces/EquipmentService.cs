@@ -57,5 +57,11 @@ namespace ASI.Basecode.Services.Interfaces
         /// Condition codebook options (current condition and operational status share the table).
         /// </summary>
         List<LookupViewModel> GetConditionOptions();
+
+        /// <summary>
+        /// Moves units out of maintenance / unreconciled (<see cref="ASI.Basecode.Resources.Constants.StockAdjustments"/>):
+        /// back to available, or written off (total reduced).
+        /// </summary>
+        (bool Success, string Error) AdjustStock(long equipmentId, string action, int quantity, string note);
     }
 }
