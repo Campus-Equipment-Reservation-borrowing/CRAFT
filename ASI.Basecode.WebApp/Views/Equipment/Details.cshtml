@@ -17,7 +17,10 @@
     </div>
     <div class="cp-page-actions">
         <a asp-action="Label" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-secondary">Print QR label</a>
-        <a asp-action="Edit" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-primary">Edit</a>
+        @if (User.IsInRole("ADMIN"))
+        {
+            <a asp-action="Edit" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-primary">Edit</a>
+        }
     </div>
 </div>
 

@@ -149,6 +149,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
     {
         public long UserId { get; set; }
 
+        /// <summary>Short fingerprint of the current password hash (not the hash itself).</summary>
+        public string PasswordStamp { get; set; }
+
         public string FullName { get; set; }
 
         public string AccountIdentifier { get; set; }

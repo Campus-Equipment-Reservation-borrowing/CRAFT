@@ -101,5 +101,8 @@ namespace ASI.Basecode.Resources.Constants
 
         /// <summary>"1" while the account still uses an admin-issued temporary password.</summary>
         public const string MustChangePassword = "cp:must_change_password";
+
+        /// <summary>Fingerprint of the password hash; a reset elsewhere ends older sessions.</summary>
+        public const string PasswordStamp = "cp:pwd_stamp";
     }
 }

@@ -31,7 +31,7 @@ namespace ASI.Basecode.Services.Services
             this._unitOfWork = unitOfWork;
         }
 
-        public void Seed()
+        public void Seed(bool includeDemoData)
         {
             try
             {
@@ -52,7 +52,16 @@ namespace ASI.Basecode.Services.Services
             {
                 this.SeedCodebooks();
                 this.EnsureCodebookEntries();
-                this.SeedDemoData();
+                if (includeDemoData)
+                {
+                    this.SeedDemoData();
+                }
+
+                // Every account gets a default (all-on) notification preference row.
+                this.DbContext.Database.ExecuteSqlRaw(@"
+INSERT INTO dbo.user_preferences (user_id)
+SELECT u.user_id FROM dbo.users u
+WHERE NOT EXISTS (SELECT 1 FROM dbo.user_preferences p WHERE p.user_id = u.user_id);");
             }
             catch (Exception ex)
             {
@@ -671,12 +680,6 @@ END;");
             }
 
             this.SeedDemoCustodianAssignments();
-
-            // Every account gets a default (all-on) notification preference row.
-            this.DbContext.Database.ExecuteSqlRaw(@"
-INSERT INTO dbo.user_preferences (user_id)
-SELECT u.user_id FROM dbo.users u
-WHERE NOT EXISTS (SELECT 1 FROM dbo.user_preferences p WHERE p.user_id = u.user_id);");
 
             if (!db.Notifications.Any())
             {

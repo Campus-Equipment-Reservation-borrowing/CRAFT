@@ -79,6 +79,7 @@ namespace ASI.Basecode.WebApp.Controllers
             }
         }
 
+        [Authorize(Roles = RoleCodes.Admin)]
         public IActionResult Create()
         {
             this.ViewBag.CategoryOptions = this.ToSelectList(this._equipmentService.GetCategoryOptions(), null, "-- Select category --");
@@ -89,6 +90,7 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.View(new EquipmentFormViewModel());
         }
 
+        [Authorize(Roles = RoleCodes.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Create(EquipmentFormViewModel form, IFormFile imageFile)
@@ -130,6 +132,7 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.RedirectToAction(nameof(this.Index));
         }
 
+        [Authorize(Roles = RoleCodes.Admin)]
         public IActionResult Edit(long id)
         {
             var form = this._equipmentService.GetForEdit(id);
@@ -147,6 +150,7 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.View(form);
         }
 
+        [Authorize(Roles = RoleCodes.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Edit(long id, EquipmentFormViewModel form, IFormFile imageFile, bool removeImage = false)
@@ -227,6 +231,7 @@ namespace ASI.Basecode.WebApp.Controllers
             return this.View(entity);
         }
 
+        [Authorize(Roles = RoleCodes.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Delete(long id)

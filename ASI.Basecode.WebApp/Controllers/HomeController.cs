@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
@@ -19,6 +19,16 @@ namespace ASI.Basecode.WebApp.Controllers
                               IConfiguration configuration,
                               IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
+        }
+
+        /// <summary>Production exception handler target (UseExceptionHandler).</summary>
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return this.View(new ASI.Basecode.WebApp.Models.ErrorViewModel
+            {
+                RequestId = System.Diagnostics.Activity.Current?.Id ?? this.HttpContext.TraceIdentifier,
+            });
         }
 
         /// <summary>

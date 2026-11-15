@@ -10,9 +10,12 @@
         <h1 class="cp-page-title">Equipment Management</h1>
         <p class="cp-page-subtitle">System-wide equipment records, categories, locations and maintenance information.</p>
     </div>
-    <div class="cp-page-actions">
-        <a asp-action="Create" class="cp-btn cp-btn-primary">Add Equipment</a>
-    </div>
+    @if (User.IsInRole("ADMIN"))
+    {
+        <div class="cp-page-actions">
+            <a asp-action="Create" class="cp-btn cp-btn-primary">Add Equipment</a>
+        </div>
+    }
 </div>
 
 <div class="cp-kpi-grid">
@@ -98,11 +101,18 @@
                             }
                         </td>
                         <td class="cp-cell-actions">
-                            <a asp-action="Edit" asp-route-id="@eq.EquipmentId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
-                            <form method="post" asp-action="Delete" asp-route-id="@eq.EquipmentId" onsubmit="return confirm('Delete this equipment record?');">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
-                            </form>
+                            @if (User.IsInRole("ADMIN"))
+                            {
+                                <a asp-action="Edit" asp-route-id="@eq.EquipmentId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
+                                <form method="post" asp-action="Delete" asp-route-id="@eq.EquipmentId" onsubmit="return confirm('Delete this equipment record?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Delete</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <a asp-action="Details" asp-route-id="@eq.EquipmentId" class="cp-btn cp-btn-secondary cp-btn-sm">View</a>
+                            }
                         </td>
                     </tr>
                 }
