@@ -707,5 +707,50 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("CustodianActorRequired", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to That borrowing record doesn't exist or isn't yours to process..
+        /// </summary>
+        public static string ReturnNotFound {
+            get {
+                return ResourceManager.GetString("ReturnNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter a return quantity between 1 and the units still out..
+        /// </summary>
+        public static string ReturnQuantityInvalid {
+            get {
+                return ResourceManager.GetString("ReturnQuantityInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Every unit under this transaction has already been returned..
+        /// </summary>
+        public static string ReturnAlreadyComplete {
+            get {
+                return ResourceManager.GetString("ReturnAlreadyComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This category can't be deleted while equipment uses it..
+        /// </summary>
+        public static string SettingsCategoryInUse {
+            get {
+                return ResourceManager.GetString("SettingsCategoryInUse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This location can't be deleted while equipment is stored there..
+        /// </summary>
+        public static string SettingsLocationInUse {
+            get {
+                return ResourceManager.GetString("SettingsLocationInUse", resourceCulture);
+            }
+        }
     }
 }

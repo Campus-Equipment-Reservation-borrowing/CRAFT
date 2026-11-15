@@ -77,7 +77,7 @@ namespace ASI.Basecode.WebApp.Controllers
             }
             else
             {
-                this.TempData["ErrorMessage"] = "Category cannot be deleted (equipment references it).";
+                this.TempData["ErrorMessage"] = error;
             }
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -109,7 +109,7 @@ namespace ASI.Basecode.WebApp.Controllers
             }
             else
             {
-                this.TempData["ErrorMessage"] = "Location cannot be deleted (equipment references it).";
+                this.TempData["ErrorMessage"] = error;
             }
             return this.RedirectToAction(nameof(this.Index));
         }

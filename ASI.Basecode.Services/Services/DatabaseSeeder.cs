@@ -33,25 +33,26 @@ namespace ASI.Basecode.Services.Services
 
         public void Seed(bool includeDemoData)
         {
-            try
-            {
-                this.EnsureAuthSchema();
-            }
-            catch (Exception ex)
-            {
-                this._logger.LogError(ex, "Database seeding failed while ensuring the auth schema.");
-            }
-
-            // Each feature schema step is isolated so one failure doesn't block the others.
-            this.RunSchemaStep("account lifecycle", this.EnsureAccountLifecycleSchema);
-            this.RunSchemaStep("custodian assignments", this.EnsureCustodianAssignmentSchema);
-            this.RunSchemaStep("reservation lifecycle", this.EnsureLifecycleSchema);
-            this.RunSchemaStep("announcements and support", this.EnsureCommunicationSchema);
-
-            try
+            // Schema and codebooks are required: every step runs and logs, then startup stops if
+            // any failed, rather than serving requests that would fail later on missing columns.
+            var failures = 0;
+            failures += this.RunSchemaStep("auth", this.EnsureAuthSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("account lifecycle", this.EnsureAccountLifecycleSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("custodian assignments", this.EnsureCustodianAssignmentSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("reservation lifecycle", this.EnsureLifecycleSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("announcements and support", this.EnsureCommunicationSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("codebooks", () =>
             {
                 this.SeedCodebooks();
                 this.EnsureCodebookEntries();
+            }) ? 0 : 1;
+            if (failures > 0)
+            {
+                throw new InvalidOperationException($"{failures} database setup step(s) failed; see the log above.");
+            }
+
+            try
+            {
                 if (includeDemoData)
                 {
                     this.SeedDemoData();
@@ -130,15 +131,20 @@ WHERE NOT EXISTS (SELECT 1 FROM dbo.user_preferences p WHERE p.user_id = u.user_
             }
         }
 
-        private void RunSchemaStep(string name, Action step)
+        private bool RunSchemaStep(string name, Action step)
         {
             try
             {
                 step();
+                return true;
             }
             catch (Exception ex)
             {
                 this._logger.LogError(ex, "Database schema step '{Step}' failed.", name);
+
+                // Don't let entities from the failed step be retried by every later SaveChanges.
+                this.DbContext.ChangeTracker.Clear();
+                return false;
             }
         }
 

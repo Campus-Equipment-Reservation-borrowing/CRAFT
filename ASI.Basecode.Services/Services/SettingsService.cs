@@ -62,6 +62,14 @@ namespace ASI.Basecode.Services.Services
                 return (false, ErrorMessages.ServerError);
             }
 
+            if (form.MaxBorrowDurationDays < 1 || form.MaxBorrowDurationDays > 60
+                || form.MaxActiveBorrowingUnits < 1 || form.MaxActiveBorrowingUnits > 20
+                || form.OverdueGracePeriodMinutes < 0 || form.OverdueGracePeriodMinutes > 1440
+                || form.LowStockThreshold < 0 || form.LowStockThreshold > 100)
+            {
+                return (false, ErrorMessages.SettingsValueOutOfRange);
+            }
+
             try
             {
                 // versioning: never update — create a new row, mark previous current=false
@@ -140,7 +148,7 @@ namespace ASI.Basecode.Services.Services
         {
             if (this._repository.CategoryHasEquipment(categoryId))
             {
-                return (false, ErrorMessages.ServerError);
+                return (false, ErrorMessages.SettingsCategoryInUse);
             }
             try
             {
@@ -189,7 +197,7 @@ namespace ASI.Basecode.Services.Services
         {
             if (this._repository.LocationHasEquipment(locationId))
             {
-                return (false, ErrorMessages.ServerError);
+                return (false, ErrorMessages.SettingsLocationInUse);
             }
             try
             {

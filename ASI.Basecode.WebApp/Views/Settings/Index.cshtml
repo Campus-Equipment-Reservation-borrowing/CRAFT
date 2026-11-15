@@ -21,15 +21,15 @@
                 <div class="cp-profile-grid">
                     <div class="cp-form-group">
                         <label asp-for="Policy.MaxBorrowDurationDays" class="cp-form-label">Max Borrow Days</label>
-                        <input asp-for="Policy.MaxBorrowDurationDays" type="number" min="1" class="cp-input" />
+                        <input asp-for="Policy.MaxBorrowDurationDays" type="number" min="1" max="60" class="cp-input" />
                     </div>
                     <div class="cp-form-group">
                         <label asp-for="Policy.MaxActiveBorrowingUnits" class="cp-form-label">Max Active Units</label>
-                        <input asp-for="Policy.MaxActiveBorrowingUnits" type="number" min="1" class="cp-input" />
+                        <input asp-for="Policy.MaxActiveBorrowingUnits" type="number" min="1" max="20" class="cp-input" />
                     </div>
                     <div class="cp-form-group">
                         <label asp-for="Policy.OverdueGracePeriodMinutes" class="cp-form-label">Overdue Grace (min)</label>
-                        <input asp-for="Policy.OverdueGracePeriodMinutes" type="number" min="0" class="cp-input" />
+                        <input asp-for="Policy.OverdueGracePeriodMinutes" type="number" min="0" max="1440" class="cp-input" />
                     </div>
                     <div class="cp-form-group">
                         <label asp-for="Policy.LowStockThreshold" class="cp-form-label">Low Stock Threshold</label>

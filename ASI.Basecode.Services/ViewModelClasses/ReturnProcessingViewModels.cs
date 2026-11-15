@@ -64,6 +64,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public decimal? RepairCost { get; set; }
         public decimal? PenaltyAmount { get; set; }
         public string PenaltyNote { get; set; }
+
+        /// <summary>Set by the service when some photos were not stored (shown after saving).</summary>
+        public string PhotoWarning { get; set; }
     }
 
     public class InspectionFormContextViewModel

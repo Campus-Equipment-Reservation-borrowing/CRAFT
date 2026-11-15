@@ -199,6 +199,12 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Release(ReleaseFormViewModel form)
         {
+            if (this._custodianService.GetReleaseContext(form?.ReservationId ?? 0) == null)
+            {
+                this.TempData["ErrorMessage"] = ASI.Basecode.Resources.Messages.Errors.CustodianReservationNotFound;
+                return this.RedirectToAction(nameof(this.Reservations));
+            }
+
             if (!this.ModelState.IsValid)
             {
                 var ctx = this._custodianService.GetReleaseContext(form.ReservationId);
@@ -212,6 +218,12 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 this.ModelState.AddModelError(string.Empty, error);
                 var ctx = this._custodianService.GetReleaseContext(form.ReservationId);
+                if (ctx == null || !ctx.CanRelease)
+                {
+                    this.TempData["ErrorMessage"] = error;
+                    return this.RedirectToAction(nameof(this.Reservations));
+                }
+
                 this.ViewBag.ConditionOptions = this.ToSelectList(ctx.ConditionOptions, form.ReleaseConditionId, "-- Select condition --");
                 this.ViewBag.Context = ctx;
                 return this.View(form);

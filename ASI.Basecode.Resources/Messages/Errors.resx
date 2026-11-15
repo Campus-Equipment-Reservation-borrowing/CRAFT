@@ -333,4 +333,19 @@
   <data name="CustodianActorRequired" xml:space="preserve">
     <value>Your session has no signed-in user. Sign in again and retry.</value>
   </data>
+  <data name="ReturnNotFound" xml:space="preserve">
+    <value>That borrowing record doesn't exist or isn't yours to process.</value>
+  </data>
+  <data name="ReturnQuantityInvalid" xml:space="preserve">
+    <value>Enter a return quantity between 1 and the units still out.</value>
+  </data>
+  <data name="ReturnAlreadyComplete" xml:space="preserve">
+    <value>Every unit under this transaction has already been returned.</value>
+  </data>
+  <data name="SettingsCategoryInUse" xml:space="preserve">
+    <value>This category can't be deleted while equipment uses it.</value>
+  </data>
+  <data name="SettingsLocationInUse" xml:space="preserve">
+    <value>This location can't be deleted while equipment is stored there.</value>
+  </data>
 </root>
