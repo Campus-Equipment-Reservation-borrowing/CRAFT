@@ -509,13 +509,8 @@ namespace ASI.Basecode.Services.Services
         /// </summary>
         private int RemainingHold(Reservation entity)
         {
-            if (entity.Status?.Code == "PENDING")
-            {
-                return entity.RequestedQuantity;
-            }
-
-            var approved = entity.ApprovedQuantity > 0 ? entity.ApprovedQuantity : entity.RequestedQuantity;
-            return Math.Max(0, approved - this._repository.SumReleasedForReservation(entity.ReservationId));
+            return ReservationRules.RemainingHold(
+                entity, entity.Status?.Code, this._repository.SumReleasedForReservation(entity.ReservationId));
         }
 
         /// <summary>Returns held units to the available pool. Returns how many were released.</summary>

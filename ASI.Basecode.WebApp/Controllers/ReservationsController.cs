@@ -87,6 +87,13 @@ namespace ASI.Basecode.WebApp.Controllers
         [Authorize(Roles = RoleCodes.Borrower)]
         public IActionResult New(long id)
         {
+            var blocked = this._reservationService.GetReserveBlockReason(id);
+            if (blocked != null)
+            {
+                this.TempData["ErrorMessage"] = blocked;
+                return this.RedirectToAction(nameof(this.EquipmentDetails), new { id });
+            }
+
             var context = this._reservationService.GetReservationFormViewModel(id);
             if (context == null)
             {
@@ -103,6 +110,13 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult New(ReservationFormViewModel form)
         {
+            var blocked = this._reservationService.GetReserveBlockReason(form?.EquipmentId);
+            if (blocked != null)
+            {
+                this.TempData["ErrorMessage"] = blocked;
+                return this.RedirectToAction(nameof(this.EquipmentDetails), new { id = form?.EquipmentId ?? 0 });
+            }
+
             // Server-side check for the quantity floor — [Range] is intentionally not used
             // because business limits come from the policy, not from view-annotations.
             if (form.Quantity is null || form.Quantity < 1)

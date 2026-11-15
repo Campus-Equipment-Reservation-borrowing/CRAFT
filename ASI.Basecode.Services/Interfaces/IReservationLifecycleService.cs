@@ -8,6 +8,7 @@ namespace ASI.Basecode.Services.Interfaces
         public int Expired { get; set; }
         public int MarkedOverdue { get; set; }
         public int DueReminders { get; set; }
+        public int ExpiryWarnings { get; set; }
     }
 
     /// <summary>

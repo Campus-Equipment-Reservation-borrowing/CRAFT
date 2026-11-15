@@ -27,7 +27,7 @@
             <div class="cp-card-header">Reservation Details</div>
             <dl class="cp-kv">
                 <dt>Reservation #</dt><dd class="cp-mono">@Model.ReservationNumber</dd>
-                <dt>Status</dt><dd><span class="@StatusBadge.Css(Model.StatusCode)">@Model.StatusDescription</span></dd>
+                <dt>Status</dt><dd><span class="@StatusBadge.Css(Model.StatusCode)">@Model.StatusDescription</span> <partial name="_ExpiryBadge" model="@((Model.StatusCode, Model.SubmittedAtUtc, Model.RequestedStartAtUtc))" /></dd>
                 <dt>Custodian</dt>
                 <dd>
                     @if (Model.AssignedCustodianName == null)
