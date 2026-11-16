@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 372 80" role="img" aria-labelledby="t">
+  <title id="t">CRAFT: Campus Reservation and Asset Flow Tracker</title>
+  <defs>
+    <linearGradient id="craftBg" x1="6" y1="4" x2="58" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#168A5B"/><stop offset="1" stop-color="#0B5D3E"/>
+    </linearGradient>
+  </defs><rect width="372" height="80" rx="18" fill="url(#craftBg)"/><g transform="translate(8 8)"><path d="M45.50 15.91 A21.0 21.0 0 1 0 43.13 49.81" fill="none" stroke="#FFFFFF" stroke-width="5.2" stroke-linecap="round"/>
+  <path d="M50.42 45.25 L44.92 54.94 L39.30 45.95 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M32.00 21.40 L41.18 26.70 L32.00 32.00 L22.82 26.70 Z" fill="#FFFFFF"/>
+  <path d="M22.82 26.70 L32.00 32.00 L32.00 42.60 L22.82 37.30 Z" fill="#A9D8C2"/>
+  <path d="M32.00 32.00 L41.18 26.70 L41.18 37.30 L32.00 42.60 Z" fill="#CEE7D9"/>
+  <circle cx="51.18" cy="23.46" r="3.7" fill="#E8C87E"/></g>
+  <text x="88" y="45" font-family="Inter, Manrope, 'DM Sans', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="-0.8" fill="#FFFFFF">CRAFT</text>
+  <rect x="89" y="53" width="22" height="3" rx="1.5" fill="#E8C87E"/>
+  <text x="117" y="57" font-family="Inter, Manrope, 'DM Sans', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="7.6" font-weight="700" letter-spacing="1.1" fill="#A9D8C2">CAMPUS RESERVATION · ASSET FLOW TRACKER</text>
+</svg>

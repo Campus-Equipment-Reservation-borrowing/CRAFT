@@ -7,6 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - CRAFT: Campus Reservation and Asset Flow Tracker</title>
+    <partial name="_BrandHead" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -19,7 +20,7 @@
         <!-- Top bar -->
         <nav class="cp-auth-nav">
             <a href="/" class="cp-auth-brand">
-                <div class="cp-logo">CR</div>
+                <div class="cp-logo"><img src="~/img/brand/craft-mark.svg" alt="" width="38" height="38" /></div>
                 <div>
                     <div class="cp-topbar-title">CRAFT</div>
                     <div class="cp-topbar-subtitle">Campus Reservation and Asset Flow Tracker</div>
@@ -44,6 +45,7 @@
     </div>
     <script src="https://kit.fontawesome.com/7a7c645416.js" crossorigin="anonymous"></script>
     <script src="~/js/submit-guard.js" asp-append-version="true"></script>
+    <script src="~/js/password-toggle.js" asp-append-version="true"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

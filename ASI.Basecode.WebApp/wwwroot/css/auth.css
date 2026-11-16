@@ -159,3 +159,62 @@
     border: 1px solid #F1DDB4;
     color: var(--color-warning);
 }
+
+/* Remember me / Forgot password row (auth layout has no Bootstrap utilities) */
+.cp-auth-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.cp-auth-remember {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--color-text-gray);
+    cursor: pointer;
+}
+.cp-auth-remember input {
+    margin: 0;
+    accent-color: var(--color-primary);
+}
+
+/* Password field with show/hide toggle */
+.cp-password-field {
+    position: relative;
+}
+.cp-password-field .cp-input {
+    padding-right: 44px;
+}
+.cp-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text-gray);
+    cursor: pointer;
+}
+.cp-password-toggle:hover {
+    color: var(--color-primary);
+}
+.cp-password-toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+.cp-password-toggle .cp-eye-closed { display: none; }
+.cp-password-toggle[aria-pressed="true"] .cp-eye-open { display: none; }
+.cp-password-toggle[aria-pressed="true"] .cp-eye-closed { display: inline; }
+/* Hide the browser's own reveal button so only one eye shows (Edge) */
+.cp-password-field input::-ms-reveal { display: none; }

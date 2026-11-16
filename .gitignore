@@ -197,3 +197,6 @@ $RECYCLE.BIN/
 node_modules
 */src/*/Scripts/**/*.js
 */src/*/Scripts/**/*.js.map
+# Claude Code local settings and dev launcher
+.claude/settings.local.json
+.claude/run-craft.sh

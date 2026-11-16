@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="t">
+  <title id="t">CRAFT</title>
+  <defs><linearGradient id="craftBg" x1="6" y1="4" x2="58" y2="62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#168A5B"/><stop offset="1" stop-color="#0B5D3E"/></linearGradient><linearGradient id="craftPanel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#168A5B"/><stop offset=".7" stop-color="#0B5D3E"/></linearGradient></defs>
+  <path d="M45.50 15.91 A21.0 21.0 0 1 0 43.13 49.81" fill="none" stroke="#17251E" stroke-width="5.2" stroke-linecap="round"/>
+  <path d="M50.42 45.25 L44.92 54.94 L39.30 45.95 Z" fill="#17251E" stroke="#17251E" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M32.00 21.40 L41.18 26.70 L32.00 32.00 L22.82 26.70 Z" fill="#17251E"/>
+  <path d="M22.82 26.70 L32.00 32.00 L32.00 42.60 L22.82 37.30 Z" fill="#17251E" fill-opacity="0.72"/>
+  <path d="M32.00 32.00 L41.18 26.70 L41.18 37.30 L32.00 42.60 Z" fill="#17251E" fill-opacity="0.86"/>
+  <circle cx="51.18" cy="23.46" r="3.7" fill="#17251E"/>
+</svg>
