@@ -23,6 +23,7 @@ namespace ASI.Basecode.Services.Seeding
 
         private readonly IUnitOfWork _unitOfWork;
 
+        // Bootstrap SQL and seeding are this class's job, so it intentionally uses the EF context directly instead of repositories.
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
         public DatabaseSeeder(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork)

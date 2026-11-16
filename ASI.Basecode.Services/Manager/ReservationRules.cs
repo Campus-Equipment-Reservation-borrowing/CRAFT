@@ -1,4 +1,3 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Models;
 using System;
 using System.Linq;
@@ -37,13 +36,6 @@ namespace ASI.Basecode.Services.Manager
 
             var approved = reservation.ApprovedQuantity > 0 ? reservation.ApprovedQuantity : reservation.RequestedQuantity;
             return Math.Max(0, approved - releasedSoFar);
-        }
-
-        public static int ReleasedSoFar(AllianceDbContext db, long reservationId)
-        {
-            return db.Borrowings
-                .Where(b => b.ReservationId == reservationId)
-                .Sum(b => (int?)b.ReleasedQuantity) ?? 0;
         }
 
         /// <summary>
