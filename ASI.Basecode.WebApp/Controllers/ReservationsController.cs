@@ -45,7 +45,8 @@ namespace ASI.Basecode.WebApp.Controllers
         /// Search matches name, asset code or category; filter narrows to a category.
         /// </summary>
         [Authorize(Roles = RoleCodes.Borrower)]
-        public IActionResult Available(string search, long? category, int page = 1, int pageSize = 10)
+        // 12 per page fills whole rows at every grid width (4, 3, 2 or 1 columns; see .cp-equip-grid).
+        public IActionResult Available(string search, long? category, int page = 1, int pageSize = 12)
         {
             try
             {
@@ -108,6 +109,14 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.RedirectToAction(nameof(this.Available));
             }
 
+            // Don't offer the form for items that can't be reserved (maintenance, damaged, none free).
+            var details = this._reservationService.GetEquipmentDetailsViewModel(id);
+            if (details != null && !details.CanReserve)
+            {
+                this.TempData["ErrorMessage"] = details.UnavailableReason;
+                return this.RedirectToAction(nameof(this.EquipmentDetails), new { id });
+            }
+
             this.PopulateFormContext(context.Form);
             return this.View(context);
         }
@@ -126,9 +135,37 @@ namespace ASI.Basecode.WebApp.Controllers
 
             // Server-side check for the quantity floor — [Range] is intentionally not used
             // because business limits come from the policy, not from view-annotations.
-            if (form.Quantity is null || form.Quantity < 1)
+            if (form.Quantity is not null && form.Quantity < 1)
             {
-                this.ModelState.AddModelError("Quantity", ErrorMessages.ReservationQuantityInvalid);
+                this.ModelState.AddModelError("Form.Quantity", ErrorMessages.ReservationQuantityInvalid);
+            }
+
+            if (!form.AcknowledgeRules)
+            {
+                this.ModelState.AddModelError("Form.AcknowledgeRules", "You must accept the borrowing rules.");
+            }
+
+            if (!form.AcknowledgeResponsibility)
+            {
+                this.ModelState.AddModelError("Form.AcknowledgeResponsibility", "You must accept responsibility for overdue items.");
+            }
+
+            var summary = this._reservationService.GetReservationFormViewModel(form.EquipmentId)?.Equipment;
+            if (summary != null && form.Quantity is not null && form.Quantity > summary.MaxUnitsPerBorrower)
+            {
+                this.ModelState.AddModelError("Form.Quantity", $"You can borrow at most {summary.MaxUnitsPerBorrower} units.");
+            }
+            else if (summary != null && form.Quantity is not null && form.Quantity > summary.AvailableUnits)
+            {
+                this.ModelState.AddModelError("Form.Quantity", $"Only {summary.AvailableUnits} units are available.");
+            }
+
+            if (form.BorrowingDate.HasValue && form.BorrowingTime.HasValue
+                && form.ExpectedReturnDate.HasValue && form.ExpectedReturnTime.HasValue
+                && form.ExpectedReturnDate.Value.ToDateTime(form.ExpectedReturnTime.Value)
+                    <= form.BorrowingDate.Value.ToDateTime(form.BorrowingTime.Value))
+            {
+                this.ModelState.AddModelError("Form.ExpectedReturnDate", "The return must be after the borrowing date and time.");
             }
 
             if (!this.ModelState.IsValid)

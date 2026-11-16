@@ -26,12 +26,12 @@ namespace ASI.Basecode.Services.Services
             this._emailSender = emailSender;
         }
 
-        public int Notify(long recipientUserId, string notificationType, string title, string message)
+        public int Notify(long recipientUserId, string notificationType, string title, string message, string linkUrl = null)
         {
-            return this.Notify(new[] { recipientUserId }, notificationType, title, message);
+            return this.Notify(new[] { recipientUserId }, notificationType, title, message, linkUrl);
         }
 
-        public int Notify(IEnumerable<long> recipientUserIds, string notificationType, string title, string message)
+        public int Notify(IEnumerable<long> recipientUserIds, string notificationType, string title, string message, string linkUrl = null)
         {
             var ids = recipientUserIds?.Where(id => id > 0).Distinct().ToList() ?? new List<long>();
             if (ids.Count == 0)
@@ -59,8 +59,10 @@ namespace ASI.Basecode.Services.Services
                 {
                     RecipientUserId = recipient.UserId,
                     NotificationType = notificationType,
-                    Title = title,
-                    Message = message,
+                    // Column limits: a long announcement body or quoted note must not fail the caller.
+                    Title = Truncate(title, 200),
+                    Message = Truncate(message, 1000),
+                    LinkUrl = linkUrl,
                     IsRead = false,
                     CreatedAtUtc = now,
                 });
@@ -122,5 +124,8 @@ namespace ASI.Basecode.Services.Services
                 _ => true,
             };
         }
+
+        private static string Truncate(string value, int max)
+            => value != null && value.Length > max ? value.Substring(0, max - 3) + "..." : value;
     }
 }

@@ -136,7 +136,10 @@ namespace ASI.Basecode.Data.Repositories
             var referencesSupport = this.Context.SupportTickets.Any(t => t.RequesterUserId == userId)
                 || this.Context.SupportTicketReplies.Any(r => r.AuthorUserId == userId);
 
-            return referencesBorrowing || referencesReservation || referencesMovement || referencesSupport;
+            var referencesReturn = this.Context.BorrowingReturns.Any(r => r.ReceivedByUserId == userId)
+                || this.Context.ConditionInspections.Any(i => i.InspectedByUserId == userId);
+
+            return referencesBorrowing || referencesReservation || referencesMovement || referencesSupport || referencesReturn;
         }
 
         public UserTotals GetTotals()

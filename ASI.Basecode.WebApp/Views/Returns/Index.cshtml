@@ -12,8 +12,8 @@
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" asp-action="Index" style="display:contents;">
-        <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by borrower, equipment or transaction..." />
+    <form method="get" asp-action="Index" class="cp-contents">
+        <input type="text" name="search" aria-label="Search" maxlength="100" value="@Model.Search" class="cp-input" placeholder="Search by borrower, equipment or transaction..." />
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
@@ -38,6 +38,7 @@ else
                     <th>Returned At</th>
                     <th>Timeliness</th>
                     <th>Received By</th>
+                    <th class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -63,6 +64,16 @@ else
                             }
                         </td>
                         <td>@(r.ReceivedBy ?? "—")</td>
+                        <td class="text-center">
+                            @if (r.NeedsInspection)
+                            {
+                                <a asp-action="Inspect" asp-route-id="@r.BorrowingId" class="cp-btn cp-btn-primary cp-btn-sm">Inspect</a>
+                            }
+                            else
+                            {
+                                <span class="cp-cell-sub">Inspected</span>
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>

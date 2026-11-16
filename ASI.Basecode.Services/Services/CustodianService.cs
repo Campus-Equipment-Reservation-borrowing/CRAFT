@@ -3,6 +3,7 @@ using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
@@ -80,6 +81,10 @@ namespace ASI.Basecode.Services.Services
                 {
                     approveBlocked = ErrorMessages.CustodianPickupPassed;
                 }
+                else if (IsOutOfService(entity.Equipment))
+                {
+                    approveBlocked = ErrorMessages.CustodianApproveEquipmentOutOfService;
+                }
             }
 
             return new ReservationReviewViewModel
@@ -112,8 +117,32 @@ namespace ASI.Basecode.Services.Services
             };
         }
 
+        /// <summary>
+        /// True when the equipment's availability status is anything other than Available
+        /// (under maintenance, broken or retired). Such items can't be approved or released.
+        /// </summary>
+        private static bool IsOutOfService(Equipment equipment)
+        {
+            var status = equipment?.OperationalStatus?.Code;
+            return status != null && !string.Equals(status, "AVAILABLE", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Longest note or reason accepted; it is quoted into audit and notification text.</summary>
+        private const int MaxNoteLength = 500;
+
+        private static string NoteTooLong(string text, string label)
+            => text != null && text.Trim().Length > MaxNoteLength
+                ? $"{label} must be at most {MaxNoteLength} characters."
+                : null;
+
         public (bool Success, string Error) Approve(long reservationId, string notes)
         {
+            var notesError = NoteTooLong(notes, "Approval notes");
+            if (notesError != null)
+            {
+                return (false, notesError);
+            }
+
             try
             {
                 var entity = this._repository.GetReservationWithDetails(reservationId);
@@ -136,6 +165,11 @@ namespace ASI.Basecode.Services.Services
                 if (entity.RequestedStartAtUtc < DateTime.UtcNow)
                 {
                     return (false, ErrorMessages.CustodianPickupPassed);
+                }
+                // The item may have gone under maintenance (or been retired) after the request was made.
+                if (IsOutOfService(entity.Equipment))
+                {
+                    return (false, ErrorMessages.CustodianApproveEquipmentOutOfService);
                 }
                 this.ClaimIfPooled(entity);
 
@@ -174,6 +208,12 @@ namespace ASI.Basecode.Services.Services
             if (string.IsNullOrWhiteSpace(reason))
             {
                 return (false, ErrorMessages.CustodianRejectReasonRequired);
+            }
+
+            var reasonError = NoteTooLong(reason, "The reason");
+            if (reasonError != null)
+            {
+                return (false, reasonError);
             }
 
             try
@@ -245,16 +285,27 @@ namespace ASI.Basecode.Services.Services
                 CanRelease = (entity.Status.Code == "APPROVED" || entity.Status.Code == "PARTIALLY_RELEASED") &&
                              this.RemainingHold(entity) > 0,
                 ConditionOptions = this.DbContext.Conditions.AsNoTracking()
+                    .Where(c => !NonReleasableConditions.Contains(c.Code))
                     .OrderBy(c => c.Code).Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description }).ToList(),
                 ActiveBorrowingExists = this._repository.CountActiveBorrowingsForReservation(reservationId) > 0,
             };
         }
+
+        /// <summary>Conditions that mean the item can't go out to a borrower.</summary>
+        private static readonly string[] NonReleasableConditions = { "DAMAGED", "LOST", "UNDER_MAINTENANCE" };
 
         public (bool Success, string Error, long BorrowingId) Release(ReleaseFormViewModel form)
         {
             if (form == null || form.ReleasedQuantity < 1 || !form.ReleaseConditionId.HasValue || form.ReleaseConditionId.Value < 1)
             {
                 return (false, ErrorMessages.CustodianReleaseQuantityInvalid, 0);
+            }
+
+            var conditionCode = this.DbContext.Conditions.AsNoTracking()
+                .Where(c => c.ConditionId == form.ReleaseConditionId.Value).Select(c => c.Code).FirstOrDefault();
+            if (conditionCode == null || NonReleasableConditions.Contains(conditionCode))
+            {
+                return (false, "Choose the condition the equipment is released in (damaged, lost or under-maintenance items can't be released).", 0);
             }
 
             try
@@ -289,6 +340,11 @@ namespace ASI.Basecode.Services.Services
                 if (!this.DbContext.Conditions.Any(c => c.ConditionId == form.ReleaseConditionId.Value))
                 {
                     return (false, ErrorMessages.InspectionConditionInvalid, 0);
+                }
+                var equipmentStatus = entity.Equipment?.OperationalStatus?.Code;
+                if (equipmentStatus != null && equipmentStatus != "AVAILABLE")
+                {
+                    return (false, ErrorMessages.CustodianReleaseEquipmentOutOfService, 0);
                 }
                 this.ClaimIfPooled(entity);
 
@@ -346,7 +402,7 @@ namespace ASI.Basecode.Services.Services
                     balance.ReleasedQuantity += form.ReleasedQuantity;
                 }
 
-                this.DbContext.InventoryMovements.Add(new InventoryMovement
+                var movement = new InventoryMovement
                 {
                     EquipmentId = entity.EquipmentId,
                     MovementType = "RELEASE",
@@ -355,7 +411,8 @@ namespace ASI.Basecode.Services.Services
                     Quantity = form.ReleasedQuantity,
                     ReferenceNumber = txn,
                     PerformedByUserId = borrowing.ReleasedByUserId,
-                });
+                };
+                this.DbContext.InventoryMovements.Add(movement);
 
                 // Fully released → COMPLETED; otherwise the rest stays held for a later release.
                 entity.HeldQuantity = Math.Max(0, maxQty - form.ReleasedQuantity);
@@ -370,7 +427,21 @@ namespace ASI.Basecode.Services.Services
                     entity.CompletedAtUtc = DateTime.UtcNow;
                 }
 
-                this._unitOfWork.SaveChanges();
+                // Another release can take the same number between generating and saving; retry with a fresh one.
+                for (var attempt = 1; ; attempt++)
+                {
+                    try
+                    {
+                        this._unitOfWork.SaveChanges();
+                        break;
+                    }
+                    catch (DbUpdateException ex) when (attempt < 5 && IsUniqueIndexViolation(ex, "UQ_borrowings_transaction_number"))
+                    {
+                        txn = this._repository.GetNextTransactionNumber(DateTime.UtcNow.Year);
+                        borrowing.TransactionNumber = txn;
+                        movement.ReferenceNumber = txn;
+                    }
+                }
 
                 this.WriteAudit("RELEASE", "Borrowing", borrowing.BorrowingId, txn,
                     $"Released {form.ReleasedQuantity} unit(s) of {entity.Equipment.AssetCode} under {txn} for reservation {entity.ReservationNumber}." +
@@ -413,6 +484,12 @@ namespace ASI.Basecode.Services.Services
             if (string.IsNullOrWhiteSpace(reason))
             {
                 return (false, ErrorMessages.CustodianRejectReasonRequired);
+            }
+
+            var closeReasonError = NoteTooLong(reason, "The reason");
+            if (closeReasonError != null)
+            {
+                return (false, closeReasonError);
             }
 
             try
@@ -610,11 +687,12 @@ namespace ASI.Basecode.Services.Services
         public ActiveBorrowingsIndexViewModel GetActiveBorrowings(string search, int page, int pageSize)
         {
             var result = this._repository.GetActiveBorrowingsPaged(search, page, pageSize, this._currentUser.GetCustodianScope());
+            var overdueCutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, DateTime.UtcNow);
             return new ActiveBorrowingsIndexViewModel
             {
                 Page = new PagedResult<ActiveBorrowingRowViewModel>
                 {
-                    Items = result.Items.Select(this.MapActiveBorrowing).ToList(),
+                    Items = result.Items.Select(b => this.MapActiveBorrowing(b, overdueCutoff)).ToList(),
                     Page = result.Page,
                     PageSize = result.PageSize,
                     TotalCount = result.TotalCount,
@@ -644,10 +722,10 @@ namespace ASI.Basecode.Services.Services
             };
         }
 
-        private ActiveBorrowingRowViewModel MapActiveBorrowing(Borrowing entity)
+        private ActiveBorrowingRowViewModel MapActiveBorrowing(Borrowing entity, DateTime overdueCutoff)
         {
             var now = DateTime.UtcNow;
-            var overdue = entity.DueAtUtc < now ? (int)Math.Floor((now - entity.DueAtUtc).TotalDays) : 0;
+            var isOverdue = BorrowingRules.IsOverdue(entity.Status.Code, entity.DueAtUtc, overdueCutoff);
             return new ActiveBorrowingRowViewModel
             {
                 BorrowingId = entity.BorrowingId,
@@ -658,8 +736,8 @@ namespace ASI.Basecode.Services.Services
                 ReleasedQuantity = entity.ReleasedQuantity,
                 ReleasedAtUtc = entity.ReleasedAtUtc,
                 DueAtUtc = entity.DueAtUtc,
-                DaysOverdue = overdue,
-                IsOverdue = overdue > 0,
+                DaysOverdue = isOverdue ? BorrowingRules.DaysOverdue(entity.DueAtUtc, now) : 0,
+                IsOverdue = isOverdue,
                 ReleasedBy = entity.ReleasedByUser != null ? entity.ReleasedByUser.FirstName + " " + entity.ReleasedByUser.LastName : null,
                 StatusCode = entity.Status.Code,
                 StatusDescription = entity.Status.Description,
@@ -669,7 +747,8 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteNotification(long recipientUserId, string title, string message)
         {
-            this._notifications.Notify(recipientUserId, NotificationTypes.Reservation, title, message);
+            // Decisions on a reservation are sent to its borrower.
+            this._notifications.Notify(recipientUserId, NotificationTypes.Reservation, title, message, "/Reservations/Mine");
         }
 
         /// <summary>
@@ -701,7 +780,8 @@ namespace ASI.Basecode.Services.Services
                 this._notifications.GetActiveUserIdsInRoles(RoleCodes.Technician, RoleCodes.Admin),
                 NotificationTypes.Alert,
                 $"Low stock: {equipment.EquipmentName}",
-                $"{equipment.EquipmentName} ({equipment.AssetCode}) has {Math.Max(0, available)} unit(s) available, at or below the low-stock threshold of {threshold}.");
+                $"{equipment.EquipmentName} ({equipment.AssetCode}) has {Math.Max(0, available)} unit(s) available, at or below the low-stock threshold of {threshold}.",
+                "/Equipment/Details/" + equipment.EquipmentId);
         }
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
@@ -713,7 +793,7 @@ namespace ASI.Basecode.Services.Services
                 EntityType = entityType,
                 EntityId = entityId,
                 ReferenceNumber = referenceNumber,
-                Details = details != null && details.Length > 1000 ? details.Substring(0, 1000) : details,
+                Details = details?.Length > 1000 ? details.Substring(0, 997) + "..." : details,
                 OccurredAtUtc = DateTime.UtcNow,
             });
             this._unitOfWork.SaveChanges();

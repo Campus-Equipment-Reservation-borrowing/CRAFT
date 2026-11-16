@@ -97,7 +97,7 @@ namespace ASI.Basecode.Resources.Messages {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to New total quantity is lower than units currently held for borrowers (reserved or released)..
+        ///   Looks up a localized string similar to New total quantity is lower than the units already committed (reserved, released, awaiting inspection, under maintenance, or damaged/lost and not yet reconciled)..
         /// </summary>
         public static string EquipmentQuantityBelowCommitted {
             get {
@@ -106,7 +106,7 @@ namespace ASI.Basecode.Resources.Messages {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to This equipment record cannot be deleted because borrowing, reservation or inspection records reference it..
+        ///   Looks up a localized string similar to This equipment record cannot be deleted because borrowing, reservation or inspection records reference it. Mark it as retired or under maintenance instead..
         /// </summary>
         public static string EquipmentDeleteBlocked {
             get {
@@ -151,7 +151,7 @@ namespace ASI.Basecode.Resources.Messages {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to This user account cannot be deleted because borrowing, reservation or inventory movement records reference it..
+        ///   Looks up a localized string similar to This user account cannot be deleted because borrowing, reservation or inventory movement records reference it. Deactivate the account instead..
         /// </summary>
         public static string UserDeleteBlocked {
             get {
@@ -329,7 +329,7 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("ReservationOperationConflict", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reservation record was not found..
         /// </summary>
@@ -338,7 +338,7 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("CustodianReservationNotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to This reservation is no longer pending and cannot be changed..
         /// </summary>
@@ -347,7 +347,7 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("CustodianReservationNotPending", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Only approved reservations that have not yet been released can be released..
         /// </summary>
@@ -356,7 +356,7 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("CustodianReleaseNotApproved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Released quantity must be at least 1 and cannot exceed the approved quantity..
         /// </summary>
@@ -365,7 +365,7 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("CustodianReleaseQuantityInvalid", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to A rejection reason is required..
         /// </summary>
@@ -768,6 +768,69 @@ namespace ASI.Basecode.Resources.Messages {
         public static string EquipmentAdjustInvalid {
             get {
                 return ResourceManager.GetString("EquipmentAdjustInvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a valid availability status (Available, Under Maintenance, Broken / Out of Service or Retired)..
+        /// </summary>
+        public static string EquipmentInvalidOperationalStatus {
+            get {
+                return ResourceManager.GetString("EquipmentInvalidOperationalStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a valid condition classification (Good, Minor Damage, Damaged, Missing Parts or Lost)..
+        /// </summary>
+        public static string EquipmentInvalidCondition {
+            get {
+                return ResourceManager.GetString("EquipmentInvalidCondition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment is under maintenance and can't be reserved right now..
+        /// </summary>
+        public static string ReservationEquipmentUnderMaintenance {
+            get {
+                return ResourceManager.GetString("ReservationEquipmentUnderMaintenance", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment is flagged as damaged, missing parts or lost and can't be reserved right now..
+        /// </summary>
+        public static string ReservationEquipmentConditionBlocked {
+            get {
+                return ResourceManager.GetString("ReservationEquipmentConditionBlocked", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment is out of service (broken or retired) and can't be reserved right now..
+        /// </summary>
+        public static string ReservationEquipmentOutOfService {
+            get {
+                return ResourceManager.GetString("ReservationEquipmentOutOfService", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment's status isn't Available (under maintenance, broken or retired), so it can't be released. Update the equipment status first..
+        /// </summary>
+        public static string CustodianReleaseEquipmentOutOfService {
+            get {
+                return ResourceManager.GetString("CustodianReleaseEquipmentOutOfService", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This equipment's status isn't Available (under maintenance, broken or retired), so the reservation can't be approved. Reject it, or set the equipment back to Available first..
+        /// </summary>
+        public static string CustodianApproveEquipmentOutOfService {
+            get {
+                return ResourceManager.GetString("CustodianApproveEquipmentOutOfService", resourceCulture);
             }
         }
     }

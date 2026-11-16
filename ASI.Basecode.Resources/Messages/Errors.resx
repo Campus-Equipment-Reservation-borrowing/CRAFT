@@ -130,10 +130,10 @@
     <value>Asset code must be unique across the system. Another equipment record already uses it.</value>
   </data>
   <data name="EquipmentQuantityBelowCommitted" xml:space="preserve">
-    <value>New total quantity is lower than units currently held for borrowers (reserved or released).</value>
+    <value>New total quantity is lower than the units already committed (reserved, released, awaiting inspection, under maintenance, or damaged/lost and not yet reconciled).</value>
   </data>
   <data name="EquipmentDeleteBlocked" xml:space="preserve">
-    <value>This equipment record cannot be deleted because borrowing, reservation or inspection records reference it.</value>
+    <value>This equipment record cannot be deleted because borrowing, reservation or inspection records reference it. Mark it as retired or under maintenance instead.</value>
   </data>
   <data name="EquipmentUpdateConflict" xml:space="preserve">
     <value>This equipment record was changed by another user while you were editing. Reload and try again.</value>
@@ -148,7 +148,7 @@
     <value>School email must be unique across the system. Another user account already uses it.</value>
   </data>
   <data name="UserDeleteBlocked" xml:space="preserve">
-    <value>This user account cannot be deleted because borrowing, reservation or inventory movement records reference it.</value>
+    <value>This user account cannot be deleted because borrowing, reservation or inventory movement records reference it. Deactivate the account instead.</value>
   </data>
   <data name="UserUpdateConflict" xml:space="preserve">
     <value>This user account was changed by another user while you were editing. Reload and try again.</value>
@@ -353,5 +353,26 @@
   </data>
   <data name="EquipmentAdjustInvalid" xml:space="preserve">
     <value>Enter a quantity between 1 and the units currently in that state.</value>
+  </data>
+  <data name="EquipmentInvalidOperationalStatus" xml:space="preserve">
+    <value>Select a valid availability status (Available, Under Maintenance, Broken / Out of Service or Retired).</value>
+  </data>
+  <data name="EquipmentInvalidCondition" xml:space="preserve">
+    <value>Select a valid condition classification (Good, Minor Damage, Damaged, Missing Parts or Lost).</value>
+  </data>
+  <data name="ReservationEquipmentUnderMaintenance" xml:space="preserve">
+    <value>This equipment is under maintenance and can't be reserved right now.</value>
+  </data>
+  <data name="ReservationEquipmentConditionBlocked" xml:space="preserve">
+    <value>This equipment is flagged as damaged, missing parts or lost and can't be reserved right now.</value>
+  </data>
+  <data name="ReservationEquipmentOutOfService" xml:space="preserve">
+    <value>This equipment is out of service (broken or retired) and can't be reserved right now.</value>
+  </data>
+  <data name="CustodianReleaseEquipmentOutOfService" xml:space="preserve">
+    <value>This equipment's status isn't Available (under maintenance, broken or retired), so it can't be released. Update the equipment status first.</value>
+  </data>
+  <data name="CustodianApproveEquipmentOutOfService" xml:space="preserve">
+    <value>This equipment's status isn't Available (under maintenance, broken or retired), so the reservation can't be approved. Reject it, or set the equipment back to Available first.</value>
   </data>
 </root>

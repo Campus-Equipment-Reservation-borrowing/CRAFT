@@ -1,0 +1,70 @@
+/* Guided walkthrough: spotlight + popover (see js/guide.js). */
+.cp-guide-spot {
+    position: fixed;
+    z-index: 2000;
+    border-radius: 10px;
+    box-shadow: 0 0 0 9999px rgba(10, 30, 20, 0.55), 0 0 0 3px var(--color-primary-light, #2E8B57);
+    pointer-events: none;
+    transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+.cp-guide-spot.is-centered { width: 0; height: 0; box-shadow: 0 0 0 9999px rgba(10, 30, 20, 0.55); }
+
+/* Blocks clicks on the dimmed page; the highlighted element stays clickable for click-to-continue steps. */
+.cp-guide-blocker { position: fixed; inset: 0; z-index: 1999; background: transparent; }
+
+.cp-guide-pop {
+    position: fixed;
+    z-index: 2001;
+    width: min(340px, calc(100vw - 32px));
+    background: #fff;
+    color: var(--color-text, #1A2B22);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+    padding: 16px 18px 14px;
+    font-family: var(--font-family, Inter, sans-serif);
+    transition: top 0.25s ease, left 0.25s ease;
+}
+.cp-guide-pop:focus { outline: 2px solid var(--color-primary-light, #2E8B57); outline-offset: 2px; }
+.cp-guide-step { font-size: 12px; font-weight: 600; color: var(--color-primary, #0B5D3E); text-transform: uppercase; letter-spacing: 0.04em; }
+.cp-guide-title { margin: 4px 0 6px; font-size: 16px; font-weight: 700; }
+.cp-guide-body { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-text-muted, #4A5D52); }
+.cp-guide-note { margin: 8px 0 0; font-size: 12px; color: var(--color-text-soft, #6B7D72); font-style: italic; }
+.cp-guide-hint { margin: 8px 0 0; font-size: 13px; font-weight: 600; color: var(--color-primary, #0B5D3E); }
+.cp-guide-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.cp-guide-actions .cp-guide-skip { margin-right: auto; background: none; border: 0; color: var(--color-text-soft, #6B7D72); font-size: 13px; cursor: pointer; padding: 6px 2px; }
+.cp-guide-actions .cp-guide-skip:hover { color: var(--color-text, #1A2B22); text-decoration: underline; }
+
+/* Header launcher + menu */
+.cp-guide-launcher { position: relative; }
+.cp-guide-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 1500;
+    width: 260px;
+    background: #fff;
+    border: 1px solid var(--color-border, #E0E9E3);
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    padding: 6px;
+}
+.cp-guide-menu[hidden] { display: none; }
+.cp-guide-menu-title { font-size: 12px; font-weight: 600; color: var(--color-text-soft, #6B7D72); padding: 6px 10px 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.cp-guide-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: var(--color-text, #1A2B22);
+    cursor: pointer;
+}
+.cp-guide-menu button:hover, .cp-guide-menu button:focus-visible { background: var(--color-primary-tint, #EAF4EE); outline: none; }
+.cp-guide-menu button small { display: block; font-size: 12px; color: var(--color-text-soft, #6B7D72); }
+
+@media (prefers-reduced-motion: reduce) {
+    .cp-guide-spot, .cp-guide-pop { transition: none; }
+}

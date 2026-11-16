@@ -145,7 +145,8 @@ namespace ASI.Basecode.Services.Services
 
                 this._notifications.Notify(entity.UserId, NotificationTypes.Account,
                     "Account verified",
-                    $"Your account has been verified. {staged.CustodianName} is your custodian; your reservations will be reviewed by them.");
+                    $"Your account has been verified. {staged.CustodianName} is your custodian; your reservations will be reviewed by them.",
+                    "/Reservations/Available");
                 this._notifications.Notify(custodianUserId, NotificationTypes.Account,
                     "New borrower assigned",
                     $"{entity.FirstName} {entity.LastName} ({entity.AccountIdentifier}) was verified and assigned to you. Their reservations will be routed to you.");
@@ -211,7 +212,8 @@ namespace ASI.Basecode.Services.Services
 
                 this._notifications.Notify(entity.UserId, NotificationTypes.Account,
                     "Account verification rejected",
-                    $"Your account could not be verified: {reason} You can submit an appeal from your dashboard.");
+                    $"Your account could not be verified: {reason} You can submit an appeal from your dashboard.",
+                    "/");
 
                 return (true, null);
             }
@@ -358,6 +360,13 @@ namespace ASI.Basecode.Services.Services
                     t.AssignedToUserId = null;
                 }
 
+                // A user's own inbox goes with them; audit rows stay, with the actor cleared.
+                this.DbContext.Notifications.RemoveRange(this.DbContext.Notifications.Where(n => n.RecipientUserId == userId));
+                foreach (var log in this.DbContext.AuditLogs.Where(l => l.ActorUserId == userId))
+                {
+                    log.ActorUserId = null;
+                }
+
                 this.DbContext.Users.Remove(entity);
                 this._unitOfWork.SaveChanges();
 
@@ -370,6 +379,12 @@ namespace ASI.Basecode.Services.Services
             {
                 this._logger.LogWarning("Concurrency conflict while deleting user {UserId}.", userId);
                 return (false, ErrorMessages.UserUpdateConflict);
+            }
+            catch (DbUpdateException ex)
+            {
+                // A history row not covered above still references the account.
+                this._logger.LogWarning(ex, "User {UserId} is still referenced and cannot be deleted.", userId);
+                return (false, ErrorMessages.UserDeleteBlocked);
             }
             catch (Exception ex)
             {

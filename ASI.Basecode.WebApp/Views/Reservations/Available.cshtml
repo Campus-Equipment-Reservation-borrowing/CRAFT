@@ -15,9 +15,9 @@
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" asp-action="Available" style="display:contents">
-        <input type="text" name="search" value="@Model.Search" class="cp-input" placeholder="Search by equipment name or asset code..." />
-        <select name="category" class="cp-select">
+    <form method="get" asp-action="Available" class="cp-contents">
+        <input type="text" name="search" aria-label="Search" maxlength="100" value="@Model.Search" class="cp-input" placeholder="Search by equipment name or asset code..." />
+        <select name="category" aria-label="Filter by category" class="cp-select">
             <option value="">All categories</option>
             @if (ViewBag.CategoryOptions != null)
             {
@@ -49,7 +49,7 @@
 }
 else
 {
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px">
+    <div class="cp-equip-grid">
         @foreach (var eq in items)
         {
             var pct = eq.TotalQuantity > 0 ? (int)Math.Round(eq.AvailableUnits * 100.0 / eq.TotalQuantity) : 0;
@@ -58,7 +58,7 @@ else
                 @if (!string.IsNullOrWhiteSpace(eq.ImagePath))
                 {
                     <div class="eq-img">
-                        <img src="@eq.ImagePath" alt="@eq.EquipmentName" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />
+                        <img src="@eq.ImagePath" alt="@eq.EquipmentName" class="cp-img-fill" />
                     </div>
                 }
                 <div class="eq-b">

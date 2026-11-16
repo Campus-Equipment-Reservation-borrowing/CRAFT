@@ -46,6 +46,21 @@ namespace ASI.Basecode.Services.Services
         public ReturnsIndexViewModel GetReturnsIndex(string search, int page, int pageSize)
         {
             var result = this._repository.GetReturnsPaged(search, page, pageSize, this._currentUser.GetCustodianScope());
+
+            // Borrowings on this page with returned units not yet covered by a completed inspection.
+            var borrowingIds = result.Items.Select(r => r.BorrowingId).Distinct().ToList();
+            var awaitingInspection = this.DbContext.Borrowings.AsNoTracking()
+                .Where(b => borrowingIds.Contains(b.BorrowingId))
+                .Select(b => new
+                {
+                    b.BorrowingId,
+                    Returned = b.BorrowingReturns.Sum(x => (int?)x.ReturnedQuantity) ?? 0,
+                    Inspected = b.ConditionInspections.Where(i => i.InspectionStatus.Code == "COMPLETED").Sum(i => (int?)i.InspectedQuantity) ?? 0,
+                })
+                .Where(x => x.Returned > x.Inspected)
+                .Select(x => x.BorrowingId)
+                .ToHashSet();
+
             return new ReturnsIndexViewModel
             {
                 Page = new PagedResult<ReturnRowViewModel>
@@ -53,6 +68,8 @@ namespace ASI.Basecode.Services.Services
                     Items = result.Items.Select(r => new ReturnRowViewModel
                     {
                         ReturnId = r.ReturnId,
+                        BorrowingId = r.BorrowingId,
+                        NeedsInspection = awaitingInspection.Contains(r.BorrowingId),
                         TransactionNumber = r.Borrowing.TransactionNumber,
                         BorrowerName = r.Borrowing.BorrowerUser.FirstName + " " + r.Borrowing.BorrowerUser.LastName,
                         EquipmentName = r.Borrowing.Equipment.EquipmentName,
@@ -80,9 +97,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             var alreadyReturned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
-            var finalized = this.DbContext.ConditionInspections
-                .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionStatus.Code == "COMPLETED")
-                .Sum(i => (int?)i.InspectedQuantity) ?? 0;
+            var alreadyInspected = this.SumCompletedInspections(borrowing.BorrowingId);
             var now = DateTime.UtcNow;
             var overdue = borrowing.DueAtUtc < now;
             var daysOverdue = overdue ? (int)Math.Floor((now - borrowing.DueAtUtc).TotalDays) : 0;
@@ -93,7 +108,8 @@ namespace ASI.Basecode.Services.Services
                 {
                     BorrowingId = borrowing.BorrowingId,
                     ReturnedQuantity = borrowing.ReleasedQuantity - alreadyReturned,
-                    ReturnedAtUtc = now,
+                    // Shown in a datetime-local input, so pre-fill with local wall-clock time.
+                    ReturnedAtUtc = now.ToLocalTime(),
                     ReceivedByUserId = this._currentUser.GetActorUserId() ?? 0,
                 },
                 TransactionNumber = borrowing.TransactionNumber,
@@ -102,7 +118,11 @@ namespace ASI.Basecode.Services.Services
                 AssetCode = borrowing.Equipment.AssetCode,
                 ReleasedQuantity = borrowing.ReleasedQuantity,
                 AlreadyReturned = alreadyReturned,
-                InspectableQuantity = Math.Max(0, alreadyReturned - finalized),
+                InspectableQuantity = Math.Max(0, alreadyReturned - alreadyInspected),
+                AlreadyInspected = alreadyInspected,
+                AwaitingInspection = Math.Max(0, alreadyReturned - alreadyInspected),
+                PendingInspectionStatusId = this.DbContext.InspectionStatuses.AsNoTracking()
+                    .Where(s => s.Code == "PENDING").Select(s => s.StatusId).FirstOrDefault(),
                 DueAtUtc = borrowing.DueAtUtc,
                 IsOverdue = overdue,
                 DaysOverdue = daysOverdue,
@@ -111,8 +131,20 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetConditionOptions()
         {
+            // Physical conditions only — "Available"/"Under Maintenance" are availability statuses.
             return this.DbContext.Conditions.AsNoTracking()
-                .OrderBy(c => c.Code).Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description }).ToList();
+                .Where(c => !EquipmentService.OperationalStatusCodes.Contains(c.Code))
+                .OrderBy(c => c.ConditionId).Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description }).ToList();
+        }
+
+        /// <summary>Units of a borrowing already covered by COMPLETED inspections.</summary>
+        private int SumCompletedInspections(long borrowingId, long? excludeInspectionId = null)
+        {
+            return this.DbContext.ConditionInspections
+                .Where(i => i.BorrowingId == borrowingId
+                    && i.InspectionStatus.Code == "COMPLETED"
+                    && (excludeInspectionId == null || i.InspectionId != excludeInspectionId))
+                .Sum(i => (int?)i.InspectedQuantity) ?? 0;
         }
 
         public List<LookupViewModel> GetInspectionStatusOptions()
@@ -123,9 +155,14 @@ namespace ASI.Basecode.Services.Services
 
         public (bool Success, string Error, long ReturnId) CreateReturn(ReturnFormViewModel form)
         {
-            if (form == null || form.ReturnedQuantity < 1)
+            if (form == null)
             {
                 return (false, ErrorMessages.ReturnQuantityInvalid, 0);
+            }
+
+            if (form.ReturnedQuantity < 1)
+            {
+                return (false, "Returned quantity must be at least 1.", 0);
             }
 
             try
@@ -270,13 +307,6 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.InspectionReturnMismatch, 0);
                 }
 
-                var conditionIds = this.DbContext.Conditions.AsNoTracking().Select(c => c.ConditionId).ToList();
-                if (!conditionIds.Contains(form.CurrentConditionId)
-                    || (form.ReleaseConditionId.HasValue && !conditionIds.Contains(form.ReleaseConditionId.Value)))
-                {
-                    return (false, ErrorMessages.InspectionConditionInvalid, 0);
-                }
-
                 var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.StatusId == form.InspectionStatusId)
                     ?? this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == "PENDING");
                 if (inspectionStatus == null)
@@ -284,12 +314,22 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ServerError, 0);
                 }
 
-                // Only units that came back and aren't finalized yet can be inspected.
+                var condition = this.DbContext.Conditions.AsNoTracking()
+                    .FirstOrDefault(c => c.ConditionId == form.CurrentConditionId);
+                if (condition == null || EquipmentService.OperationalStatusCodes.Contains(condition.Code))
+                {
+                    return (false, ErrorMessages.EquipmentInvalidCondition, 0);
+                }
+
+                if (form.ReleaseConditionId.HasValue && !this.DbContext.Conditions.Any(c => c.ConditionId == form.ReleaseConditionId.Value))
+                {
+                    return (false, ErrorMessages.InspectionConditionInvalid, 0);
+                }
+
+                // Pending or completed, an inspection can only cover returned units not yet finalized.
                 var returned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
-                var alreadyFinalized = this.DbContext.ConditionInspections
-                    .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionStatus.Code == "COMPLETED")
-                    .Sum(i => (int?)i.InspectedQuantity) ?? 0;
-                if (form.InspectedQuantity > returned - alreadyFinalized)
+                var awaiting = returned - this.SumCompletedInspections(borrowing.BorrowingId);
+                if (form.InspectedQuantity > awaiting)
                 {
                     return (false, ErrorMessages.InspectionQuantityInvalid, 0);
                 }
@@ -336,9 +376,11 @@ namespace ASI.Basecode.Services.Services
 
                     if (finalize)
                     {
-                        if (borrowing.Equipment != null)
+                        // The equipment's condition describes the units on the shelf, so only good units
+                        // coming back can change it, and only to a condition that keeps them usable.
+                        if (borrowing.Equipment != null && form.GoodQuantity > 0 && !condition.AffectsAvailability)
                         {
-                            borrowing.Equipment.CurrentConditionId = form.CurrentConditionId;
+                            borrowing.Equipment.CurrentConditionId = condition.ConditionId;
                         }
 
                         this.ApplyInspectionOutcome(borrowing, form, inspection);
@@ -458,9 +500,7 @@ namespace ASI.Basecode.Services.Services
             Move(form.LostQuantity, "UNRECONCILED");
 
             var returned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
-            var finalizedBefore = this.DbContext.ConditionInspections
-                .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionId != inspection.InspectionId && i.InspectionStatus.Code == "COMPLETED")
-                .Sum(i => (int?)i.InspectedQuantity) ?? 0;
+            var finalizedBefore = this.SumCompletedInspections(borrowing.BorrowingId, inspection.InspectionId);
             var allReturned = returned >= borrowing.ReleasedQuantity;
             if (allReturned && finalizedBefore + form.InspectedQuantity >= returned)
             {
@@ -468,6 +508,19 @@ namespace ASI.Basecode.Services.Services
                 if (completed != null)
                 {
                     borrowing.InspectionStatusId = completed.StatusId;
+                }
+
+                // Fully inspected: a transaction with any unit lost closes as LOST rather than RETURNED.
+                var lostBefore = this.DbContext.ConditionInspections
+                    .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionId != inspection.InspectionId && i.InspectionStatus.Code == "COMPLETED")
+                    .Sum(i => (int?)i.LostQuantity) ?? 0;
+                if (lostBefore + form.LostQuantity > 0)
+                {
+                    var lostStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == "LOST");
+                    if (lostStatus != null)
+                    {
+                        borrowing.StatusId = lostStatus.StatusId;
+                    }
                 }
             }
         }
@@ -498,13 +551,15 @@ namespace ASI.Basecode.Services.Services
                 this._notifications.Notify(staff, NotificationTypes.Alert,
                     $"Damage/loss recorded: {borrowing.TransactionNumber}",
                     $"{item}: {form.DamagedQuantity} damaged (moved to maintenance), {form.LostQuantity} lost (unreconciled)." +
-                    (form.RepairCost > 0 ? $" Estimated repair cost {form.RepairCost:N2}." : string.Empty));
+                    (form.RepairCost > 0 ? $" Estimated repair cost {form.RepairCost:N2}." : string.Empty),
+                    "/Equipment/Details/" + borrowing.EquipmentId);
             }
         }
 
         private void WriteNotification(long recipientUserId, string title, string message)
         {
-            this._notifications.Notify(recipientUserId, NotificationTypes.Return, title, message);
+            // Return/inspection outcomes are sent to the borrower.
+            this._notifications.Notify(recipientUserId, NotificationTypes.Return, title, message, "/Borrowings/Mine");
         }
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)

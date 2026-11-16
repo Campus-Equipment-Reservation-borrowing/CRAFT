@@ -21,17 +21,20 @@
 </div>
 
 <div class="cp-filter-bar">
-    <form method="get" action="/Notifications" style="display:contents">
-        <input type="text" name="search" value="@search" class="cp-input" placeholder="Search notifications..." />
-        <select name="status" class="cp-select">
+    <form method="get" action="/Notifications" class="cp-contents">
+        <input type="text" name="search" aria-label="Search" maxlength="100" value="@search" class="cp-input" placeholder="Search notifications..." />
+        <select name="status" aria-label="Filter by status" class="cp-select">
             <option value="all" selected="@(status == "all")">All statuses</option>
             <option value="unread" selected="@(status == "unread")">Unread</option>
             <option value="read" selected="@(status == "read")">Read</option>
         </select>
-        <select name="type" class="cp-select">
+        <select name="type" aria-label="Filter by type" class="cp-select">
             <option value="all" selected="@(type == "all")">All types</option>
             <option value="RESERVATION" selected="@(type == "RESERVATION")">Reservations</option>
             <option value="BORROWING" selected="@(type == "BORROWING")">Borrowings</option>
+            <option value="SUPPORT" selected="@(type == "SUPPORT")">Support</option>
+            <option value="ANNOUNCEMENT" selected="@(type == "ANNOUNCEMENT")">Announcements</option>
+            <option value="ALERT" selected="@(type == "ALERT")">Alerts</option>
             <option value="ACCOUNT" selected="@(type == "ACCOUNT")">Account</option>
         </select>
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
@@ -52,11 +55,25 @@
             {
                 <span class="cp-dot-unread" aria-label="Unread"></span>
             }
-            <div class="cp-list-main" style="flex:1">
-                <div class="cp-notif-title">@n.Title</div>
-                <div class="cp-notif-msg">@n.Message</div>
-                <div class="cp-notif-time">@n.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt")</div>
-            </div>
+            @{
+                var hasTarget = !string.IsNullOrEmpty(n.LinkUrl ?? ASI.Basecode.Services.Services.SettingsService.FallbackLink(n.NotificationType));
+            }
+            @if (hasTarget)
+            {
+                <a class="cp-list-main cp-notif-link" style="flex:1" href="/Notifications/Open/@n.NotificationId">
+                    <div class="cp-notif-title">@n.Title</div>
+                    <div class="cp-notif-msg">@n.Message</div>
+                    <div class="cp-notif-time">@n.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt") · <span class="cp-notif-open">Open ›</span></div>
+                </a>
+            }
+            else
+            {
+                <div class="cp-list-main" style="flex:1">
+                    <div class="cp-notif-title">@n.Title</div>
+                    <div class="cp-notif-msg">@n.Message</div>
+                    <div class="cp-notif-time">@n.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy - hh:mm tt")</div>
+                </div>
+            }
             @if (!n.IsRead)
             {
                 <form asp-action="MarkRead" asp-route-id="@n.NotificationId" method="post">

@@ -41,6 +41,7 @@ namespace ASI.Basecode.WebApp
 
             // Role dashboards (2.0 / 3.0) and profile & settings (2.10 / 3.10 / 4.8)
             this._services.AddScoped<IDashboardService, DashboardService>();
+            this._services.AddScoped<ILandingService, LandingService>();
             this._services.AddScoped<IProfileService, ProfileService>();
 
             // Borrower borrowings (2.6 / 2.7 / 2.8)

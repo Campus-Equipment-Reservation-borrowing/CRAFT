@@ -154,3 +154,8 @@
     font-weight: 500;
     color: var(--color-text-gray);
 }
+.cp-alert-warning {
+    background: var(--color-warning-bg);
+    border: 1px solid #F1DDB4;
+    color: var(--color-warning);
+}

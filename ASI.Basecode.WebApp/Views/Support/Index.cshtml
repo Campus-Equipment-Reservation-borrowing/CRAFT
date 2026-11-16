@@ -22,7 +22,7 @@
     }
 </div>
 
-<div class="tabs" role="tablist" style="margin-bottom:12px">
+<div class="tabs cp-mb-12" role="tablist">
         <a class="tab @(Model.Status == null ? "on" : "")" asp-action="Index">All</a>
         <a class="tab @(Model.Status == "OPEN" ? "on" : "")" asp-action="Index" asp-route-status="open">Open <span class="cp-badge cp-badge-warning">@Model.OpenCount</span></a>
         <a class="tab @(Model.Status == "RESOLVED" ? "on" : "")" asp-action="Index" asp-route-status="resolved">Resolved</a>

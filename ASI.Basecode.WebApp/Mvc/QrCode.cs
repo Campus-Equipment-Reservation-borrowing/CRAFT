@@ -13,7 +13,10 @@ namespace ASI.Basecode.WebApp.Mvc
             using var generator = new QRCodeGenerator();
             using var data = generator.CreateQrCode(payload ?? string.Empty, QRCodeGenerator.ECCLevel.M);
             var svg = new SvgQRCode(data);
-            return svg.GetGraphic(pixelsPerModule);
+            // viewBox sizing lets CSS scale the code to its container; fixed width/height
+            // attributes would crop it whenever the label is narrower than the native size.
+            return svg.GetGraphic(pixelsPerModule, "#000000", "#FFFFFF", drawQuietZones: true,
+                sizingMode: SvgQRCode.SizingMode.ViewBoxAttribute);
         }
     }
 }
