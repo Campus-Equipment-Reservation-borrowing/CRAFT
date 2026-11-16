@@ -118,13 +118,15 @@
       r = await RP('Campus123', 'Campus123'); check('AUTH-16c', 'reset valid', r.url.startsWith('/Account/Login'), r.url);
       r = await RP('Campus124', 'Campus124'); check('AUTH-16d', 'reset token single use', !r.url.startsWith('/Account/Login'), r.url);
     }
-    await login('2024-118002'); const u = await reserve(5);
+    // A fresh self-registration is UNVERIFIED (the AUTH-08 user is locked out by AUTH-11 by now).
+    await logout(); await R({ AccountIdentifier: 'QA-V' + stamp, SchoolEmail: `qa.v${stamp}@university.edu.ph` });
+    await login('QA-V' + stamp); const u = await reserve(5);
     check('AUTH-19', 'unverified cannot reserve', has(u.res, 'pending verification'), u.res.text);
   };
 
   suites.RBAC = async () => {
     const staff = ['/Custodian/Dashboard', '/Custodian/Reservations', '/Returns', '/Equipment', '/Equipment/Create'];
-    const admin = ['/Users', '/Users/Verifications', '/Settings', '/Monitoring/Dashboard', '/Monitoring/AuditLogs', '/Monitoring/ExportAuditCsv', '/Announcements', '/CustodianAssignments', '/Operator'];
+    const admin = ['/Users', '/Users/Verifications', '/Settings', '/Monitoring/Dashboard', '/Monitoring/AuditLogs', '/Monitoring/ExportAuditCsv', '/Announcements', '/CustodianAssignments'];
     await logout();
     for (const u of [...staff, ...admin, '/Borrower/Dashboard', '/Profile', '/Notifications']) { const g = await get(u); check('RBAC-01', 'anonymous ' + u, g.url.startsWith('/Account/Login'), g.url); }
     await login('2023-104857');
@@ -315,8 +317,7 @@
     r = await post(del.getAttribute('action'), {}, '/Settings'); check('ADM-13d', 'category delete', has(r, 'deleted'), r.text);
     const lap = [...(await get('/Settings')).doc.querySelectorAll('form[action*=DeleteCategory]')].find(f => f.closest('tr').textContent.includes('LAPTOP'));
     r = await post(lap.getAttribute('action'), {}, '/Settings'); check('ADM-13e', 'category in use', has(r, 'used by'), r.text);
-    const op = await get('/Operator'); const oid = opt(op.doc, 'userId');
-    r = await post('/Operator/Select', { userId: oid }, '/Operator'); check('ADM-14', 'operator switching is retired', !has(r, 'Now acting'), r.text);
+    check('ADM-14', 'retired operator switcher is gone', (await get('/Operator')).status === 404);
   };
 
   suites.MON = async () => {
