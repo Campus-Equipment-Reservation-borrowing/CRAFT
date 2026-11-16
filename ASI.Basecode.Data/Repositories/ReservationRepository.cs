@@ -121,5 +121,24 @@ namespace ASI.Basecode.Data.Repositories
             return this.Context.Reservations.Any(r => r.AssignedCustodianUserId == custodianUserId
                 && statusCodes.Contains(r.Status.Code));
         }
+
+        public List<Reservation> GetTrackedStale(string pendingStatusCode, string approvedStatusCode, DateTime submittedBefore, DateTime pickupBefore, DateTime nowUtc)
+        {
+            return this.Context.Reservations
+                .Include(r => r.Status)
+                .Include(r => r.Equipment).ThenInclude(e => e.EquipmentInventoryBalance)
+                .Where(r => (r.Status.Code == pendingStatusCode && (r.SubmittedAtUtc < submittedBefore || r.RequestedStartAtUtc < nowUtc))
+                    || (r.Status.Code == approvedStatusCode && r.RequestedStartAtUtc < pickupBefore))
+                .ToList();
+        }
+
+        public List<Reservation> GetTrackedWithoutExpiryWarning(string statusCode)
+        {
+            return this.Context.Reservations
+                .Include(r => r.Equipment)
+                .Include(r => r.BorrowerUser)
+                .Where(r => r.Status.Code == statusCode && r.ExpiryWarningSentAtUtc == null)
+                .ToList();
+        }
     }
 }

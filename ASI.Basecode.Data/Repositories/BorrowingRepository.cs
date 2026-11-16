@@ -105,6 +105,35 @@ namespace ASI.Basecode.Data.Repositories
                 .ThenByDescending(b => b.BorrowingId)
                 .ToList();
         }
+
+        public List<Borrowing> GetTrackedInStatusesDueBefore(IReadOnlyCollection<string> statusCodes, DateTime dueBeforeUtc)
+        {
+            return this.Context.Borrowings
+                .Include(b => b.Equipment)
+                .Include(b => b.Reservation)
+                .Where(b => statusCodes.Contains(b.Status.Code) && b.DueAtUtc < dueBeforeUtc)
+                .ToList();
+        }
+
+        public List<Borrowing> GetTrackedInStatusNotOverdueNotified(string statusCode)
+        {
+            return this.Context.Borrowings
+                .Include(b => b.Equipment)
+                .Include(b => b.Reservation)
+                .Where(b => b.Status.Code == statusCode && b.OverdueNotifiedAtUtc == null)
+                .ToList();
+        }
+
+        public List<Borrowing> GetTrackedDueForReminder(IReadOnlyCollection<string> statusCodes, DateTime fromUtc, DateTime toUtc)
+        {
+            return this.Context.Borrowings
+                .Include(b => b.Equipment)
+                .Where(b => statusCodes.Contains(b.Status.Code)
+                    && b.DueReminderSentAtUtc == null
+                    && b.DueAtUtc >= fromUtc
+                    && b.DueAtUtc <= toUtc)
+                .ToList();
+        }
     }
 
 }

@@ -45,5 +45,11 @@ namespace ASI.Basecode.Data.Interfaces
         /// True when a reservation assigned to the custodian is in one of the given statuses.
         /// </summary>
         bool AnyAssignedToCustodianInStatuses(long custodianUserId, IReadOnlyCollection<string> statusCodes);
+
+        /// <summary>Tracked reservations that are pending past their review window (or pickup) or approved past the pickup window, with status and equipment balance.</summary>
+        List<Reservation> GetTrackedStale(string pendingStatusCode, string approvedStatusCode, DateTime submittedBefore, DateTime pickupBefore, DateTime nowUtc);
+
+        /// <summary>Tracked reservations in the status that have not had an expiry warning, with equipment and borrower.</summary>
+        List<Reservation> GetTrackedWithoutExpiryWarning(string statusCode);
     }
 }

@@ -26,6 +26,15 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Borrowings of the borrower in either status, optionally searched, latest return first (untracked).</summary>
         List<Borrowing> GetHistoryForBorrower(long borrowerUserId, string firstStatusCode, string secondStatusCode, string search);
+
+        /// <summary>Tracked borrowings in one of the statuses and due before the cutoff, with equipment and reservation.</summary>
+        List<Borrowing> GetTrackedInStatusesDueBefore(IReadOnlyCollection<string> statusCodes, DateTime dueBeforeUtc);
+
+        /// <summary>Tracked borrowings in the status that have not had an overdue notice, with equipment and reservation.</summary>
+        List<Borrowing> GetTrackedInStatusNotOverdueNotified(string statusCode);
+
+        /// <summary>Tracked borrowings in one of the statuses, without a due reminder, due within the window, with equipment.</summary>
+        List<Borrowing> GetTrackedDueForReminder(IReadOnlyCollection<string> statusCodes, DateTime fromUtc, DateTime toUtc);
     }
 
 }
