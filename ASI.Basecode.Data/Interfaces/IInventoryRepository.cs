@@ -19,5 +19,12 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Loads and removes every movement row of the equipment.</summary>
         void RemoveMovementsForEquipment(long equipmentId);
+
+        /// <summary>
+        /// Atomically adds <paramref name="quantity"/> to the reserved units of the equipment's balance,
+        /// but only while at least that many units are still free. Runs as a single conditional UPDATE
+        /// (no change tracking) and returns the rows affected: 0 means the stock was taken.
+        /// </summary>
+        int TryHold(long equipmentId, int quantity);
     }
 }

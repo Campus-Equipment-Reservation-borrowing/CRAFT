@@ -44,5 +44,11 @@ namespace ASI.Basecode.Data.Repositories
         {
             this.Context.CustodianAssignments.RemoveRange(assignments);
         }
+
+        public bool BorrowerHasAssignmentWithCustodianStatus(long borrowerUserId, string custodianAccountStatusCode)
+        {
+            return this.Context.CustodianAssignments.Any(a => a.BorrowerUserId == borrowerUserId
+                && a.CustodianUser.AccountStatus.Code == custodianAccountStatusCode);
+        }
     }
 }

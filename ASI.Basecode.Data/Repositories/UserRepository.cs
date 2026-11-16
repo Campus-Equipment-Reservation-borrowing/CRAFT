@@ -315,5 +315,31 @@ namespace ASI.Basecode.Data.Repositories
                 .Select(x => (x.CreatedAtUtc, x.Verified))
                 .ToList();
         }
+
+        public string GetAccountStatusCode(long userId)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.AccountStatus.Code)
+                .FirstOrDefault();
+        }
+
+        public string GetRoleCode(long userId)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.Role.RoleCode)
+                .FirstOrDefault();
+        }
+
+        public string GetFullName(long userId)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.FirstName + " " + u.LastName)
+                .FirstOrDefault();
+        }
     }
 }

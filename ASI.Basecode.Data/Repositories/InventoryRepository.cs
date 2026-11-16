@@ -36,5 +36,14 @@ namespace ASI.Basecode.Data.Repositories
             var movements = this.Context.InventoryMovements.Where(m => m.EquipmentId == equipmentId).ToList();
             this.Context.InventoryMovements.RemoveRange(movements);
         }
+
+        public int TryHold(long equipmentId, int quantity)
+        {
+            return this.Context.EquipmentInventoryBalances
+                .Where(b => b.EquipmentId == equipmentId
+                    && b.TotalQuantity - b.ReservedQuantity - b.ReleasedQuantity - b.AwaitingInspectionQuantity
+                        - b.MaintenanceQuantity - b.UnreconciledQuantity >= quantity)
+                .ExecuteUpdate(u => u.SetProperty(b => b.ReservedQuantity, b => b.ReservedQuantity + quantity));
+        }
     }
 }

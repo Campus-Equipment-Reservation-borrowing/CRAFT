@@ -158,5 +158,44 @@ namespace ASI.Basecode.Data.Repositories
             return this.Context.Reservations.Count(r => r.EquipmentId == equipmentId
                 && statusCodes.Contains(r.Status.Code));
         }
+
+        public int CountForBorrowerWithStatusIds(long borrowerUserId, IReadOnlyCollection<long> statusIds)
+        {
+            return this.Context.Reservations
+                .Count(r => r.BorrowerUserId == borrowerUserId
+                    && statusIds.Contains(r.StatusId));
+        }
+
+        public bool IsActivePickupLocation(long? locationId)
+        {
+            return this.Context.Locations
+                .Any(l => l.LocationId == locationId
+                    && l.IsPickupLocation
+                    && l.IsActive);
+        }
+
+        public List<Location> GetActivePickupLocations()
+        {
+            return this.Context.Locations
+                .AsNoTracking()
+                .Where(l => l.IsPickupLocation && l.IsActive)
+                .OrderBy(l => l.LocationName)
+                .ToList();
+        }
+
+        public void Add(Reservation reservation)
+        {
+            this.Context.Reservations.Add(reservation);
+        }
+
+        public string GetLastNumberWithPrefix(string prefix)
+        {
+            return this.Context.Reservations
+                .Where(r => r.ReservationNumber.StartsWith(prefix))
+                .OrderByDescending(r => r.ReservationNumber.Length)
+                .ThenByDescending(r => r.ReservationNumber)
+                .Select(r => r.ReservationNumber)
+                .FirstOrDefault();
+        }
     }
 }

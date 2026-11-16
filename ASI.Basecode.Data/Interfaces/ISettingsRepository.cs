@@ -53,5 +53,8 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Resets a tracked entity to Unchanged (undoes a pending add/remove after a failed save).</summary>
         void MarkUnchanged(object entity);
+
+        /// <summary>The latest policy version (current first, then highest id, then newest effective date), untracked; null when none.</summary>
+        BorrowingPolicyVersion GetLatestPolicyNoTracking();
     }
 }

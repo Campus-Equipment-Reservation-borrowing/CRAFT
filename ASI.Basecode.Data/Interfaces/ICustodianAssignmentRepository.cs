@@ -22,5 +22,8 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Removes the assignments (saved by the caller).</summary>
         void RemoveRange(IEnumerable<CustodianAssignment> assignments);
+
+        /// <summary>True when the borrower has an assignment whose custodian has the given account status.</summary>
+        bool BorrowerHasAssignmentWithCustodianStatus(long borrowerUserId, string custodianAccountStatusCode);
     }
 }

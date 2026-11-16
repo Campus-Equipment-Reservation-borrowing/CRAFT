@@ -128,5 +128,15 @@ namespace ASI.Basecode.Data.Repositories
         {
             this.SetEntityState(entity, EntityState.Unchanged);
         }
+
+        public BorrowingPolicyVersion GetLatestPolicyNoTracking()
+        {
+            return this.Context.BorrowingPolicyVersions
+                .AsNoTracking()
+                .OrderByDescending(p => p.IsCurrent)
+                .ThenByDescending(p => p.PolicyVersionId)
+                .ThenByDescending(p => p.EffectiveFromUtc)
+                .FirstOrDefault();
+        }
     }
 }

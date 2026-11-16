@@ -1,4 +1,3 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
@@ -37,8 +36,12 @@ namespace ASI.Basecode.Services.Services
         private readonly ReservationLifecycleOptions _lifecycle;
         private readonly IMapper _mapper;
 
-        /// <summary>Direct EF access for codebook lookups and the small writes this service owns.</summary>
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
+        private readonly IUserRepository _users;
+        private readonly ICustodianAssignmentRepository _assignmentRepository;
+        private readonly IInventoryRepository _inventory;
+        private readonly ICustodianRepository _custodianRepository;
+        private readonly ISettingsRepository _settings;
+        private readonly IBorrowingRepository _borrowings;
 
         public ReservationService(
             ILoggerFactory loggerFactory,
@@ -50,9 +53,21 @@ namespace ASI.Basecode.Services.Services
             Microsoft.Extensions.Options.IOptions<ReservationLifecycleOptions> lifecycle,
             IMapper mapper,
             IAuditLogRepository auditLogs,
-            ILookupRepository lookups)
+            ILookupRepository lookups,
+            IUserRepository users,
+            ICustodianAssignmentRepository assignmentRepository,
+            IInventoryRepository inventory,
+            ICustodianRepository custodianRepository,
+            ISettingsRepository settings,
+            IBorrowingRepository borrowings)
             : base(loggerFactory)
         {
+            this._users = users;
+            this._assignmentRepository = assignmentRepository;
+            this._inventory = inventory;
+            this._custodianRepository = custodianRepository;
+            this._settings = settings;
+            this._borrowings = borrowings;
             this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
@@ -172,10 +187,7 @@ namespace ASI.Basecode.Services.Services
                 return ErrorMessages.ReservationOperatorNotSet;
             }
 
-            var statusCode = this.DbContext.Users.AsNoTracking()
-                .Where(u => u.UserId == actorUserId.Value)
-                .Select(u => u.AccountStatus.Code)
-                .FirstOrDefault();
+            var statusCode = this._users.GetAccountStatusCode(actorUserId.Value);
             switch (statusCode)
             {
                 case AccountStatusCodes.Active:
@@ -195,8 +207,7 @@ namespace ASI.Basecode.Services.Services
                     : ErrorMessages.ReservationNoCustodian;
             }
 
-            return this.DbContext.CustodianAssignments.Any(a => a.BorrowerUserId == actorUserId.Value
-                    && a.CustodianUser.AccountStatus.Code == AccountStatusCodes.Active)
+            return this._assignmentRepository.BorrowerHasAssignmentWithCustodianStatus(actorUserId.Value, AccountStatusCodes.Active)
                 ? null
                 : ErrorMessages.ReservationNoCustodian;
         }
@@ -309,11 +320,8 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 // Rule c) duration limit with the faculty override.
-                var borrower = this.DbContext.Users
-                    .AsNoTracking()
-                    .Include(u => u.Role)
-                    .Include(u => u.AccountStatus)
-                    .First(u => u.UserId == actorUserId.Value);
+                var borrower = this._users.GetByIdWithDetails(actorUserId.Value)
+                    ?? throw new InvalidOperationException("Sequence contains no elements");
 
                 // Signed-in accounts that are not ACTIVE (unverified, rejected, suspended...) cannot reserve.
                 if (borrower.AccountStatus?.Code != AccountStatusCodes.Active)
@@ -342,9 +350,7 @@ namespace ASI.Basecode.Services.Services
                     statusIds[ReservationStatusCodes.Pending],
                     statusIds[ReservationStatusCodes.Approved],
                 };
-                var activeCount = this.DbContext.Reservations
-                    .Count(r => r.BorrowerUserId == actorUserId.Value
-                        && activeStatusIds.Contains(r.StatusId));
+                var activeCount = this._reservationRepository.CountForBorrowerWithStatusIds(actorUserId.Value, activeStatusIds);
                 if (activeCount >= policy.MaxActiveTransactions)
                 {
                     return (false, ErrorMessages.ReservationActiveLimitReached, form.EquipmentId);
@@ -363,10 +369,7 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 // Pickup point must reference an active pickup location.
-                var pickupExists = this.DbContext.Locations
-                    .Any(l => l.LocationId == form.PickupLocationId
-                        && l.IsPickupLocation
-                        && l.IsActive);
+                var pickupExists = this._reservationRepository.IsActivePickupLocation(form.PickupLocationId);
                 if (!pickupExists)
                 {
                     return (false, ErrorMessages.ReservationPickupLocationInvalid, form.EquipmentId);
@@ -385,11 +388,7 @@ namespace ASI.Basecode.Services.Services
 
                 // Atomic hold: only succeeds while enough units are still free, so two borrowers
                 // racing for the last unit cannot both get it.
-                var held = this.DbContext.EquipmentInventoryBalances
-                    .Where(b => b.EquipmentId == equipment.EquipmentId
-                        && b.TotalQuantity - b.ReservedQuantity - b.ReleasedQuantity - b.AwaitingInspectionQuantity
-                            - b.MaintenanceQuantity - b.UnreconciledQuantity >= quantity)
-                    .ExecuteUpdate(u => u.SetProperty(b => b.ReservedQuantity, b => b.ReservedQuantity + quantity));
+                var held = this._inventory.TryHold(equipment.EquipmentId, quantity);
                 if (held == 0)
                 {
                     return (false, ErrorMessages.ReservationStockTaken, form.EquipmentId);
@@ -414,7 +413,7 @@ namespace ASI.Basecode.Services.Services
                     AssignedCustodianUserId = custodianId,
                 };
 
-                this.DbContext.Reservations.Add(reservation);
+                this._reservationRepository.Add(reservation);
 
                 // Two borrowers submitting at once can draw the same number; retry with a fresh one.
                 // The stock hold above already happened atomically, so only the number is retried.
@@ -539,15 +538,14 @@ namespace ASI.Basecode.Services.Services
 
                 // Give back exactly what this reservation still holds (request while PENDING,
                 // approved-minus-released once APPROVED).
-                var hold = ReservationRules.RemainingHold(entity, statusCode, ReservationRules.ReleasedSoFar(this.DbContext, entity.ReservationId));
+                var hold = ReservationRules.RemainingHold(entity, statusCode, this._custodianRepository.SumReleasedForReservation(entity.ReservationId));
 
                 var cancelledStatusId = this.GetReservationStatusIds()[ReservationStatusCodes.Cancelled];
                 entity.StatusId = cancelledStatusId;
                 entity.HeldQuantity = 0;
                 entity.CompletedAtUtc = DateTime.UtcNow;
 
-                var balance = this.DbContext.EquipmentInventoryBalances
-                    .FirstOrDefault(b => b.EquipmentId == entity.EquipmentId);
+                var balance = this._inventory.GetTrackedBalance(entity.EquipmentId);
                 if (balance != null)
                 {
                     balance.ReservedQuantity = Math.Max(0, balance.ReservedQuantity - hold);
@@ -574,10 +572,7 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetPickupLocationOptions()
         {
-            return this.DbContext.Locations
-                .AsNoTracking()
-                .Where(l => l.IsPickupLocation && l.IsActive)
-                .OrderBy(l => l.LocationName)
+            return this._reservationRepository.GetActivePickupLocations()
                 .Select(l => new LookupViewModel { Id = l.LocationId, Text = l.LocationName })
                 .ToList();
         }
@@ -589,12 +584,7 @@ namespace ASI.Basecode.Services.Services
 
         public PolicySettings GetActivePolicy()        {
             // Latest version wins (per plan: new policy row = new version, history is never edited).
-            var latest = this.DbContext.BorrowingPolicyVersions
-                .AsNoTracking()
-                .OrderByDescending(p => p.IsCurrent)
-                .ThenByDescending(p => p.PolicyVersionId)
-                .ThenByDescending(p => p.EffectiveFromUtc)
-                .FirstOrDefault();
+            var latest = this._settings.GetLatestPolicyNoTracking();
 
             // Defaults from the implementation plan — used verbatim when no policy row exists yet.
             if (latest == null)
@@ -660,11 +650,8 @@ namespace ASI.Basecode.Services.Services
         private bool HasOverdueBorrowing(long borrowerUserId, DateTime now)
         {
             // Same overdue rule as every other screen: open borrowing, past due plus the grace period.
-            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
-            return this.DbContext.Borrowings
-                .Any(b => b.BorrowerUserId == borrowerUserId
-                    && BorrowingRules.OpenStatusCodes.Contains(b.Status.Code)
-                    && b.DueAtUtc < cutoff);
+            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this._settings, now);
+            return this._borrowings.CountForBorrowerInStatusesDueBefore(borrowerUserId, BorrowingRules.OpenStatusCodes, cutoff) > 0;
         }
 
         private Dictionary<string, long> GetReservationStatusIds()
@@ -680,12 +667,7 @@ namespace ASI.Basecode.Services.Services
             // Continue from the highest number issued this year. Order by length first so "-10000" ranks above
             // "-9999". Concurrent submits can still race; Create retries on the unique index.
             var prefix = $"RSV-{submittedAt.Year}-";
-            var last = this.DbContext.Reservations
-                .Where(r => r.ReservationNumber.StartsWith(prefix))
-                .OrderByDescending(r => r.ReservationNumber.Length)
-                .ThenByDescending(r => r.ReservationNumber)
-                .Select(r => r.ReservationNumber)
-                .FirstOrDefault();
+            var last = this._reservationRepository.GetLastNumberWithPrefix(prefix);
 
             var next = 1;
             if (last != null && int.TryParse(last.Substring(prefix.Length), out var n))
@@ -715,11 +697,7 @@ namespace ASI.Basecode.Services.Services
                 return false;
             }
 
-            var roleCode = this.DbContext.Users
-                .AsNoTracking()
-                .Where(u => u.UserId == operatorUserId.Value)
-                .Select(u => u.Role.RoleCode)
-                .FirstOrDefault();
+            var roleCode = this._users.GetRoleCode(operatorUserId.Value);
 
             return string.Equals(roleCode, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(roleCode, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase);
@@ -750,11 +728,7 @@ namespace ASI.Basecode.Services.Services
                     ? new List<long> { reservation.AssignedCustodianUserId.Value }
                     : this._notifications.GetActiveUserIdsInRoles(RoleCodes.Technician);
                 recipients.AddRange(this._notifications.GetActiveUserIdsInRoles(RoleCodes.Admin));
-                var borrowerName = this.DbContext.Users
-                    .AsNoTracking()
-                    .Where(u => u.UserId == reservation.BorrowerUserId)
-                    .Select(u => u.FirstName + " " + u.LastName)
-                    .FirstOrDefault();
+                var borrowerName = this._users.GetFullName(reservation.BorrowerUserId);
                 this._notifications.Notify(recipients, NotificationTypes.Reservation,
                     $"New reservation {reservation.ReservationNumber}",
                     $"{borrowerName} requested {reservation.RequestedQuantity} unit(s) of {equipmentName} starting {reservation.RequestedStartAtUtc:dd MMM yyyy}. Review it in the custodian console.",

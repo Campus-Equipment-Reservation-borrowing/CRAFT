@@ -149,5 +149,14 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Created and verified timestamps of users that were verified (and have a creation time).</summary>
         List<(DateTime CreatedAtUtc, DateTime VerifiedAtUtc)> GetVerificationTimes();
+
+        /// <summary>Account status code of the user, or null.</summary>
+        string GetAccountStatusCode(long userId);
+
+        /// <summary>Role code of the user, or null.</summary>
+        string GetRoleCode(long userId);
+
+        /// <summary>"First Last" of the user, or null.</summary>
+        string GetFullName(long userId);
     }
 }
