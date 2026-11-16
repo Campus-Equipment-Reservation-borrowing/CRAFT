@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ASI.Basecode.Data.QueryModels;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -148,9 +149,9 @@ namespace ASI.Basecode.Data.Repositories
             return new UserTotals
             {
                 TotalAccounts = this.Context.Users.Count(),
-                Students = this.Context.Users.Count(u => u.Role.RoleCode == "STUDENT"),
-                Faculty = this.Context.Users.Count(u => u.Role.RoleCode == "FACULTY"),
-                CustodianAdmins = this.Context.Users.Count(u => u.Role.RoleCode == "TECHNICIAN" || u.Role.RoleCode == "ADMIN"),
+                Students = this.Context.Users.Count(u => u.Role.RoleCode == RoleCodes.Student),
+                Faculty = this.Context.Users.Count(u => u.Role.RoleCode == RoleCodes.Faculty),
+                CustodianAdmins = this.Context.Users.Count(u => u.Role.RoleCode == RoleCodes.Technician || u.Role.RoleCode == RoleCodes.Admin),
                 Unverified = this.Context.Users.Count(u => u.AccountStatus.Code == "UNVERIFIED"),
             };
         }

@@ -1,4 +1,5 @@
 using System;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.WebApp.Helpers
 {
@@ -13,19 +14,19 @@ namespace ASI.Basecode.WebApp.Helpers
         /// <summary>Badge classes for an account status code (ACTIVE is good news here).</summary>
         public static string AccountCss(string code) => "cp-badge cp-badge-" + (code?.ToUpperInvariant() switch
         {
-            "ACTIVE" => "success",
+            AccountStatusCodes.Active => "success",
             "UNVERIFIED" => "warning",
-            "REJECTED" or "SUSPENDED" or "LOCKED" => "error",
+            AccountStatusCodes.Rejected or "SUSPENDED" or "LOCKED" => "error",
             _ => "neutral",
         });
 
         public static string Tone(string code) => code?.ToUpperInvariant() switch
         {
-            "PENDING" or "PARTIALLY_RETURNED" or "DUE_TODAY" or "OPEN" => "warning",
-            "APPROVED" or "READY_FOR_RELEASE" or "PARTIALLY_RELEASED" or "ACTIVE" => "info",
-            "COMPLETED" or "RETURNED" or "RESOLVED" or "AVAILABLE" or "GOOD" => "success",
-            "REJECTED" or "OVERDUE" or "LOST" or "DAMAGED" or "UNDER_MAINTENANCE" or "OUT_OF_STOCK" => "error",
-            "MINOR_DAMAGE" or "MISSING_PARTS" => "warning",
+            ReservationStatusCodes.Pending or BorrowingStatusCodes.PartiallyReturned or "DUE_TODAY" or "OPEN" => "warning",
+            ReservationStatusCodes.Approved or ReservationStatusCodes.ReadyForRelease or ReservationStatusCodes.PartiallyReleased or BorrowingStatusCodes.Active => "info",
+            ReservationStatusCodes.Completed or BorrowingStatusCodes.Returned or "RESOLVED" or ConditionCodes.Available or ConditionCodes.Good => "success",
+            ReservationStatusCodes.Rejected or BorrowingStatusCodes.Overdue or BorrowingStatusCodes.Lost or ConditionCodes.Damaged or ConditionCodes.UnderMaintenance or "OUT_OF_STOCK" => "error",
+            ConditionCodes.MinorDamage or ConditionCodes.MissingParts => "warning",
             _ => "neutral",
         };
     }

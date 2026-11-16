@@ -4,10 +4,10 @@
 @inject ASI.Basecode.Services.Interfaces.IProfileService ProfileService
 @{
     var role = User.FindFirst(ClaimTypes.Role)?.Value;
-    var isAdmin = string.Equals(role, "ADMIN", StringComparison.OrdinalIgnoreCase);
-    var isCustodian = string.Equals(role, "TECHNICIAN", StringComparison.OrdinalIgnoreCase);
-    var isBorrower = string.Equals(role, "STUDENT", StringComparison.OrdinalIgnoreCase)
-                  || string.Equals(role, "FACULTY", StringComparison.OrdinalIgnoreCase);
+    var isAdmin = string.Equals(role, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase);
+    var isCustodian = string.Equals(role, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase);
+    var isBorrower = string.Equals(role, RoleCodes.Student, StringComparison.OrdinalIgnoreCase)
+                  || string.Equals(role, RoleCodes.Faculty, StringComparison.OrdinalIgnoreCase);
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var displayName = User.Identity?.Name ?? "Guest";

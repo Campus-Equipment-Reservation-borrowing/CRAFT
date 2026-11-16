@@ -17,7 +17,7 @@ namespace ASI.Basecode.Services.Services
     /// <inheritdoc cref="IReservationLifecycleService" />
     public class ReservationLifecycleService : ServiceBase, IReservationLifecycleService
     {
-        private static readonly string[] OpenBorrowingStatuses = { "ACTIVE", "PARTIALLY_RETURNED" };
+        private static readonly string[] OpenBorrowingStatuses = { BorrowingStatusCodes.Active, BorrowingStatusCodes.PartiallyReturned };
 
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationDispatcher _notifications;
@@ -58,7 +58,7 @@ namespace ASI.Basecode.Services.Services
         /// </summary>
         private int ExpireStaleReservations(DateTime now)
         {
-            var expired = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == "EXPIRED");
+            var expired = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == ReservationStatusCodes.Expired);
             if (expired == null)
             {
                 return 0;
@@ -183,7 +183,7 @@ namespace ASI.Basecode.Services.Services
         /// <summary>Persist OVERDUE once due + grace has passed, and alert borrower, custodian and admins once.</summary>
         private int MarkOverdueBorrowings(DateTime now)
         {
-            var overdueStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == "OVERDUE");
+            var overdueStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.Overdue);
             if (overdueStatus == null)
             {
                 return 0;
@@ -199,7 +199,7 @@ namespace ASI.Basecode.Services.Services
             var unnotifiedOverdue = this.DbContext.Borrowings
                 .Include(b => b.Equipment)
                 .Include(b => b.Reservation)
-                .Where(b => b.Status.Code == "OVERDUE" && b.OverdueNotifiedAtUtc == null)
+                .Where(b => b.Status.Code == BorrowingStatusCodes.Overdue && b.OverdueNotifiedAtUtc == null)
                 .ToList();
 
             foreach (var borrowing in late)

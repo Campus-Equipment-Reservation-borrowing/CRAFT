@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Services.Services
 {
@@ -47,8 +48,8 @@ namespace ASI.Basecode.Services.Services
                 .Include(b => b.Equipment)
                 .Include(b => b.Status)
                 .Where(b => b.BorrowerUserId == userId
-                    && b.Status.Code != "RETURNED"
-                    && b.Status.Code != "LOST")
+                    && b.Status.Code != BorrowingStatusCodes.Returned
+                    && b.Status.Code != BorrowingStatusCodes.Lost)
                 .OrderBy(b => b.DueAtUtc)
                 .ToList();
 
@@ -73,7 +74,7 @@ namespace ASI.Basecode.Services.Services
 
             var completedBorrowings = this.DbContext.Borrowings
                 .AsNoTracking()
-                .Count(b => b.BorrowerUserId == userId && b.Status.Code == "RETURNED");
+                .Count(b => b.BorrowerUserId == userId && b.Status.Code == BorrowingStatusCodes.Returned);
 
             var overdueRows = openBorrowings
                 .Where(Overdue)
@@ -88,8 +89,8 @@ namespace ASI.Basecode.Services.Services
                 VerificationNote = user?.VerificationNote,
 
                 ActiveBorrowings = openBorrowings.Count,
-                PendingReservations = reservations.Count(r => r.Status.Code == "PENDING"),
-                ApprovedReady = reservations.Count(r => r.Status.Code == "APPROVED" || r.Status.Code == "READY_FOR_RELEASE"),
+                PendingReservations = reservations.Count(r => r.Status.Code == ReservationStatusCodes.Pending),
+                ApprovedReady = reservations.Count(r => r.Status.Code == ReservationStatusCodes.Approved || r.Status.Code == ReservationStatusCodes.ReadyForRelease),
                 OverdueItems = overdueRows.Count,
                 CompletedBorrowings = completedBorrowings,
                 UnreadNotifications = unreadCount,
@@ -103,7 +104,7 @@ namespace ASI.Basecode.Services.Services
                     Quantity = b.ReleasedQuantity,
                     ReleasedAtUtc = b.ReleasedAtUtc,
                     DueAtUtc = b.DueAtUtc,
-                    StatusCode = Overdue(b) ? "OVERDUE" : b.Status.Code,
+                    StatusCode = Overdue(b) ? BorrowingStatusCodes.Overdue : b.Status.Code,
                     StatusDescription = Overdue(b) ? "Overdue" : b.Status.Description,
                     IsOverdue = Overdue(b),
                     IsDueToday = DueToday(b),
@@ -128,7 +129,7 @@ namespace ASI.Basecode.Services.Services
                     EquipmentName = b.Equipment?.EquipmentName,
                     AssetCode = b.Equipment?.AssetCode,
                     DueAtUtc = b.DueAtUtc,
-                    StatusCode = Overdue(b) ? "OVERDUE" : b.Status.Code,
+                    StatusCode = Overdue(b) ? BorrowingStatusCodes.Overdue : b.Status.Code,
                     StatusDescription = Overdue(b) ? "Overdue" : (DueToday(b) ? "Due Today" : b.Status.Description),
                     IsOverdue = Overdue(b),
                     IsDueToday = DueToday(b),
@@ -208,10 +209,10 @@ namespace ASI.Basecode.Services.Services
                 .Where(e => e.IsActive)
                 .ToList();
 
-            var pending = reservations.Where(r => r.Status.Code == "PENDING").ToList();
+            var pending = reservations.Where(r => r.Status.Code == ReservationStatusCodes.Pending).ToList();
 
             var releasesToday = reservations
-                .Where(r => (r.Status.Code == "READY_FOR_RELEASE" || r.Status.Code == "APPROVED")
+                .Where(r => (r.Status.Code == ReservationStatusCodes.ReadyForRelease || r.Status.Code == ReservationStatusCodes.Approved)
                     && BorrowingRules.IsLocalToday(r.RequestedStartAtUtc, now))
                 .ToList();
 
@@ -222,8 +223,8 @@ namespace ASI.Basecode.Services.Services
             var returnsToday = openBorrowings.Where(b => BorrowingRules.IsLocalToday(b.DueAtUtc, now)).ToList();
             var overdue = openBorrowings.Where(b => BorrowingRules.IsOverdue(b.Status.Code, b.DueAtUtc, cutoff)).ToList();
             var awaitingInspection = borrowings
-                .Where(b => b.Status.Code == "RETURNED"
-                    && string.Equals(b.InspectionStatus?.Code, "PENDING", StringComparison.OrdinalIgnoreCase))
+                .Where(b => b.Status.Code == BorrowingStatusCodes.Returned
+                    && string.Equals(b.InspectionStatus?.Code, InspectionStatusCodes.Pending, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             var alerts = new List<InventoryAlertRowViewModel>();
@@ -235,8 +236,8 @@ namespace ASI.Basecode.Services.Services
                     : balance.TotalQuantity - balance.ReservedQuantity - balance.ReleasedQuantity
                       - balance.AwaitingInspectionQuantity - balance.MaintenanceQuantity - balance.UnreconciledQuantity;
 
-                var underMaintenance = string.Equals(e.OperationalStatus?.Code, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(e.CurrentCondition?.Code, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase);
+                var underMaintenance = string.Equals(e.OperationalStatus?.Code, ConditionCodes.UnderMaintenance, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(e.CurrentCondition?.Code, ConditionCodes.UnderMaintenance, StringComparison.OrdinalIgnoreCase);
                 var lowStock = !underMaintenance && available <= lowStockThreshold;
 
                 if (underMaintenance || lowStock)

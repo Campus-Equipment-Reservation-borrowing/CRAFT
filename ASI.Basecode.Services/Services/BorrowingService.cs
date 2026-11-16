@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Services.Services
 {
@@ -37,8 +38,8 @@ namespace ASI.Basecode.Services.Services
                 .Include(b => b.Status)
                 .Include(b => b.ReleaseCondition)
                 .Where(b => b.BorrowerUserId == userId
-                    && b.Status.Code != "RETURNED"
-                    && b.Status.Code != "LOST");
+                    && b.Status.Code != BorrowingStatusCodes.Returned
+                    && b.Status.Code != BorrowingStatusCodes.Lost);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -70,7 +71,7 @@ namespace ASI.Basecode.Services.Services
                         ReleasedAtUtc = b.ReleasedAtUtc,
                         DueAtUtc = b.DueAtUtc,
                         ReleaseConditionName = b.ReleaseCondition?.Description,
-                        StatusCode = isOverdue ? "OVERDUE" : b.Status.Code,
+                        StatusCode = isOverdue ? BorrowingStatusCodes.Overdue : b.Status.Code,
                         StatusDescription = isOverdue ? "Overdue" : b.Status.Description,
                         IsOverdue = isOverdue,
                         IsDueToday = BorrowingRules.IsLocalToday(b.DueAtUtc, now),
@@ -100,8 +101,8 @@ namespace ASI.Basecode.Services.Services
                 return null;
             }
 
-            var returned = string.Equals(b.Status?.Code, "RETURNED", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(b.Status?.Code, "LOST", StringComparison.OrdinalIgnoreCase);
+            var returned = string.Equals(b.Status?.Code, BorrowingStatusCodes.Returned, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(b.Status?.Code, BorrowingStatusCodes.Lost, StringComparison.OrdinalIgnoreCase);
             var isOverdue = BorrowingRules.IsOverdue(b.Status?.Code, b.DueAtUtc, BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now));
             var lastReturn = b.BorrowingReturns?.OrderByDescending(r => r.ReturnedAtUtc).FirstOrDefault();
             var totalReturned = b.BorrowingReturns?.Sum(r => r.ReturnedQuantity) ?? 0;
@@ -120,7 +121,7 @@ namespace ASI.Basecode.Services.Services
                 ReleasedBy = b.ReleasedByUser == null ? null : $"{b.ReleasedByUser.FirstName} {b.ReleasedByUser.LastName}".Trim(),
                 ReleaseConditionName = b.ReleaseCondition?.Description,
                 DueAtUtc = b.DueAtUtc,
-                StatusCode = isOverdue ? "OVERDUE" : b.Status?.Code,
+                StatusCode = isOverdue ? BorrowingStatusCodes.Overdue : b.Status?.Code,
                 StatusDescription = isOverdue ? "Overdue" : b.Status?.Description,
                 IsOverdue = isOverdue,
                 IsReturned = returned,
@@ -142,7 +143,7 @@ namespace ASI.Basecode.Services.Services
                 .Include(b => b.Status)
                 .Include(b => b.BorrowingReturns)
                 .Include(b => b.ConditionInspections).ThenInclude(i => i.CurrentCondition)
-                .Where(b => b.BorrowerUserId == userId && (b.Status.Code == "RETURNED" || b.Status.Code == "LOST"));
+                .Where(b => b.BorrowerUserId == userId && (b.Status.Code == BorrowingStatusCodes.Returned || b.Status.Code == BorrowingStatusCodes.Lost));
 
             if (!string.IsNullOrWhiteSpace(search))
             {

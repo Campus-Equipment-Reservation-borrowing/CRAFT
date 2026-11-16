@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using ASI.Basecode.Data.QueryModels;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -99,7 +100,7 @@ namespace ASI.Basecode.Data.Repositories
                 .Include(b => b.Status)
                 .Include(b => b.InspectionStatus)
                 .AsNoTracking()
-                .Where(b => b.Status.Code == "ACTIVE" || b.Status.Code == "PARTIALLY_RETURNED" || b.Status.Code == "OVERDUE");
+                .Where(b => b.Status.Code == BorrowingStatusCodes.Active || b.Status.Code == BorrowingStatusCodes.PartiallyReturned || b.Status.Code == BorrowingStatusCodes.Overdue);
 
             if (scopeCustodianUserId.HasValue)
             {

@@ -1,7 +1,7 @@
 @model ProfileViewModel
 @{
-    var isCustodian = string.Equals(Model.RoleCode, "TECHNICIAN", System.StringComparison.OrdinalIgnoreCase);
-    var isAdmin = string.Equals(Model.RoleCode, "ADMIN", System.StringComparison.OrdinalIgnoreCase);
+    var isCustodian = string.Equals(Model.RoleCode, RoleCodes.Technician, System.StringComparison.OrdinalIgnoreCase);
+    var isAdmin = string.Equals(Model.RoleCode, RoleCodes.Admin, System.StringComparison.OrdinalIgnoreCase);
     var idLabel = isCustodian ? "Employee ID" : (isAdmin ? "Admin ID" : "School ID");
     var departmentLabel = isCustodian ? "Assigned Location" : "College / Department";
     var initials = ((Model.FirstName?.Length > 0 ? Model.FirstName.Substring(0, 1) : "") +

@@ -209,7 +209,7 @@ namespace ASI.Basecode.Services.Services
         /// Codes in the shared <c>conditions</c> codebook that describe availability (operational status)
         /// rather than physical condition. Everything else is a condition classification.
         /// </summary>
-        internal static readonly string[] OperationalStatusCodes = { "AVAILABLE", "UNDER_MAINTENANCE", "BROKEN", "RETIRED" };
+        internal static readonly string[] OperationalStatusCodes = { ConditionCodes.Available, ConditionCodes.UnderMaintenance, ConditionCodes.Broken, ConditionCodes.Retired };
 
         public List<LookupViewModel> GetConditionOptions()
         {
@@ -296,7 +296,7 @@ namespace ASI.Basecode.Services.Services
             // Taking an item out of service (inactive or under maintenance) would strand open
             // reservations that borrowers are waiting on.
             var maintenanceStatusId = this.DbContext.Conditions.AsNoTracking()
-                .Where(c => c.Code == "UNDER_MAINTENANCE").Select(c => (long?)c.ConditionId).FirstOrDefault();
+                .Where(c => c.Code == ConditionCodes.UnderMaintenance).Select(c => (long?)c.ConditionId).FirstOrDefault();
             var goingOutOfService = (entity.IsActive && !form.IsActive)
                 || (maintenanceStatusId.HasValue && form.OperationalStatusId == maintenanceStatusId && entity.OperationalStatusId != maintenanceStatusId);
             if (goingOutOfService)

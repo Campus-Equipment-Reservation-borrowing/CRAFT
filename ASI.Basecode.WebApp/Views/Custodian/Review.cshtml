@@ -10,7 +10,7 @@
         <h1 class="cp-page-title">Reservation Review</h1>
         <p class="cp-page-subtitle">Check the request, then approve or reject it.</p>
     </div>
-    @if (Model.CanClaim && User.IsInRole("TECHNICIAN"))
+    @if (Model.CanClaim && User.IsInRole(RoleCodes.Technician))
     {
         <div class="cp-page-actions">
             <form method="post" asp-action="Claim" asp-route-id="@Model.ReservationId" asp-route-returnTo="review">
@@ -109,11 +109,11 @@
             {
                 <div class="cp-stack">
                     <p class="cp-cell-sub">A decision has already been made on this reservation.</p>
-                    @if (Model.StatusCode == "APPROVED" || Model.StatusCode == "PARTIALLY_RELEASED")
+                    @if (Model.StatusCode == ReservationStatusCodes.Approved || Model.StatusCode == ReservationStatusCodes.PartiallyReleased)
                     {
                         <div>
                             <a asp-action="Release" asp-route-id="@Model.ReservationId" class="cp-btn cp-btn-success">
-                                @(Model.StatusCode == "PARTIALLY_RELEASED" ? "Release Remaining Units" : "Release Equipment")
+                                @(Model.StatusCode == ReservationStatusCodes.PartiallyReleased ? "Release Remaining Units" : "Release Equipment")
                             </a>
                         </div>
                     }
@@ -121,11 +121,11 @@
             }
         </div>
 
-        @if (Model.StatusCode is "PENDING" or "APPROVED" or "READY_FOR_RELEASE" or "PARTIALLY_RELEASED")
+        @if (Model.StatusCode is ReservationStatusCodes.Pending or ReservationStatusCodes.Approved or ReservationStatusCodes.ReadyForRelease or ReservationStatusCodes.PartiallyReleased)
         {
             <details class="cp-card">
                 <summary class="cp-cell-name">
-                    @(Model.StatusCode == "PARTIALLY_RELEASED" ? "Close out the unreleased units" : "Cancel or expire this reservation")
+                    @(Model.StatusCode == ReservationStatusCodes.PartiallyReleased ? "Close out the unreleased units" : "Cancel or expire this reservation")
                 </summary>
                 <form asp-action="Cancel" asp-route-id="@Model.ReservationId" method="post" class="cp-mt-12">
                     @Html.AntiForgeryToken()
@@ -134,7 +134,7 @@
                         <textarea id="cancelReason" name="reason" class="cp-textarea" rows="2" maxlength="500" required placeholder="e.g. Borrower did not pick up within the window."></textarea>
                     </div>
                     <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Cancel and release held units</button>
-                    @if (Model.StatusCode != "PARTIALLY_RELEASED")
+                    @if (Model.StatusCode != ReservationStatusCodes.PartiallyReleased)
                     {
                         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm" asp-action="Expire" asp-route-id="@Model.ReservationId">Mark as expired (no-show)</button>
                     }

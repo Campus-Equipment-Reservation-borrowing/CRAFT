@@ -16,7 +16,7 @@ namespace ASI.Basecode.Services.Services
     /// <inheritdoc cref="ICustodianAssignmentService" />
     public class CustodianAssignmentService : ServiceBase, ICustodianAssignmentService
     {
-        private static readonly string[] OpenStatuses = { "PENDING", "APPROVED", "READY_FOR_RELEASE", "PARTIALLY_RELEASED" };
+        private static readonly string[] OpenStatuses = { ReservationStatusCodes.Pending, ReservationStatusCodes.Approved, ReservationStatusCodes.ReadyForRelease, ReservationStatusCodes.PartiallyReleased };
 
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUser;
@@ -294,12 +294,12 @@ namespace ASI.Basecode.Services.Services
                 {
                     CustodianUserId = c.UserId,
                     CustodianName = c.Active ? c.Name : c.Name + " (inactive)",
-                    Pending = open.Count(r => r.AssignedCustodianUserId == c.UserId && r.StatusCode == "PENDING"),
-                    Approved = open.Count(r => r.AssignedCustodianUserId == c.UserId && r.StatusCode != "PENDING"),
+                    Pending = open.Count(r => r.AssignedCustodianUserId == c.UserId && r.StatusCode == ReservationStatusCodes.Pending),
+                    Approved = open.Count(r => r.AssignedCustodianUserId == c.UserId && r.StatusCode != ReservationStatusCodes.Pending),
                     AssignmentCount = assignmentCounts.TryGetValue(c.UserId, out var n) ? n : 0,
                 }).ToList(),
-                PoolPending = open.Count(r => r.AssignedCustodianUserId == null && r.StatusCode == "PENDING"),
-                PoolApproved = open.Count(r => r.AssignedCustodianUserId == null && r.StatusCode != "PENDING"),
+                PoolPending = open.Count(r => r.AssignedCustodianUserId == null && r.StatusCode == ReservationStatusCodes.Pending),
+                PoolApproved = open.Count(r => r.AssignedCustodianUserId == null && r.StatusCode != ReservationStatusCodes.Pending),
                 OpenReservations = open.OrderBy(r => r.SubmittedAtUtc).Take(15).ToList(),
                 CustodianOptions = this.GetCustodianOptions(),
             };

@@ -57,7 +57,7 @@ namespace ASI.Basecode.Services.Services
                 {
                     b.BorrowingId,
                     Returned = b.BorrowingReturns.Sum(x => (int?)x.ReturnedQuantity) ?? 0,
-                    Inspected = b.ConditionInspections.Where(i => i.InspectionStatus.Code == "COMPLETED").Sum(i => (int?)i.InspectedQuantity) ?? 0,
+                    Inspected = b.ConditionInspections.Where(i => i.InspectionStatus.Code == InspectionStatusCodes.Completed).Sum(i => (int?)i.InspectedQuantity) ?? 0,
                 })
                 .Where(x => x.Returned > x.Inspected)
                 .Select(x => x.BorrowingId)
@@ -124,7 +124,7 @@ namespace ASI.Basecode.Services.Services
                 AlreadyInspected = alreadyInspected,
                 AwaitingInspection = Math.Max(0, alreadyReturned - alreadyInspected),
                 PendingInspectionStatusId = this.DbContext.InspectionStatuses.AsNoTracking()
-                    .Where(s => s.Code == "PENDING").Select(s => s.StatusId).FirstOrDefault(),
+                    .Where(s => s.Code == InspectionStatusCodes.Pending).Select(s => s.StatusId).FirstOrDefault(),
                 DueAtUtc = borrowing.DueAtUtc,
                 IsOverdue = overdue,
                 DaysOverdue = daysOverdue,
@@ -144,7 +144,7 @@ namespace ASI.Basecode.Services.Services
         {
             return this.DbContext.ConditionInspections
                 .Where(i => i.BorrowingId == borrowingId
-                    && i.InspectionStatus.Code == "COMPLETED"
+                    && i.InspectionStatus.Code == InspectionStatusCodes.Completed
                     && (excludeInspectionId == null || i.InspectionId != excludeInspectionId))
                 .Sum(i => (int?)i.InspectedQuantity) ?? 0;
         }
@@ -227,7 +227,7 @@ namespace ASI.Basecode.Services.Services
                 var totalReturned = alreadyReturned + form.ReturnedQuantity;
                 if (totalReturned >= borrowing.ReleasedQuantity)
                 {
-                    var returnedStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == "RETURNED");
+                    var returnedStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.Returned);
                     if (returnedStatus != null)
                     {
                         borrowing.StatusId = returnedStatus.StatusId;
@@ -235,7 +235,7 @@ namespace ASI.Basecode.Services.Services
                 }
                 else
                 {
-                    var partialStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == "PARTIALLY_RETURNED");
+                    var partialStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.PartiallyReturned);
                     if (partialStatus != null)
                     {
                         borrowing.StatusId = partialStatus.StatusId;
@@ -310,7 +310,7 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.StatusId == form.InspectionStatusId)
-                    ?? this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == "PENDING");
+                    ?? this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == InspectionStatusCodes.Pending);
                 if (inspectionStatus == null)
                 {
                     return (false, ErrorMessages.ServerError, 0);
@@ -336,7 +336,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.InspectionQuantityInvalid, 0);
                 }
 
-                var finalize = inspectionStatus.Code == "COMPLETED";
+                var finalize = inspectionStatus.Code == InspectionStatusCodes.Completed;
                 if (finalize)
                 {
                     if (form.GoodQuantity < 0 || form.DamagedQuantity < 0 || form.LostQuantity < 0
@@ -540,7 +540,7 @@ namespace ASI.Basecode.Services.Services
             var allReturned = returned >= borrowing.ReleasedQuantity;
             if (allReturned && finalizedBefore + form.InspectedQuantity >= returned)
             {
-                var completed = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == "COMPLETED");
+                var completed = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == InspectionStatusCodes.Completed);
                 if (completed != null)
                 {
                     borrowing.InspectionStatusId = completed.StatusId;
@@ -548,11 +548,11 @@ namespace ASI.Basecode.Services.Services
 
                 // Fully inspected: a transaction with any unit lost closes as LOST rather than RETURNED.
                 var lostBefore = this.DbContext.ConditionInspections
-                    .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionId != inspection.InspectionId && i.InspectionStatus.Code == "COMPLETED")
+                    .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionId != inspection.InspectionId && i.InspectionStatus.Code == InspectionStatusCodes.Completed)
                     .Sum(i => (int?)i.LostQuantity) ?? 0;
                 if (lostBefore + form.LostQuantity > 0)
                 {
-                    var lostStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == "LOST");
+                    var lostStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.Lost);
                     if (lostStatus != null)
                     {
                         borrowing.StatusId = lostStatus.StatusId;

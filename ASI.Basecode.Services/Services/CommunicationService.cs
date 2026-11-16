@@ -465,7 +465,7 @@ namespace ASI.Basecode.Services.Services
                         Status = b.Status.Description,
                         StartUtc = b.ReleasedAtUtc,
                         EndUtc = b.DueAtUtc,
-                        Late = b.Status.Code == "OVERDUE" || b.BorrowingReturns.Any(x => x.WasReturnedLate),
+                        Late = b.Status.Code == BorrowingStatusCodes.Overdue || b.BorrowingReturns.Any(x => x.WasReturnedLate),
                     })
                     .ToList(),
             };

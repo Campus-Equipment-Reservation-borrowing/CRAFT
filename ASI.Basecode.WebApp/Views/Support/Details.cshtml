@@ -2,7 +2,7 @@
 @model SupportTicketDetailsViewModel
 @{
     ViewData["Title"] = $"TKT-{Model.TicketId}";
-    var isStaff = User.IsInRole("ADMIN") || User.IsInRole("TECHNICIAN");
+    var isStaff = User.IsInRole(RoleCodes.Admin) || User.IsInRole(RoleCodes.Technician);
 }
 
 <div class="cp-page-header">
@@ -73,7 +73,7 @@
                     <dt>Account ID</dt><dd class="cp-mono">@Model.RequesterIdentifier</dd>
                     <dt>Account status</dt><dd>@Model.RequesterStatus</dd>
                 </dl>
-                @if (User.IsInRole("ADMIN"))
+                @if (User.IsInRole(RoleCodes.Admin))
                 {
                     <div class="cp-page-actions">
                         <a asp-controller="Users" asp-action="Details" asp-route-id="@Model.RequesterUserId" class="cp-btn cp-btn-secondary cp-btn-sm">Open account</a>

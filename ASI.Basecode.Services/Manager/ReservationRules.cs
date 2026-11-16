@@ -2,6 +2,7 @@ using ASI.Basecode.Data;
 using ASI.Basecode.Data.Models;
 using System;
 using System.Linq;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Services.Manager
 {
@@ -11,12 +12,12 @@ namespace ASI.Basecode.Services.Manager
     /// </summary>
     public static class ReservationRules
     {
-        public const string Pending = "PENDING";
-        public const string Approved = "APPROVED";
-        public const string PartiallyReleased = "PARTIALLY_RELEASED";
+        public const string Pending = ReservationStatusCodes.Pending;
+        public const string Approved = ReservationStatusCodes.Approved;
+        public const string PartiallyReleased = ReservationStatusCodes.PartiallyReleased;
 
         /// <summary>Statuses that still own units on the balance's reserved quantity.</summary>
-        public static readonly string[] HoldingStatuses = { Pending, Approved, "READY_FOR_RELEASE", PartiallyReleased };
+        public static readonly string[] HoldingStatuses = { Pending, Approved, ReservationStatusCodes.ReadyForRelease, PartiallyReleased };
 
         /// <summary>
         /// Units still held on the balance: the full request while PENDING, otherwise the approved

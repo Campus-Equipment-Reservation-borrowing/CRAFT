@@ -72,7 +72,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             string approveBlocked = null;
-            if (entity.Status.Code == "PENDING")
+            if (entity.Status.Code == ReservationStatusCodes.Pending)
             {
                 if (!this.IsBorrowerActive(entity.BorrowerUserId))
                 {
@@ -92,7 +92,7 @@ namespace ASI.Basecode.Services.Services
             {
                 ApproveBlockedReason = approveBlocked,
                 AssignedCustodianName = entity.AssignedCustodianUser == null ? null : entity.AssignedCustodianUser.FirstName + " " + entity.AssignedCustodianUser.LastName,
-                CanClaim = entity.AssignedCustodianUserId == null && (entity.Status.Code == "PENDING" || entity.Status.Code == "APPROVED"),
+                CanClaim = entity.AssignedCustodianUserId == null && (entity.Status.Code == ReservationStatusCodes.Pending || entity.Status.Code == ReservationStatusCodes.Approved),
                 ReservationId = entity.ReservationId,
                 ReservationNumber = entity.ReservationNumber,
                 StatusCode = entity.Status.Code,
@@ -113,8 +113,8 @@ namespace ASI.Basecode.Services.Services
                 ExpectedReturnAtUtc = entity.ExpectedReturnAtUtc,
                 Purpose = entity.Purpose,
                 SubmittedAtUtc = entity.SubmittedAtUtc,
-                CanApprove = entity.Status.Code == "PENDING" && approveBlocked == null,
-                CanReject = entity.Status.Code == "PENDING",
+                CanApprove = entity.Status.Code == ReservationStatusCodes.Pending && approveBlocked == null,
+                CanReject = entity.Status.Code == ReservationStatusCodes.Pending,
             };
         }
 
@@ -125,7 +125,7 @@ namespace ASI.Basecode.Services.Services
         private static bool IsOutOfService(Equipment equipment)
         {
             var status = equipment?.OperationalStatus?.Code;
-            return status != null && !string.Equals(status, "AVAILABLE", StringComparison.OrdinalIgnoreCase);
+            return status != null && !string.Equals(status, ConditionCodes.Available, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>Longest note or reason accepted; it is quoted into audit and notification text.</summary>
@@ -155,7 +155,7 @@ namespace ASI.Basecode.Services.Services
                 {
                     return (false, ErrorMessages.CustodianNotAssigned);
                 }
-                if (entity.Status.Code != "PENDING")
+                if (entity.Status.Code != ReservationStatusCodes.Pending)
                 {
                     return (false, ErrorMessages.CustodianReservationNotPending);
                 }
@@ -174,7 +174,7 @@ namespace ASI.Basecode.Services.Services
                 }
                 this.ClaimIfPooled(entity);
 
-                var approvedStatus = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == "APPROVED");
+                var approvedStatus = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == ReservationStatusCodes.Approved);
                 if (approvedStatus == null)
                 {
                     return (false, ErrorMessages.ServerError);
@@ -228,13 +228,13 @@ namespace ASI.Basecode.Services.Services
                 {
                     return (false, ErrorMessages.CustodianNotAssigned);
                 }
-                if (entity.Status.Code != "PENDING")
+                if (entity.Status.Code != ReservationStatusCodes.Pending)
                 {
                     return (false, ErrorMessages.CustodianReservationNotPending);
                 }
                 this.ClaimIfPooled(entity);
 
-                var rejectedStatus = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == "REJECTED");
+                var rejectedStatus = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == ReservationStatusCodes.Rejected);
                 if (rejectedStatus == null)
                 {
                     return (false, ErrorMessages.ServerError);
@@ -283,7 +283,7 @@ namespace ASI.Basecode.Services.Services
                 ApprovedQuantity = this.RemainingHold(entity),
                 AlreadyReleasedQuantity = this._repository.SumReleasedForReservation(reservationId),
                 ExpectedReturnAtUtc = entity.ExpectedReturnAtUtc,
-                CanRelease = (entity.Status.Code == "APPROVED" || entity.Status.Code == "PARTIALLY_RELEASED") &&
+                CanRelease = (entity.Status.Code == ReservationStatusCodes.Approved || entity.Status.Code == ReservationStatusCodes.PartiallyReleased) &&
                              this.RemainingHold(entity) > 0,
                 ConditionOptions = this.DbContext.Conditions.AsNoTracking()
                     .Where(c => !NonReleasableConditions.Contains(c.Code))
@@ -293,7 +293,7 @@ namespace ASI.Basecode.Services.Services
         }
 
         /// <summary>Conditions that mean the item can't go out to a borrower.</summary>
-        private static readonly string[] NonReleasableConditions = { "DAMAGED", "LOST", "UNDER_MAINTENANCE" };
+        private static readonly string[] NonReleasableConditions = { ConditionCodes.Damaged, ConditionCodes.Lost, ConditionCodes.UnderMaintenance };
 
         public (bool Success, string Error, long BorrowingId) Release(ReleaseFormViewModel form)
         {
@@ -320,7 +320,7 @@ namespace ASI.Basecode.Services.Services
                 {
                     return (false, ErrorMessages.CustodianNotAssigned, 0);
                 }
-                if (entity.Status.Code != "APPROVED" && entity.Status.Code != "PARTIALLY_RELEASED")
+                if (entity.Status.Code != ReservationStatusCodes.Approved && entity.Status.Code != ReservationStatusCodes.PartiallyReleased)
                 {
                     return (false, ErrorMessages.CustodianReleaseNotApproved, 0);
                 }
@@ -343,7 +343,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.InspectionConditionInvalid, 0);
                 }
                 var equipmentStatus = entity.Equipment?.OperationalStatus?.Code;
-                if (equipmentStatus != null && equipmentStatus != "AVAILABLE")
+                if (equipmentStatus != null && equipmentStatus != ConditionCodes.Available)
                 {
                     return (false, ErrorMessages.CustodianReleaseEquipmentOutOfService, 0);
                 }
@@ -370,8 +370,8 @@ namespace ASI.Basecode.Services.Services
                 using var transaction = this.DbContext.Database.BeginTransaction();
                 var txn = this._repository.GetNextTransactionNumber(DateTime.UtcNow.Year);
 
-                var borrowingStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == "ACTIVE");
-                var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == "PENDING");
+                var borrowingStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.Active);
+                var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == InspectionStatusCodes.Pending);
                 if (borrowingStatus == null || inspectionStatus == null)
                 {
                     return (false, ErrorMessages.ServerError, 0);
@@ -417,7 +417,7 @@ namespace ASI.Basecode.Services.Services
 
                 // Fully released → COMPLETED; otherwise the rest stays held for a later release.
                 entity.HeldQuantity = Math.Max(0, maxQty - form.ReleasedQuantity);
-                var nextCode = entity.HeldQuantity == 0 ? "COMPLETED" : "PARTIALLY_RELEASED";
+                var nextCode = entity.HeldQuantity == 0 ? ReservationStatusCodes.Completed : ReservationStatusCodes.PartiallyReleased;
                 var nextStatus = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == nextCode);
                 if (nextStatus != null)
                 {
@@ -506,14 +506,14 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 var code = entity.Status.Code;
-                if (code != "PENDING" && code != "APPROVED" && code != "READY_FOR_RELEASE"
-                    && (expire || code != "PARTIALLY_RELEASED"))
+                if (code != ReservationStatusCodes.Pending && code != ReservationStatusCodes.Approved && code != ReservationStatusCodes.ReadyForRelease
+                    && (expire || code != ReservationStatusCodes.PartiallyReleased))
                 {
                     return (false, ErrorMessages.CustodianReservationNotPending);
                 }
 
                 // A partially released reservation keeps its borrowing; only the unreleased rest is cancelled.
-                var targetCode = expire ? "EXPIRED" : code == "PARTIALLY_RELEASED" ? "COMPLETED" : "CANCELLED";
+                var targetCode = expire ? ReservationStatusCodes.Expired : code == ReservationStatusCodes.PartiallyReleased ? ReservationStatusCodes.Completed : ReservationStatusCodes.Cancelled;
                 var target = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == targetCode);
                 if (target == null)
                 {
@@ -569,7 +569,7 @@ namespace ASI.Basecode.Services.Services
                 result.EquipmentName = reservation.EquipmentName;
                 result.Matches.Add(new ScanMatchViewModel
                 {
-                    Kind = reservation.Status == "APPROVED" || reservation.Status == "PARTIALLY_RELEASED" ? "RELEASE" : "REVIEW",
+                    Kind = reservation.Status == ReservationStatusCodes.Approved || reservation.Status == ReservationStatusCodes.PartiallyReleased ? "RELEASE" : "REVIEW",
                     Id = reservation.ReservationId,
                     Title = reservation.ReservationNumber,
                     Subtitle = $"{reservation.Borrower} · {reservation.StatusText}",
@@ -589,7 +589,7 @@ namespace ASI.Basecode.Services.Services
 
             result.EquipmentName = equipment.EquipmentName;
             result.Matches.AddRange(this.DbContext.Reservations.AsNoTracking()
-                .Where(r => r.EquipmentId == equipment.EquipmentId && (r.Status.Code == "APPROVED" || r.Status.Code == "PARTIALLY_RELEASED"))
+                .Where(r => r.EquipmentId == equipment.EquipmentId && (r.Status.Code == ReservationStatusCodes.Approved || r.Status.Code == ReservationStatusCodes.PartiallyReleased))
                 .Where(r => scope == null || r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == scope)
                 .OrderBy(r => r.RequestedStartAtUtc)
                 .Select(r => new ScanMatchViewModel
@@ -602,7 +602,7 @@ namespace ASI.Basecode.Services.Services
                 .ToList());
             result.Matches.AddRange(this.DbContext.Borrowings.AsNoTracking()
                 .Where(b => b.EquipmentId == equipment.EquipmentId
-                    && (b.Status.Code == "ACTIVE" || b.Status.Code == "PARTIALLY_RETURNED" || b.Status.Code == "OVERDUE"))
+                    && (b.Status.Code == BorrowingStatusCodes.Active || b.Status.Code == BorrowingStatusCodes.PartiallyReturned || b.Status.Code == BorrowingStatusCodes.Overdue))
                 .Where(b => scope == null || b.Reservation == null || b.Reservation.AssignedCustodianUserId == null || b.Reservation.AssignedCustodianUserId == scope)
                 .OrderBy(b => b.DueAtUtc)
                 .Select(b => new ScanMatchViewModel
@@ -652,7 +652,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.CustodianReservationNotFound);
                 }
 
-                if (entity.AssignedCustodianUserId != null || (entity.Status.Code != "PENDING" && entity.Status.Code != "APPROVED"))
+                if (entity.AssignedCustodianUserId != null || (entity.Status.Code != ReservationStatusCodes.Pending && entity.Status.Code != ReservationStatusCodes.Approved))
                 {
                     return (false, ErrorMessages.CustodianClaimUnavailable);
                 }

@@ -566,7 +566,7 @@ namespace ASI.Basecode.Services.Services
             return null;
         }
 
-        private static readonly string[] OpenReservationStatuses = { "PENDING", "APPROVED", "READY_FOR_RELEASE", "PARTIALLY_RELEASED" };
+        private static readonly string[] OpenReservationStatuses = { ReservationStatusCodes.Pending, ReservationStatusCodes.Approved, ReservationStatusCodes.ReadyForRelease, ReservationStatusCodes.PartiallyReleased };
 
         private bool IsBorrowerCode(string roleCode) => roleCode == RoleCodes.Student || roleCode == RoleCodes.Faculty;
 

@@ -14,6 +14,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using ASI.Basecode.Data.QueryModels;
+using ASI.Basecode.Resources.Constants;
 using ErrorMessages = ASI.Basecode.Resources.Messages.Errors;
 
 namespace ASI.Basecode.Services.Services
@@ -49,12 +50,12 @@ namespace ASI.Basecode.Services.Services
             var reservedUnits = this.DbContext.EquipmentInventoryBalances.Sum(b => (int?)b.ReservedQuantity) ?? 0;
             var borrowedUnits = this.DbContext.EquipmentInventoryBalances.Sum(b => (int?)b.ReleasedQuantity) ?? 0;
             var readyForRelease = this.DbContext.Reservations
-                .Count(r => r.Status.Code == "READY_FOR_RELEASE");
+                .Count(r => r.Status.Code == ReservationStatusCodes.ReadyForRelease);
             // Items flagged damaged/lost, or with units sent to maintenance / recorded lost at inspection.
             var damagedLost = this.DbContext.Equipment
-                .Count(e => e.CurrentCondition.Code == "DAMAGED"
-                    || e.CurrentCondition.Code == "MISSING_PARTS"
-                    || e.CurrentCondition.Code == "LOST"
+                .Count(e => e.CurrentCondition.Code == ConditionCodes.Damaged
+                    || e.CurrentCondition.Code == ConditionCodes.MissingParts
+                    || e.CurrentCondition.Code == ConditionCodes.Lost
                     || (e.EquipmentInventoryBalance != null
                         && (e.EquipmentInventoryBalance.MaintenanceQuantity > 0 || e.EquipmentInventoryBalance.UnreconciledQuantity > 0)));
 
@@ -146,7 +147,7 @@ namespace ASI.Basecode.Services.Services
                     AssetCode = r.Borrowing.Equipment.AssetCode,
                     Quantity = r.ReturnedQuantity,
                     Status = r.WasReturnedLate ? "Returned Late" : "Returned",
-                    StatusCode = "RETURNED",
+                    StatusCode = BorrowingStatusCodes.Returned,
                 });
 
             var inspections = this.DbContext.ConditionInspections
@@ -178,13 +179,13 @@ namespace ASI.Basecode.Services.Services
                 && BorrowingRules.IsOverdue(t.StatusCode, t.DueAtUtc.Value, cutoff)))
             {
                 row.Status = "Overdue";
-                row.StatusCode = "OVERDUE";
+                row.StatusCode = BorrowingStatusCodes.Overdue;
             }
 
             IEnumerable<TransactionRowViewModel> filtered = combined;
             if (tab == "Overdue")
             {
-                filtered = filtered.Where(t => t.StatusCode == "OVERDUE");
+                filtered = filtered.Where(t => t.StatusCode == BorrowingStatusCodes.Overdue);
             }
 
             if (!string.IsNullOrWhiteSpace(search))

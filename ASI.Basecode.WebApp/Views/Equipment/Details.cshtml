@@ -18,7 +18,7 @@
     </div>
     <div class="cp-page-actions">
         <a asp-action="Label" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-secondary">Print QR label</a>
-        @if (User.IsInRole("ADMIN"))
+        @if (User.IsInRole(RoleCodes.Admin))
         {
             <a asp-action="Edit" asp-route-id="@Model.EquipmentId" class="cp-btn cp-btn-primary">Edit</a>
         }
@@ -74,7 +74,7 @@
                 <dt>Unreconciled (lost)</dt><dd>@balance.UnreconciledQuantity</dd>
             </dl>
 
-            @if (balance.MaintenanceQuantity > 0 && User.IsInRole("ADMIN"))
+            @if (balance.MaintenanceQuantity > 0 && User.IsInRole(RoleCodes.Admin))
             {
                 <form method="post" asp-action="AdjustStock" asp-route-id="@Model.EquipmentId" class="cp-adjust-form">
                     @Html.AntiForgeryToken()
@@ -88,7 +88,7 @@
                     </div>
                 </form>
             }
-            @if (balance.UnreconciledQuantity > 0 && User.IsInRole("ADMIN"))
+            @if (balance.UnreconciledQuantity > 0 && User.IsInRole(RoleCodes.Admin))
             {
                 <form method="post" asp-action="AdjustStock" asp-route-id="@Model.EquipmentId" class="cp-adjust-form">
                     @Html.AntiForgeryToken()

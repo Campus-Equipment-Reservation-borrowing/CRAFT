@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Services.Services
 {
@@ -47,12 +48,12 @@ namespace ASI.Basecode.Services.Services
             var activeBorrowings = this.DbContext.Borrowings
                 .AsNoTracking()
                 .Count(b => b.BorrowerUserId == userId
-                    && b.Status.Code != "RETURNED"
-                    && b.Status.Code != "LOST");
+                    && b.Status.Code != BorrowingStatusCodes.Returned
+                    && b.Status.Code != BorrowingStatusCodes.Lost);
 
             var completed = this.DbContext.Borrowings
                 .AsNoTracking()
-                .Count(b => b.BorrowerUserId == userId && b.Status.Code == "RETURNED");
+                .Count(b => b.BorrowerUserId == userId && b.Status.Code == BorrowingStatusCodes.Returned);
 
             var overdueCutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
             var overdue = this.DbContext.Borrowings

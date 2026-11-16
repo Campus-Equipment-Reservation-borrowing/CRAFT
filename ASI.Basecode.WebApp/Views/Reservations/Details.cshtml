@@ -11,7 +11,7 @@
         <p class="cp-page-subtitle">Reservation <span class="cp-mono">@Model.ReservationNumber</span> and its current status.</p>
     </div>
     <div class="cp-page-actions">
-        @if (Model.StatusCode is "APPROVED" or "READY_FOR_RELEASE" or "PARTIALLY_RELEASED")
+        @if (Model.StatusCode is ReservationStatusCodes.Approved or ReservationStatusCodes.ReadyForRelease or ReservationStatusCodes.PartiallyReleased)
         {
             <a asp-controller="Reservations" asp-action="Slip" asp-route-id="@Model.ReservationId" class="cp-btn cp-btn-secondary cp-btn-sm">Print pickup slip</a>
         }

@@ -25,7 +25,7 @@ namespace ASI.Basecode.Services.Services
     public class ReservationService : ServiceBase, IReservationService
     {
         /// <summary>Inventory states counted as unavailable when computing free units (EquipmentService formula).</summary>
-        private const string BorrowingStatusReturned = "RETURNED";
+        private const string BorrowingStatusReturned = BorrowingStatusCodes.Returned;
 
         private readonly IUnitOfWork _unitOfWork;
         private readonly IReservationRepository _reservationRepository;
@@ -127,7 +127,7 @@ namespace ASI.Basecode.Services.Services
             var balance = entity.EquipmentInventoryBalance;
             var available = this.ComputeAvailableUnits(balance);
             var isMaintenance = string.Equals(
-                entity.OperationalStatus?.Code, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase);
+                entity.OperationalStatus?.Code, ConditionCodes.UnderMaintenance, StringComparison.OrdinalIgnoreCase);
 
             var reason = GetReservationBlock(entity)
                 ?? (available <= 0 ? "Equipment is not available for reservation." : null);
@@ -202,13 +202,13 @@ namespace ASI.Basecode.Services.Services
         private static string GetReservationBlock(Equipment equipment)
         {
             var status = equipment.OperationalStatus?.Code;
-            if (string.Equals(status, "UNDER_MAINTENANCE", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(status, ConditionCodes.UnderMaintenance, StringComparison.OrdinalIgnoreCase))
             {
                 return ErrorMessages.ReservationEquipmentUnderMaintenance;
             }
 
             // Broken, retired or any other non-Available status takes the item out of circulation.
-            if (status != null && !string.Equals(status, "AVAILABLE", StringComparison.OrdinalIgnoreCase))
+            if (status != null && !string.Equals(status, ConditionCodes.Available, StringComparison.OrdinalIgnoreCase))
             {
                 return ErrorMessages.ReservationEquipmentOutOfService;
             }
@@ -321,7 +321,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, message, form.EquipmentId);
                 }
 
-                var isFaculty = string.Equals(borrower.Role?.RoleCode, "FACULTY", StringComparison.OrdinalIgnoreCase);
+                var isFaculty = string.Equals(borrower.Role?.RoleCode, RoleCodes.Faculty, StringComparison.OrdinalIgnoreCase);
                 var maxBorrowDays = isFaculty ? policy.FacultyMaxBorrowDays : policy.MaxBorrowDays;
                 var durationDays = (expectedReturn - requestedStart).TotalDays;
                 if (durationDays > maxBorrowDays)
@@ -333,8 +333,8 @@ namespace ASI.Basecode.Services.Services
                 var statusIds = this.GetReservationStatusIds();
                 var activeStatusIds = new List<long>
                 {
-                    statusIds["PENDING"],
-                    statusIds["APPROVED"],
+                    statusIds[ReservationStatusCodes.Pending],
+                    statusIds[ReservationStatusCodes.Approved],
                 };
                 var activeCount = this.DbContext.Reservations
                     .Count(r => r.BorrowerUserId == actorUserId.Value
@@ -402,7 +402,7 @@ namespace ASI.Basecode.Services.Services
                     ExpectedReturnAtUtc = expectedReturn,
                     Purpose = form.Purpose?.Trim(),
                     BorrowingPolicyVersionId = policy.PolicyVersionId.Value,
-                    StatusId = statusIds["PENDING"],
+                    StatusId = statusIds[ReservationStatusCodes.Pending],
                     SubmittedAtUtc = submittedAt,
                     CompletedAtUtc = null,
                     AssignedCustodianUserId = custodianId,
@@ -539,7 +539,7 @@ namespace ASI.Basecode.Services.Services
                 // approved-minus-released once APPROVED).
                 var hold = ReservationRules.RemainingHold(entity, statusCode, ReservationRules.ReleasedSoFar(this.DbContext, entity.ReservationId));
 
-                var cancelledStatusId = this.GetReservationStatusIds()["CANCELLED"];
+                var cancelledStatusId = this.GetReservationStatusIds()[ReservationStatusCodes.Cancelled];
                 entity.StatusId = cancelledStatusId;
                 entity.HeldQuantity = 0;
                 entity.CompletedAtUtc = DateTime.UtcNow;
@@ -698,8 +698,8 @@ namespace ASI.Basecode.Services.Services
 
         private bool IsOpenStatus(string statusCode)
         {
-            return string.Equals(statusCode, "PENDING", StringComparison.Ordinal)
-                || string.Equals(statusCode, "APPROVED", StringComparison.Ordinal);
+            return string.Equals(statusCode, ReservationStatusCodes.Pending, StringComparison.Ordinal)
+                || string.Equals(statusCode, ReservationStatusCodes.Approved, StringComparison.Ordinal);
         }
 
         private bool IsCanceller(long borrowerUserId, long? operatorUserId)
@@ -721,8 +721,8 @@ namespace ASI.Basecode.Services.Services
                 .Select(u => u.Role.RoleCode)
                 .FirstOrDefault();
 
-            return string.Equals(roleCode, "ADMIN", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(roleCode, "TECHNICIAN", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(roleCode, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(roleCode, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase);
         }
 
         private EquipmentAvailabilityRowViewModel MapToAvailabilityRow(Equipment entity)

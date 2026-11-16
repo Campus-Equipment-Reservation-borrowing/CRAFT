@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using ASI.Basecode.Data.QueryModels;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -18,8 +19,8 @@ namespace ASI.Basecode.Data.Repositories
         {
             var q = this.Context.ReservationStatuses.AsNoTracking().ToList();
             int Code(string c) => (int)(q.FirstOrDefault(s => s.Code == c)?.StatusId ?? -1);
-            var p = Code("PENDING"); var a = Code("APPROVED"); var r = Code("REJECTED");
-            var c = Code("CANCELLED"); var comp = Code("COMPLETED"); var e = Code("EXPIRED");
+            var p = Code(ReservationStatusCodes.Pending); var a = Code(ReservationStatusCodes.Approved); var r = Code(ReservationStatusCodes.Rejected);
+            var c = Code(ReservationStatusCodes.Cancelled); var comp = Code(ReservationStatusCodes.Completed); var e = Code(ReservationStatusCodes.Expired);
             var all = this.Context.Reservations.AsNoTracking();
             return (all.Count(),
                 all.Count(x => x.StatusId == p),
@@ -35,8 +36,8 @@ namespace ASI.Basecode.Data.Repositories
         {
             var q = this.Context.BorrowingStatuses.AsNoTracking().ToList();
             int Code(string c) => (int)(q.FirstOrDefault(s => s.Code == c)?.StatusId ?? -1);
-            var active = Code("ACTIVE"); var partial = Code("PARTIALLY_RETURNED");
-            var returned = Code("RETURNED"); var overdue = Code("OVERDUE"); var lost = Code("LOST");
+            var active = Code(BorrowingStatusCodes.Active); var partial = Code(BorrowingStatusCodes.PartiallyReturned);
+            var returned = Code(BorrowingStatusCodes.Returned); var overdue = Code(BorrowingStatusCodes.Overdue); var lost = Code(BorrowingStatusCodes.Lost);
             var all = this.Context.Borrowings.AsNoTracking();
             return (all.Count(),
                 all.Count(x => x.StatusId == active),

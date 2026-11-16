@@ -2,6 +2,7 @@ using ASI.Basecode.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Services.Manager
 {
@@ -20,7 +21,7 @@ namespace ASI.Basecode.Services.Manager
     public static class BorrowingRules
     {
         /// <summary>Borrowing statuses with units still out.</summary>
-        public static readonly string[] OpenStatusCodes = { "ACTIVE", "OVERDUE", "PARTIALLY_RETURNED" };
+        public static readonly string[] OpenStatusCodes = { BorrowingStatusCodes.Active, BorrowingStatusCodes.Overdue, BorrowingStatusCodes.PartiallyReturned };
 
         /// <summary>Overdue grace period from the current policy, in minutes (0 when no policy).</summary>
         public static int GetGraceMinutes(AllianceDbContext db)
