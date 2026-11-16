@@ -9,6 +9,9 @@ namespace ASI.Basecode.Data.Interfaces
     {
         BorrowingPolicyVersion GetCurrentPolicy();
 
+        /// <summary>Overdue grace period of the current policy in minutes, or null when no policy exists.</summary>
+        int? GetCurrentOverdueGracePeriodMinutes();
+
         List<BorrowingPolicyVersion> GetPolicyHistory();
 
         List<EquipmentCategory> GetCategories();

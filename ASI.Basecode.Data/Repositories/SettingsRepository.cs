@@ -23,6 +23,15 @@ namespace ASI.Basecode.Data.Repositories
                 .FirstOrDefault();
         }
 
+        public int? GetCurrentOverdueGracePeriodMinutes()
+        {
+            return this.Context.BorrowingPolicyVersions.AsNoTracking()
+                .OrderByDescending(p => p.IsCurrent)
+                .ThenByDescending(p => p.PolicyVersionId)
+                .Select(p => (int?)p.OverdueGracePeriodMinutes)
+                .FirstOrDefault();
+        }
+
         public List<BorrowingPolicyVersion> GetPolicyHistory()
         {
             return this.Context.BorrowingPolicyVersions

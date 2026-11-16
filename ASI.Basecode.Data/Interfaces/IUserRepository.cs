@@ -103,5 +103,45 @@ namespace ASI.Basecode.Data.Interfaces
         /// Adds a user (saved by the caller's SaveChanges).
         /// </summary>
         void Add(User user);
+
+        /// <summary>
+        /// Removes a user (saved by the caller's SaveChanges).
+        /// </summary>
+        void Remove(User user);
+
+        /// <summary>
+        /// The user (tracked, with account status and role), or null.
+        /// </summary>
+        User GetTrackedByIdWithStatusAndRole(long userId);
+
+        /// <summary>
+        /// Number of users with the given account status id.
+        /// </summary>
+        int CountWithAccountStatus(long accountStatusId);
+
+        /// <summary>
+        /// The user's role code and account status code, or null when the user does not exist.
+        /// </summary>
+        UserRoleStatusCodes GetRoleAndStatusCodes(long userId);
+
+        /// <summary>
+        /// True when a user other than <paramref name="excludeUserId"/> has the role code and account status code.
+        /// </summary>
+        bool OtherUserWithRoleAndStatusExists(long excludeUserId, string roleCode, string accountStatusCode);
+
+        /// <summary>
+        /// The user's profile image path, or null.
+        /// </summary>
+        string GetProfileImagePath(long userId);
+
+        /// <summary>
+        /// Clears the creator on the user's announcements (tracked; saved by the caller).
+        /// </summary>
+        void ClearAnnouncementCreator(long userId);
+
+        /// <summary>
+        /// Clears the assignee on support tickets assigned to the user (tracked; saved by the caller).
+        /// </summary>
+        void ClearSupportTicketAssignee(long userId);
     }
 }

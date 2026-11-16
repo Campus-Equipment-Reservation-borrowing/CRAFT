@@ -115,5 +115,11 @@ namespace ASI.Basecode.Data.Repositories
                 .ThenByDescending(r => r.ReservationId)
                 .ToList();
         }
+
+        public bool AnyAssignedToCustodianInStatuses(long custodianUserId, IReadOnlyCollection<string> statusCodes)
+        {
+            return this.Context.Reservations.Any(r => r.AssignedCustodianUserId == custodianUserId
+                && statusCodes.Contains(r.Status.Code));
+        }
     }
 }

@@ -240,5 +240,62 @@ namespace ASI.Basecode.Data.Repositories
         {
             this.Context.Users.Add(user);
         }
+
+        public void Remove(User user)
+        {
+            this.Context.Users.Remove(user);
+        }
+
+        public User GetTrackedByIdWithStatusAndRole(long userId)
+        {
+            return this.Context.Users
+                .Include(u => u.AccountStatus)
+                .Include(u => u.Role)
+                .FirstOrDefault(u => u.UserId == userId);
+        }
+
+        public int CountWithAccountStatus(long accountStatusId)
+        {
+            return this.Context.Users.Count(u => u.AccountStatusId == accountStatusId);
+        }
+
+        public UserRoleStatusCodes GetRoleAndStatusCodes(long userId)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => new UserRoleStatusCodes { RoleCode = u.Role.RoleCode, StatusCode = u.AccountStatus.Code })
+                .FirstOrDefault();
+        }
+
+        public bool OtherUserWithRoleAndStatusExists(long excludeUserId, string roleCode, string accountStatusCode)
+        {
+            return this.Context.Users.Any(u => u.UserId != excludeUserId
+                && u.Role.RoleCode == roleCode
+                && u.AccountStatus.Code == accountStatusCode);
+        }
+
+        public string GetProfileImagePath(long userId)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.ProfileImagePath)
+                .FirstOrDefault();
+        }
+
+        public void ClearAnnouncementCreator(long userId)
+        {
+            foreach (var a in this.Context.Announcements.Where(a => a.CreatedByUserId == userId))
+            {
+                a.CreatedByUserId = null;
+            }
+        }
+
+        public void ClearSupportTicketAssignee(long userId)
+        {
+            foreach (var t in this.Context.SupportTickets.Where(t => t.AssignedToUserId == userId))
+            {
+                t.AssignedToUserId = null;
+            }
+        }
     }
 }

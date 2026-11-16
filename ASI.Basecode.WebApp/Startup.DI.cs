@@ -60,6 +60,8 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<INotificationRepository, NotificationRepository>();
             this._services.AddScoped<IUserPreferenceRepository, UserPreferenceRepository>();
             this._services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+            this._services.AddScoped<IBorrowingRepository, BorrowingRepository>();
+            this._services.AddScoped<ICustodianAssignmentRepository, CustodianAssignmentRepository>();
             this._services.AddScoped<IUserService, UserService>();
 
             // Borrower reservations

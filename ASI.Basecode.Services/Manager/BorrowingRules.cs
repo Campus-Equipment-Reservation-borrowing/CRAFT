@@ -1,4 +1,5 @@
 using ASI.Basecode.Data;
+using ASI.Basecode.Data.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -38,6 +39,18 @@ namespace ASI.Basecode.Services.Manager
         public static DateTime GetOverdueCutoffUtc(AllianceDbContext db, DateTime nowUtc)
         {
             return nowUtc.AddMinutes(-GetGraceMinutes(db));
+        }
+
+        /// <summary>Overdue grace period from the current policy, in minutes (0 when no policy).</summary>
+        public static int GetGraceMinutes(ISettingsRepository settings)
+        {
+            return Math.Max(0, settings.GetCurrentOverdueGracePeriodMinutes() ?? 0);
+        }
+
+        /// <summary>Borrowings due before this instant are overdue (now minus the grace period).</summary>
+        public static DateTime GetOverdueCutoffUtc(ISettingsRepository settings, DateTime nowUtc)
+        {
+            return nowUtc.AddMinutes(-GetGraceMinutes(settings));
         }
 
         public static bool IsOpen(string statusCode)

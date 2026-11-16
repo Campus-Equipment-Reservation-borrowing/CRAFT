@@ -40,5 +40,10 @@ namespace ASI.Basecode.Data.Interfaces
         /// Status filtering is left to the service (status codes live in the DB).
         /// </summary>
         List<Reservation> GetForBorrower(long borrowerUserId);
+
+        /// <summary>
+        /// True when a reservation assigned to the custodian is in one of the given statuses.
+        /// </summary>
+        bool AnyAssignedToCustodianInStatuses(long custodianUserId, IReadOnlyCollection<string> statusCodes);
     }
 }
