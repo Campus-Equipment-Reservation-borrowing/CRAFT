@@ -732,3 +732,7 @@
 .cp-search-row { display: flex; gap: 8px; align-items: stretch; }
 .cp-search-row .cp-input { flex: 1 1 auto; min-width: 0; width: auto; }
 .cp-search-row .cp-btn { flex: 0 0 auto; white-space: nowrap; }
+
+/* Inspection photo thumbnails */
+.cp-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.cp-photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--color-border); display: block; }

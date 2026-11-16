@@ -215,6 +215,7 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleCodes.Admin)]
         public IActionResult AdjustStock(long id, string adjustment, int quantity, string note)
         {
             var (success, error) = this._equipmentService.AdjustStock(id, adjustment, quantity, note);

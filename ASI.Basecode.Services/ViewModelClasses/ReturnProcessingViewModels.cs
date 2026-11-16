@@ -84,6 +84,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string PhotoWarning { get; set; }
     }
 
+    public class InspectionPhotoViewModel
+    {
+        public long InspectionId { get; set; }
+        public string FileName { get; set; }
+    }
+
     public class InspectionFormContextViewModel
     {
         public InspectionFormViewModel Form { get; set; }

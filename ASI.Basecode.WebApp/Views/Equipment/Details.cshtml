@@ -74,7 +74,7 @@
                 <dt>Unreconciled (lost)</dt><dd>@balance.UnreconciledQuantity</dd>
             </dl>
 
-            @if (balance.MaintenanceQuantity > 0)
+            @if (balance.MaintenanceQuantity > 0 && User.IsInRole("ADMIN"))
             {
                 <form method="post" asp-action="AdjustStock" asp-route-id="@Model.EquipmentId" class="cp-adjust-form">
                     @Html.AntiForgeryToken()
@@ -88,7 +88,7 @@
                     </div>
                 </form>
             }
-            @if (balance.UnreconciledQuantity > 0)
+            @if (balance.UnreconciledQuantity > 0 && User.IsInRole("ADMIN"))
             {
                 <form method="post" asp-action="AdjustStock" asp-route-id="@Model.EquipmentId" class="cp-adjust-form">
                     @Html.AntiForgeryToken()

@@ -166,7 +166,7 @@ namespace ASI.Basecode.Services.Services
 
         public SupportTicketIndexViewModel GetTickets(string status)
         {
-            var isStaff = this.IsStaff();
+            var isStaff = this.IsSupportAgent();
             var actorId = this._currentUser.GetActorUserId() ?? -1;
             var query = this.DbContext.SupportTickets.AsNoTracking().AsQueryable();
             if (!isStaff)
@@ -251,7 +251,7 @@ namespace ASI.Basecode.Services.Services
 
         public SupportTicketDetailsViewModel GetTicket(long ticketId)
         {
-            var isStaff = this.IsStaff();
+            var isStaff = this.IsSupportAgent();
             var actorId = this._currentUser.GetActorUserId() ?? -1;
             var ticket = this.DbContext.SupportTickets.AsNoTracking()
                 .Where(t => t.TicketId == ticketId && (isStaff || t.RequesterUserId == actorId))
@@ -273,7 +273,7 @@ namespace ASI.Basecode.Services.Services
                         .Select(r => new SupportReplyViewModel
                         {
                             AuthorName = r.AuthorUser.FirstName + " " + r.AuthorUser.LastName,
-                            AuthorIsStaff = !r.AuthorUser.Role.IsBorrowerRole,
+                            AuthorIsStaff = r.AuthorUser.Role.RoleCode == RoleCodes.Admin,
                             Body = r.Body,
                             CreatedAtUtc = r.CreatedAtUtc,
                         })
@@ -301,7 +301,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, "Enter a reply message.");
                 }
 
-                var isStaff = this.IsStaff();
+                var isStaff = this.IsSupportAgent();
                 var ticket = this.DbContext.SupportTickets
                     .FirstOrDefault(t => t.TicketId == ticketId && (isStaff || t.RequesterUserId == actorId.Value));
                 if (ticket == null)
@@ -352,7 +352,7 @@ namespace ASI.Basecode.Services.Services
         {
             try
             {
-                if (!this.IsStaff())
+                if (!this.IsSupportAgent())
                 {
                     return (false, ErrorMessages.TicketNotFound);
                 }
@@ -473,11 +473,13 @@ namespace ASI.Basecode.Services.Services
 
         // ---------------------------------------------------------------- helpers
 
-        private bool IsStaff()
+        /// <summary>
+        /// Support is answered by administrators only. Custodians use Support like any other
+        /// user: they see and reply to their own tickets, not everyone's.
+        /// </summary>
+        private bool IsSupportAgent()
         {
-            var role = this._currentUser.GetActorRoleCode();
-            return string.Equals(role, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(role, RoleCodes.Technician, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(this._currentUser.GetActorRoleCode(), RoleCodes.Admin, StringComparison.OrdinalIgnoreCase);
         }
 
         private static AnnouncementRowViewModel WithAudienceLabel(AnnouncementRowViewModel row)

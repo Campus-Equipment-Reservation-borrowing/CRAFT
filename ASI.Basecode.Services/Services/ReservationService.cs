@@ -486,10 +486,12 @@ namespace ASI.Basecode.Services.Services
             }
 
             var operatorUserId = this._currentUser.GetActorUserId();
-            var isStaff = this.IsStaffOperator();
-            if (!isStaff && (!operatorUserId.HasValue || entity.BorrowerUserId != operatorUserId.Value))
+            var isOwner = operatorUserId.HasValue && entity.BorrowerUserId == operatorUserId.Value;
+
+            // Borrowers see only their own reservations; custodians only those routed to them or
+            // still in the shared pool (the same rule as the review screen); admins see all.
+            if (!isOwner && !(this.IsStaffOperator() && this._currentUser.CanActOn(entity.AssignedCustodianUserId)))
             {
-                // Borrowers may only view their own reservations.
                 return null;
             }
 

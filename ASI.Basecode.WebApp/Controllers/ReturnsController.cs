@@ -96,6 +96,7 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.RedirectToAction(nameof(this.Index));
             }
             this.ViewBag.Context = ctx;
+            this.ViewBag.Photos = this._service.GetInspectionPhotos(id);
             var form = new InspectionFormViewModel
             {
                 BorrowingId = id,
@@ -150,6 +151,21 @@ namespace ASI.Basecode.WebApp.Controllers
             }
             return this.RedirectToAction(nameof(this.Index));
         }
+        /// <summary>Serves an inspection photo to staff in scope; photos are not public files.</summary>
+        [HttpGet]
+        public IActionResult Photo(long id, string file)
+        {
+            var (path, contentType) = this._service.GetInspectionPhotoFile(id, file);
+            if (path == null)
+            {
+                return this.NotFound();
+            }
+
+            // Private file: never reuse a cached copy for another signed-in user.
+            this.Response.Headers.CacheControl = "private, no-store";
+            return this.PhysicalFile(path, contentType);
+        }
+
         private SelectList ToSelectList(IEnumerable<LookupViewModel> options, long? selected, string emptyText)
         {
             var items = (options ?? new List<LookupViewModel>()).Select(o => new { Id = o.Id.ToString(), o.Text }).ToList();

@@ -197,3 +197,5 @@ $RECYCLE.BIN/
 node_modules
 */src/*/Scripts/**/*.js
 */src/*/Scripts/**/*.js.map
+# Private uploads (inspection photos) live outside wwwroot
+**/App_Data/uploads/

@@ -431,7 +431,7 @@ namespace ASI.Basecode.Services.Services
             var saved = 0;
             try
             {
-                var dir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "inspections", inspectionId.ToString());
+                var dir = InspectionPhotoStore.DirectoryFor(inspectionId);
                 Directory.CreateDirectory(dir);
                 foreach (var file in files)
                 {
@@ -456,6 +456,40 @@ namespace ASI.Basecode.Services.Services
             return skipped.Count == 0
                 ? null
                 : $"Skipped {skipped.Count} photo(s) ({string.Join(", ", skipped)}): only JPG, PNG or WEBP up to 5 MB, 6 files at most.";
+        }
+
+        /// <inheritdoc />
+        public List<InspectionPhotoViewModel> GetInspectionPhotos(long borrowingId)
+        {
+            var borrowing = this._repository.GetBorrowingForReturn(borrowingId);
+            if (borrowing == null || !this._currentUser.CanActOn(borrowing.Reservation?.AssignedCustodianUserId))
+            {
+                return new List<InspectionPhotoViewModel>();
+            }
+
+            return this.DbContext.ConditionInspections.AsNoTracking()
+                .Where(i => i.BorrowingId == borrowingId)
+                .OrderBy(i => i.InspectionId)
+                .Select(i => i.InspectionId)
+                .ToList()
+                .SelectMany(id => InspectionPhotoStore.List(id).Select(f => new InspectionPhotoViewModel { InspectionId = id, FileName = f }))
+                .ToList();
+        }
+
+        /// <inheritdoc />
+        public (string Path, string ContentType) GetInspectionPhotoFile(long inspectionId, string fileName)
+        {
+            var inspection = this.DbContext.ConditionInspections.AsNoTracking()
+                .Where(i => i.InspectionId == inspectionId)
+                .Select(i => new { i.Borrowing.Reservation.AssignedCustodianUserId })
+                .FirstOrDefault();
+            if (inspection == null || !this._currentUser.CanActOn(inspection.AssignedCustodianUserId))
+            {
+                return (null, null);
+            }
+
+            var path = InspectionPhotoStore.PathFor(inspectionId, fileName);
+            return path == null ? (null, null) : (path, InspectionPhotoStore.ContentTypeFor(fileName));
         }
 
         /// <summary>
