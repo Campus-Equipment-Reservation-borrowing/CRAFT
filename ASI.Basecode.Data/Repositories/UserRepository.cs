@@ -189,5 +189,56 @@ namespace ASI.Basecode.Data.Repositories
                 .Select(u => u.UserId)
                 .ToList();
         }
+
+        public User GetTrackedBySignInKeyWithDetails(string lowerKey)
+        {
+            return this.Context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Include(u => u.AccountStatus)
+                .FirstOrDefault(u =>
+                    u.SchoolEmail.ToLower() == lowerKey ||
+                    u.AccountIdentifier.ToLower() == lowerKey);
+        }
+
+        public User GetTrackedBySchoolEmailWithStatus(string lowerEmail)
+        {
+            return this.Context.Users
+                .Include(u => u.AccountStatus)
+                .FirstOrDefault(u => u.SchoolEmail.ToLower() == lowerEmail);
+        }
+
+        public User GetTrackedByIdWithStatus(long userId)
+        {
+            return this.Context.Users
+                .Include(u => u.AccountStatus)
+                .FirstOrDefault(u => u.UserId == userId);
+        }
+
+        public string GetAccountIdentifier(long userId)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.AccountIdentifier)
+                .FirstOrDefault();
+        }
+
+        public bool AccountIdentifierExistsLowercase(string accountIdentifier)
+        {
+            return this.Context.Users
+                .Any(u => u.AccountIdentifier.ToLower() == accountIdentifier.ToLower());
+        }
+
+        public bool SchoolEmailExistsLowercase(string schoolEmail)
+        {
+            return this.Context.Users
+                .Any(u => u.SchoolEmail.ToLower() == schoolEmail.ToLower());
+        }
+
+        public void Add(User user)
+        {
+            this.Context.Users.Add(user);
+        }
     }
 }

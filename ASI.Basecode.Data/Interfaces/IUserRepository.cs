@@ -67,5 +67,41 @@ namespace ASI.Basecode.Data.Interfaces
         /// Ids of users holding one of the role codes whose account status has the given code.
         /// </summary>
         List<long> GetUserIdsInRolesWithStatus(IReadOnlyCollection<string> roleCodes, string accountStatusCode);
+
+        /// <summary>
+        /// The user (tracked, with role, department and status) whose lower-cased school email or account
+        /// identifier equals <paramref name="lowerKey"/>.
+        /// </summary>
+        User GetTrackedBySignInKeyWithDetails(string lowerKey);
+
+        /// <summary>
+        /// The user (tracked, with account status) whose lower-cased school email equals <paramref name="lowerEmail"/>.
+        /// </summary>
+        User GetTrackedBySchoolEmailWithStatus(string lowerEmail);
+
+        /// <summary>
+        /// The user (tracked, with account status), or null.
+        /// </summary>
+        User GetTrackedByIdWithStatus(long userId);
+
+        /// <summary>
+        /// The user's account identifier, or null when the user does not exist.
+        /// </summary>
+        string GetAccountIdentifier(long userId);
+
+        /// <summary>
+        /// True when an account identifier equals this one, compared lower-cased.
+        /// </summary>
+        bool AccountIdentifierExistsLowercase(string accountIdentifier);
+
+        /// <summary>
+        /// True when a school email equals this one, compared lower-cased.
+        /// </summary>
+        bool SchoolEmailExistsLowercase(string schoolEmail);
+
+        /// <summary>
+        /// Adds a user (saved by the caller's SaveChanges).
+        /// </summary>
+        void Add(User user);
     }
 }
