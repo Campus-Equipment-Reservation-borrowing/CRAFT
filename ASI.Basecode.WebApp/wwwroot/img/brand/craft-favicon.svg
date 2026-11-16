@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="t">
+  <title id="t">CRAFT</title>
+  <defs><linearGradient id="craftBg" x1="6" y1="4" x2="58" y2="62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#168A5B"/><stop offset="1" stop-color="#0B5D3E"/></linearGradient><linearGradient id="craftPanel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#168A5B"/><stop offset=".7" stop-color="#0B5D3E"/></linearGradient></defs>
+  <rect width="64" height="64" rx="16" fill="url(#craftBg)"/>
+  <path d="M44.62 15.85 A20.5 20.5 0 1 0 42.25 49.75" fill="none" stroke="#FFFFFF" stroke-width="7.0" stroke-linecap="round"/>
+  <path d="M50.56 44.95 L44.51 56.07 L37.91 44.64 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M32.00 19.60 L42.74 25.80 L32.00 32.00 L21.26 25.80 Z" fill="#FFFFFF"/>
+  <path d="M21.26 25.80 L32.00 32.00 L32.00 44.40 L21.26 38.20 Z" fill="#A9D8C2"/>
+  <path d="M32.00 32.00 L42.74 25.80 L42.74 38.20 L32.00 44.40 Z" fill="#CEE7D9"/>
+  <circle cx="51.01" cy="24.32" r="5.0" fill="#E8C87E"/>
+</svg>

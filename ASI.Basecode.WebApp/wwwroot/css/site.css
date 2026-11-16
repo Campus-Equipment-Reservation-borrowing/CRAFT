@@ -136,3 +136,11 @@ a.cp-kpi:hover { border-color: #C9DACF; box-shadow: 0 6px 18px -8px rgba(16,45,3
 .cp-pref-title { font-size: 12.6px; font-weight: 600; color: var(--color-text); }
 .cp-pref-sub { font-size: 11px; color: var(--color-text-gray); }
 .cp-profile-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+
+/* ===== In-app alerts (auth.css only loads on sign-in pages) =====
+   Used by form validation summaries, e.g. the reservation form's server errors. */
+.cp-alert { border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 16px; line-height: 1.5; }
+.cp-alert-success { background: #EDF7F1; border: 1px solid #CEE7D9; color: #0B5D3E; }
+.cp-alert-error { background: #FCEEEE; border: 1px solid #F2D3D3; color: #8E2F2F; font-weight: 500; }
+.cp-alert-error ul { margin: 0; padding-left: 18px; }
+.cp-alert.validation-summary-valid { display: none; }
