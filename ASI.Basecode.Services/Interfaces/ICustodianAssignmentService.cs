@@ -1,4 +1,5 @@
 using ASI.Basecode.Services.ViewModelClasses;
+using System.Collections.Generic;
 
 namespace ASI.Basecode.Services.Interfaces
 {
@@ -27,6 +28,15 @@ namespace ASI.Basecode.Services.Interfaces
         UserAssignmentSummaryViewModel GetUserSummary(long userId);
 
         CustodianWorkloadViewModel GetWorkload();
+
+        /// <summary>Active custodians, for pickers.</summary>
+        List<LookupViewModel> GetCustodianOptions();
+
+        /// <summary>
+        /// Adds or changes the borrower's custodian and reroutes their open pooled reservations,
+        /// on the shared DbContext, without saving. The caller saves and owns the transaction.
+        /// </summary>
+        BorrowerAssignmentStage StageBorrowerAssignment(long borrowerUserId, long custodianUserId);
 
         /// <summary>Admin: route an open reservation to a custodian, or back to the pool (null).</summary>
         (bool Success, string Error) Reassign(long reservationId, long? custodianUserId);

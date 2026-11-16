@@ -223,6 +223,7 @@ public partial class AllianceDbContext
         modelBuilder.Entity<Reservation>(entity =>
         {
             entity.Property(e => e.AssignedCustodianUserId).HasColumnName("assigned_custodian_user_id");
+            entity.Property(e => e.ExpiryWarningSentAtUtc).HasColumnName("expiry_warning_sent_at_utc");
             entity.HasOne(d => d.AssignedCustodianUser).WithMany()
                 .HasForeignKey(d => d.AssignedCustodianUserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

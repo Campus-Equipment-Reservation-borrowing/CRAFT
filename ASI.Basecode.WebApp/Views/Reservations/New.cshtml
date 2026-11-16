@@ -2,6 +2,12 @@
 @model ReservationFormContextViewModel
 @{
     ViewData["Title"] = "Reservation Form";
+    var equipment = Model.Equipment ?? new ReservationEquipmentSummaryViewModel();
+    var maxSelectable = equipment.MaxSelectable;
+    var canReserve = maxSelectable >= 1;
+    var unavailableReason = equipment.BlockedReason
+        ?? "No units are available right now. Check back later or choose another item.";
+    var singleReason = equipment.MaxUnitsPerBorrower <= 1 ? "Only 1 unit per request" : "Only 1 unit available";
 }
 
 <div class="cp-page-header">
@@ -12,6 +18,11 @@
     </div>
 </div>
 
+@if (!canReserve)
+{
+    <div class="banner warn" id="reserveBlocked" style="margin-bottom:12px"><div class="banner-b">@unavailableReason</div></div>
+}
+
 <div class="cp-grid-2">
     <div class="cp-card">
         <form asp-controller="Reservations" asp-action="New" method="post">
@@ -19,15 +30,23 @@
             <input type="hidden" asp-for="Form.EquipmentId" />
             <div asp-validation-summary="ModelOnly" class="cp-alert cp-alert-error"></div>
 
+            <fieldset class="cp-fieldset" disabled="@(!canReserve)">
+
             <div class="cp-form-row">
                 <div class="cp-form-group">
-                    <label asp-for="Form.Quantity" class="cp-form-label">Quantity <span class="required">*</span></label>
-                    @{
-                        var maxUnits = Model.Equipment?.MaxUnitsPerBorrower > 0 ? Model.Equipment.MaxUnitsPerBorrower : 3;
-                        var maxQty = Model.Equipment != null ? Math.Max(1, Math.Min(maxUnits, Model.Equipment.AvailableUnits)) : maxUnits;
+                    @if (maxSelectable == 1)
+                    {
+                        <span class="cp-form-label" id="qtyLabel">Quantity</span>
+                        <div class="cp-input cp-input-static" aria-labelledby="qtyLabel" aria-describedby="qtyHint">1 unit</div>
+                        <input type="hidden" name="Form.Quantity" value="1" />
+                        <div class="cp-form-hint" id="qtyHint">@singleReason.</div>
                     }
-                    <input asp-for="Form.Quantity" type="number" class="cp-input" min="1" max="@maxQty" step="1" required />
-                    <div class="cp-form-hint">Maximum @maxUnits units per borrower.</div>
+                    else
+                    {
+                        <label asp-for="Form.Quantity" class="cp-form-label">Quantity <span class="required">*</span></label>
+                        <input asp-for="Form.Quantity" type="number" class="cp-input" min="1" max="@(canReserve ? maxSelectable : 1)" aria-describedby="qtyHint" />
+                        <div class="cp-form-hint" id="qtyHint">@(canReserve ? $"Up to {maxSelectable} units." : "Not available.")</div>
+                    }
                     <span asp-validation-for="Form.Quantity" class="cp-form-error"></span>
                 </div>
                 <div class="cp-form-group">
@@ -93,9 +112,11 @@
                 <span asp-validation-for="Form.AcknowledgeResponsibility" class="cp-form-error"></span>
             </div>
 
+            </fieldset>
+
             <div class="cp-row-between">
                 <a asp-controller="Reservations" asp-action="Available" class="cp-btn cp-btn-secondary">Back</a>
-                <button type="submit" class="cp-btn cp-btn-success">Submit Reservation</button>
+                <button type="submit" class="cp-btn cp-btn-success" disabled="@(!canReserve)" aria-describedby="@(canReserve ? null : "reserveBlocked")">Submit Reservation</button>
             </div>
         </form>
     </div>
@@ -129,7 +150,7 @@
         <div class="cp-card">
             <div class="cp-card-header">Review Time</div>
             <div class="cp-stack">
-                <div class="cp-cell-sub">Requests are normally reviewed within one working day. You will be notified once a decision is made.</div>
+                <div class="cp-cell-sub">Your custodian has up to 3 days to review a request (and must decide before your pickup time). Requests that aren't reviewed in time expire and the units are released. You'll be notified either way.</div>
                 <div class="cp-cell-sub">Cancellation window — you may cancel this request any time while it is still Pending or Approved.</div>
             </div>
         </div>

@@ -59,6 +59,7 @@ else
                         <td>@(r.PickupLocationName ?? "—")</td>
                         <td>
                             <span class="@StatusBadge.Css(r.StatusCode)">@r.StatusDescription</span>
+                            <div><partial name="_ExpiryBadge" model="@((r.StatusCode, r.SubmittedAtUtc, r.RequestedStartAtUtc))" /></div>
                         </td>
                         <td>
                             @if (r.AssignedCustodianName == null)

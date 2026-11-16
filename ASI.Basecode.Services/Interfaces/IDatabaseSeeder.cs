@@ -11,6 +11,7 @@ namespace ASI.Basecode.Services.Interfaces
         /// Ensures the auth-only schema exists, then seeds codebooks and demo records.
         /// Safe to run on every startup.
         /// </summary>
-        void Seed();
+        /// <param name="includeDemoData">Demo accounts (shared password) and sample data; Development only.</param>
+        void Seed(bool includeDemoData);
     }
 }

@@ -118,6 +118,7 @@ namespace ASI.Basecode.Services.Services
                 AssetCode = borrowing.Equipment.AssetCode,
                 ReleasedQuantity = borrowing.ReleasedQuantity,
                 AlreadyReturned = alreadyReturned,
+                InspectableQuantity = Math.Max(0, alreadyReturned - alreadyInspected),
                 AlreadyInspected = alreadyInspected,
                 AwaitingInspection = Math.Max(0, alreadyReturned - alreadyInspected),
                 PendingInspectionStatusId = this.DbContext.InspectionStatuses.AsNoTracking()
@@ -156,7 +157,7 @@ namespace ASI.Basecode.Services.Services
         {
             if (form == null)
             {
-                return (false, ErrorMessages.ServerError, 0);
+                return (false, ErrorMessages.ReturnQuantityInvalid, 0);
             }
 
             if (form.ReturnedQuantity < 1)
@@ -166,10 +167,16 @@ namespace ASI.Basecode.Services.Services
 
             try
             {
+                var actorId = this._currentUser.GetActorUserId();
+                if (!actorId.HasValue)
+                {
+                    return (false, ErrorMessages.CustodianActorRequired, 0);
+                }
+
                 var borrowing = this._repository.GetBorrowingForReturn(form.BorrowingId);
                 if (borrowing == null)
                 {
-                    return (false, ErrorMessages.ServerError, 0);
+                    return (false, ErrorMessages.ReturnNotFound, 0);
                 }
 
                 if (!this._currentUser.CanActOn(borrowing.Reservation?.AssignedCustodianUserId))
@@ -179,19 +186,17 @@ namespace ASI.Basecode.Services.Services
 
                 var alreadyReturned = borrowing.BorrowingReturns.Sum(r => r.ReturnedQuantity);
                 var remaining = borrowing.ReleasedQuantity - alreadyReturned;
-                if (form.ReturnedQuantity < 1 || form.ReturnedQuantity > remaining)
+                if (remaining <= 0)
                 {
-                    return (false, $"Returned quantity must be between 1 and {remaining}.", 0);
+                    return (false, ErrorMessages.ReturnAlreadyComplete, 0);
+                }
+                if (form.ReturnedQuantity > remaining)
+                {
+                    return (false, ErrorMessages.ReturnQuantityInvalid, 0);
                 }
 
-                // The datetime-local field posts local wall-clock time.
-                var now = form.ReturnedAtUtc == default
-                    ? DateTime.UtcNow
-                    : DateTime.SpecifyKind(form.ReturnedAtUtc, DateTimeKind.Local).ToUniversalTime();
-                if (now > DateTime.UtcNow.AddMinutes(5))
-                {
-                    return (false, "The return date and time can't be in the future.", 0);
-                }
+                // The receipt time and receiving custodian come from the server, never the form.
+                var now = DateTime.UtcNow;
                 var wasLate = now > borrowing.DueAtUtc;
                 var daysOverdue = wasLate ? (int)Math.Floor((now - borrowing.DueAtUtc).TotalDays) : 0;
 
@@ -200,11 +205,12 @@ namespace ASI.Basecode.Services.Services
                     BorrowingId = borrowing.BorrowingId,
                     ReturnedQuantity = form.ReturnedQuantity,
                     ReturnedAtUtc = now,
-                    ReceivedByUserId = form.ReceivedByUserId > 0 ? form.ReceivedByUserId : (this._currentUser.GetActorUserId() ?? borrowing.ReleasedByUserId),
+                    ReceivedByUserId = actorId.Value,
                     WasReturnedLate = wasLate,
                     DaysOverdue = daysOverdue,
                 };
 
+                using var transaction = this.DbContext.Database.BeginTransaction();
                 this.DbContext.BorrowingReturns.Add(returnEntity);
 
                 // update balance: released -> awaiting inspection (finalized by CreateInspection)
@@ -247,15 +253,21 @@ namespace ASI.Basecode.Services.Services
 
                 this._unitOfWork.SaveChanges();
 
+                this.WriteAudit("RETURN", "Borrowing", borrowing.BorrowingId, borrowing.TransactionNumber,
+                    $"Returned {form.ReturnedQuantity} unit(s) of {borrowing.Equipment.AssetCode} under {borrowing.TransactionNumber}." +
+                    (string.IsNullOrWhiteSpace(form.Notes) ? string.Empty : " Notes: " + form.Notes.Trim()));
+                transaction.Commit();
+
                 this.WriteNotification(borrowing.BorrowerUserId, "Equipment returned",
                     $"Return of {form.ReturnedQuantity} unit(s) of {borrowing.Equipment.EquipmentName} recorded under {borrowing.TransactionNumber}." +
                     (wasLate ? $" Returned {daysOverdue} day(s) late." : " Returned on time."));
 
-                this.WriteAudit("RETURN", "Borrowing", borrowing.BorrowingId, borrowing.TransactionNumber,
-                    $"Returned {form.ReturnedQuantity} unit(s) of {borrowing.Equipment.AssetCode} under {borrowing.TransactionNumber}." +
-                    (string.IsNullOrWhiteSpace(form.Notes) ? string.Empty : " Notes: " + form.Notes.Trim()));
-
                 return (true, null, returnEntity.ReturnId);
+            }
+            catch (DbUpdateException ex)
+            {
+                this._logger.LogWarning(ex, "Return for borrowing {BorrowingId} conflicted; nothing was committed.", form?.BorrowingId);
+                return (false, ErrorMessages.ReservationOperationConflict, 0);
             }
             catch (Exception ex)
             {
@@ -268,20 +280,31 @@ namespace ASI.Basecode.Services.Services
         {
             if (form == null || form.InspectedQuantity < 1)
             {
-                return (false, ErrorMessages.ServerError, 0);
+                return (false, ErrorMessages.InspectionQuantityInvalid, 0);
             }
 
             try
             {
+                var actorId = this._currentUser.GetActorUserId();
+                if (!actorId.HasValue)
+                {
+                    return (false, ErrorMessages.CustodianActorRequired, 0);
+                }
+
                 var borrowing = this._repository.GetBorrowingForReturn(form.BorrowingId);
                 if (borrowing == null)
                 {
-                    return (false, ErrorMessages.ServerError, 0);
+                    return (false, ErrorMessages.ReturnNotFound, 0);
                 }
 
                 if (!this._currentUser.CanActOn(borrowing.Reservation?.AssignedCustodianUserId))
                 {
                     return (false, ErrorMessages.CustodianNotAssigned, 0);
+                }
+
+                if (form.BorrowingReturnId.HasValue && !borrowing.BorrowingReturns.Any(r => r.ReturnId == form.BorrowingReturnId.Value))
+                {
+                    return (false, ErrorMessages.InspectionReturnMismatch, 0);
                 }
 
                 var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.StatusId == form.InspectionStatusId)
@@ -296,6 +319,11 @@ namespace ASI.Basecode.Services.Services
                 if (condition == null || EquipmentService.OperationalStatusCodes.Contains(condition.Code))
                 {
                     return (false, ErrorMessages.EquipmentInvalidCondition, 0);
+                }
+
+                if (form.ReleaseConditionId.HasValue && !this.DbContext.Conditions.Any(c => c.ConditionId == form.ReleaseConditionId.Value))
+                {
+                    return (false, ErrorMessages.InspectionConditionInvalid, 0);
                 }
 
                 // Pending or completed, an inspection can only cover returned units not yet finalized.
@@ -328,8 +356,8 @@ namespace ASI.Basecode.Services.Services
                     ReleaseConditionId = form.ReleaseConditionId,
                     CurrentConditionId = form.CurrentConditionId,
                     InspectedQuantity = form.InspectedQuantity,
-                    InspectionNotes = form.InspectionNotes,
-                    InspectedByUserId = this._currentUser.GetActorUserId() ?? borrowing.ReleasedByUserId,
+                    InspectionNotes = form.InspectionNotes?.Trim(),
+                    InspectedByUserId = actorId.Value,
                     InspectionStatusId = inspectionStatus.StatusId,
                     GoodQuantity = finalize ? form.GoodQuantity : null,
                     DamagedQuantity = finalize ? form.DamagedQuantity : null,
@@ -339,78 +367,95 @@ namespace ASI.Basecode.Services.Services
                     PenaltyNote = finalize ? form.PenaltyNote?.Trim() : null,
                 };
 
-                this.DbContext.ConditionInspections.Add(inspection);
-                this._unitOfWork.SaveChanges();
-
-                // photo upload (best-effort, capped at 6 files, 5 MB each)
-                string photoNote = null;
-                if (photos != null)
+                // The inspection, the stock movement and the audit commit together, so a failure
+                // can't leave a COMPLETED inspection whose units never left "awaiting inspection".
+                using (var transaction = this.DbContext.Database.BeginTransaction())
                 {
-                    var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-                    var dir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "inspections", inspection.InspectionId.ToString());
-                    Directory.CreateDirectory(dir);
-                    var count = 0;
-                    var skipped = new List<string>();
-                    foreach (var file in photos)
+                    this.DbContext.ConditionInspections.Add(inspection);
+                    this._unitOfWork.SaveChanges();
+
+                    if (finalize)
                     {
-                        if (count >= 6 || file == null || file.Length == 0)
+                        // The equipment's condition describes the units on the shelf, so only good units
+                        // coming back can change it, and only to a condition that keeps them usable.
+                        if (borrowing.Equipment != null && form.GoodQuantity > 0 && !condition.AffectsAvailability)
                         {
-                            continue;
+                            borrowing.Equipment.CurrentConditionId = condition.ConditionId;
                         }
-                        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-                        if (file.Length > 5 * 1024 * 1024 || !allowed.Contains(ext))
-                        {
-                            skipped.Add(Path.GetFileName(file.FileName));
-                            continue;
-                        }
-                        var safeName = $"photo_{count + 1}{ext}";
-                        var path = Path.Combine(dir, safeName);
-                        using (var stream = new FileStream(path, FileMode.Create))
-                        {
-                            file.CopyTo(stream);
-                        }
-                        count++;
+
+                        this.ApplyInspectionOutcome(borrowing, form, inspection);
+                        this._unitOfWork.SaveChanges();
                     }
 
-                    if (skipped.Count > 0)
-                    {
-                        photoNote = $"Skipped {skipped.Count} photo(s) ({string.Join(", ", skipped)}): use JPG, PNG or WEBP up to 5 MB.";
-                    }
+                    this.WriteAudit("INSPECT", "ConditionInspection", inspection.InspectionId, borrowing.TransactionNumber,
+                        $"Inspected {form.InspectedQuantity} unit(s) of {borrowing.Equipment?.AssetCode}: condition={form.CurrentConditionId}, status={inspectionStatus.Code}." +
+                        (string.IsNullOrWhiteSpace(form.InspectionNotes) ? string.Empty : " Notes: " + form.InspectionNotes.Trim()));
+                    transaction.Commit();
                 }
 
-                // The equipment's condition describes the units on the shelf, so only a completed inspection
-                // that puts good units back can change it, and only to a condition that keeps them usable.
-                // Damaged and lost units are tracked in the maintenance/unreconciled buckets instead.
-                var equipment = borrowing.Equipment;
-                if (equipment != null && finalize && form.GoodQuantity > 0 && !condition.AffectsAvailability)
-                {
-                    equipment.CurrentConditionId = condition.ConditionId;
-                }
-
-                if (finalize)
-                {
-                    this.ApplyInspectionOutcome(borrowing, form, inspection);
-                }
-
-                this._unitOfWork.SaveChanges();
+                form.PhotoWarning = this.SaveInspectionPhotos(inspection.InspectionId, photos);
 
                 if (finalize)
                 {
                     this.NotifyInspectionOutcome(borrowing, form);
                 }
 
-                this.WriteAudit("INSPECT", "ConditionInspection", inspection.InspectionId, borrowing.TransactionNumber,
-                    $"Inspected {form.InspectedQuantity} unit(s) of {borrowing.Equipment.AssetCode}: condition={form.CurrentConditionId}, status={inspectionStatus?.Code}." +
-                    (string.IsNullOrWhiteSpace(form.InspectionNotes) ? string.Empty : " Notes: " + form.InspectionNotes.Trim()));
-
-                // On success the second value carries an optional note about skipped photos.
-                return (true, photoNote, inspection.InspectionId);
+                return (true, null, inspection.InspectionId);
+            }
+            catch (DbUpdateException ex)
+            {
+                this._logger.LogWarning(ex, "Inspection for borrowing {BorrowingId} conflicted; nothing was committed.", form?.BorrowingId);
+                return (false, ErrorMessages.ReservationOperationConflict, 0);
             }
             catch (Exception ex)
             {
                 this._logger.LogError(ex, "Failed to record inspection for borrowing {BorrowingId}.", form?.BorrowingId);
                 return (false, ErrorMessages.ServerError, 0);
             }
+        }
+
+        /// <summary>
+        /// Stores up to 6 photos (jpg/png/webp, 5 MB each) after the inspection is committed.
+        /// Returns a message describing skipped files, or null when every file was kept.
+        /// </summary>
+        private string SaveInspectionPhotos(long inspectionId, IEnumerable<IFormFile> photos)
+        {
+            var files = photos?.Where(f => f != null && f.Length > 0).ToList();
+            if (files == null || files.Count == 0)
+            {
+                return null;
+            }
+
+            var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var skipped = new List<string>();
+            var saved = 0;
+            try
+            {
+                var dir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "inspections", inspectionId.ToString());
+                Directory.CreateDirectory(dir);
+                foreach (var file in files)
+                {
+                    var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                    if (saved >= 6 || file.Length > 5 * 1024 * 1024 || !allowed.Contains(ext))
+                    {
+                        skipped.Add(Path.GetFileName(file.FileName));
+                        continue;
+                    }
+
+                    using var stream = new FileStream(Path.Combine(dir, $"photo_{saved + 1}{ext}"), FileMode.Create);
+                    file.CopyTo(stream);
+                    saved++;
+                }
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Saving photos for inspection {InspectionId} failed.", inspectionId);
+                return "The inspection was saved, but its photos couldn't be stored. Try attaching them again later.";
+            }
+
+            return skipped.Count == 0
+                ? null
+                : $"Skipped {skipped.Count} photo(s) ({string.Join(", ", skipped)}): only JPG, PNG or WEBP up to 5 MB, 6 files at most.";
         }
 
         /// <summary>
@@ -526,7 +571,7 @@ namespace ASI.Basecode.Services.Services
                 EntityType = entityType,
                 EntityId = entityId,
                 ReferenceNumber = referenceNumber,
-                Details = details,
+                Details = details != null && details.Length > 1000 ? details.Substring(0, 1000) : details,
                 OccurredAtUtc = DateTime.UtcNow,
             });
             this._unitOfWork.SaveChanges();

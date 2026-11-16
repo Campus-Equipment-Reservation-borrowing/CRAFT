@@ -41,14 +41,18 @@ namespace ASI.Basecode.Services.Services
             return new LifecycleRunResult
             {
                 Expired = this.ExpireStaleReservations(now),
+                ExpiryWarnings = this.WarnExpiringReservations(now),
                 MarkedOverdue = this.MarkOverdueBorrowings(now),
                 DueReminders = this.SendDueReminders(now),
             };
         }
 
+        private int ReviewHours => Math.Max(1, this._options.AutoCancelHours);
+
         /// <summary>
-        /// PENDING reservations not acted on within <see cref="ReservationLifecycleOptions.AutoCancelHours"/>,
-        /// or whose requested start has already passed, become EXPIRED and give their held units back.
+        /// PENDING reservations not reviewed by their deadline (submission + review window, capped
+        /// at the requested pickup) and APPROVED ones never picked up within the window after
+        /// pickup start become EXPIRED and give their held units back.
         /// </summary>
         private int ExpireStaleReservations(DateTime now)
         {
@@ -58,18 +62,30 @@ namespace ASI.Basecode.Services.Services
                 return 0;
             }
 
-            var cutoff = now.AddHours(-Math.Max(1, this._options.AutoCancelHours));
+            var submittedBefore = now.AddHours(-this.ReviewHours);
+            var pickupBefore = now.AddHours(-this.ReviewHours);
             var stale = this.DbContext.Reservations
+                .Include(r => r.Status)
                 .Include(r => r.Equipment).ThenInclude(e => e.EquipmentInventoryBalance)
-                .Where(r => r.Status.Code == "PENDING" && (r.SubmittedAtUtc < cutoff || r.RequestedStartAtUtc < now))
+                .Where(r => (r.Status.Code == ReservationRules.Pending && (r.SubmittedAtUtc < submittedBefore || r.RequestedStartAtUtc < now))
+                    || (r.Status.Code == ReservationRules.Approved && r.RequestedStartAtUtc < pickupBefore))
                 .ToList();
+            if (stale.Count == 0)
+            {
+                return 0;
+            }
 
+            var expiredRows = new List<(Reservation Reservation, string PreviousStatus, int Released)>();
             foreach (var reservation in stale)
             {
+                var previousStatus = reservation.Status.Code;
+                var hold = ReservationRules.RemainingHold(reservation, previousStatus, ReservationRules.ReleasedSoFar(this.DbContext, reservation.ReservationId));
                 var balance = reservation.Equipment?.EquipmentInventoryBalance;
-                if (balance != null)
+                var released = 0;
+                if (balance != null && hold > 0)
                 {
-                    balance.ReservedQuantity = Math.Max(0, balance.ReservedQuantity - reservation.RequestedQuantity);
+                    released = Math.Min(hold, balance.ReservedQuantity);
+                    balance.ReservedQuantity -= released;
                 }
 
                 reservation.StatusId = expired.StatusId;
@@ -83,27 +99,83 @@ namespace ASI.Basecode.Services.Services
                     EntityType = "Reservation",
                     EntityId = reservation.ReservationId,
                     ReferenceNumber = reservation.ReservationNumber,
-                    Details = $"Reservation {reservation.ReservationNumber} expired without a decision; {reservation.RequestedQuantity} held unit(s) released.",
+                    Details = previousStatus == ReservationRules.Pending
+                        ? $"Reservation {reservation.ReservationNumber} expired without a decision; {released} held unit(s) released."
+                        : $"Approved reservation {reservation.ReservationNumber} was never picked up; {released} held unit(s) released.",
                     OccurredAtUtc = now,
                 });
-            }
-
-            if (stale.Count == 0)
-            {
-                return 0;
+                expiredRows.Add((reservation, previousStatus, released));
             }
 
             this._unitOfWork.SaveChanges();
 
-            foreach (var reservation in stale)
+            List<long> allCustodians = null;
+            foreach (var (reservation, previousStatus, _) in expiredRows)
             {
+                var item = reservation.Equipment?.EquipmentName ?? "equipment";
                 this._notifications.Notify(reservation.BorrowerUserId, NotificationTypes.Reservation,
                     "Reservation expired",
-                    $"Your reservation {reservation.ReservationNumber} for {reservation.Equipment?.EquipmentName} expired before it was reviewed. The units have been released; you can submit a new request.",
+                    previousStatus == ReservationRules.Pending
+                        ? $"Your reservation {reservation.ReservationNumber} for {item} expired before it was reviewed. The units have been released; you can submit a new request."
+                        : $"Your approved reservation {reservation.ReservationNumber} for {item} expired because it wasn't picked up. Submit a new request if you still need it.",
                     $"/Reservations/Details/{reservation.ReservationId}");
+
+                var staff = reservation.AssignedCustodianUserId is long custodianId
+                    ? new List<long> { custodianId }
+                    : (allCustodians ??= this._notifications.GetActiveUserIdsInRoles(RoleCodes.Technician));
+                this._notifications.Notify(staff, NotificationTypes.Reservation,
+                    $"Expired: {reservation.ReservationNumber}",
+                    previousStatus == ReservationRules.Pending
+                        ? $"Reservation {reservation.ReservationNumber} for {item} expired without being reviewed. Its units were released."
+                        : $"Approved reservation {reservation.ReservationNumber} for {item} was never picked up and has expired. Its units were released.");
             }
 
             return stale.Count;
+        }
+
+        /// <summary>
+        /// Warns the responsible custodian, once, when a PENDING request will expire within
+        /// <see cref="ReservationLifecycleOptions.ExpiryWarningHours"/>.
+        /// </summary>
+        private int WarnExpiringReservations(DateTime now)
+        {
+            var warnHours = Math.Max(1, this._options.ExpiryWarningHours);
+            var candidates = this.DbContext.Reservations
+                .Include(r => r.Equipment)
+                .Include(r => r.BorrowerUser)
+                .Where(r => r.Status.Code == ReservationRules.Pending && r.ExpiryWarningSentAtUtc == null)
+                .ToList();
+
+            var expiring = candidates
+                .Select(r => new { Reservation = r, Deadline = ReservationRules.ReviewDeadline(r.SubmittedAtUtc, r.RequestedStartAtUtc, this.ReviewHours) })
+                .Where(x => x.Deadline > now && x.Deadline <= now.AddHours(warnHours))
+                .ToList();
+            if (expiring.Count == 0)
+            {
+                return 0;
+            }
+
+            foreach (var x in expiring)
+            {
+                x.Reservation.ExpiryWarningSentAtUtc = now;
+            }
+
+            this._unitOfWork.SaveChanges();
+
+            List<long> allCustodians = null;
+            foreach (var x in expiring)
+            {
+                var r = x.Reservation;
+                var staff = r.AssignedCustodianUserId is long custodianId
+                    ? new List<long> { custodianId }
+                    : (allCustodians ??= this._notifications.GetActiveUserIdsInRoles(RoleCodes.Technician));
+                var borrower = r.BorrowerUser == null ? "a borrower" : $"{r.BorrowerUser.FirstName} {r.BorrowerUser.LastName}";
+                this._notifications.Notify(staff, NotificationTypes.Reservation,
+                    $"Expiring soon: {r.ReservationNumber}",
+                    $"Reservation {r.ReservationNumber} for {r.Equipment?.EquipmentName ?? "equipment"} ({borrower}) expires {x.Deadline:dd MMM yyyy, hh:mm tt} UTC if it isn't reviewed. Approve or reject it before then.");
+            }
+
+            return expiring.Count;
         }
 
         /// <summary>Persist OVERDUE once due + grace has passed, and alert borrower, custodian and admins once.</summary>

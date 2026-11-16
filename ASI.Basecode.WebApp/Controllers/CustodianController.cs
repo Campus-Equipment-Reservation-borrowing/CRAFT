@@ -200,6 +200,12 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Release(ReleaseFormViewModel form)
         {
+            if (this._custodianService.GetReleaseContext(form?.ReservationId ?? 0) == null)
+            {
+                this.TempData["ErrorMessage"] = ASI.Basecode.Resources.Messages.Errors.CustodianReservationNotFound;
+                return this.RedirectToAction(nameof(this.Reservations));
+            }
+
             if (!this.ModelState.IsValid)
             {
                 return this.RedisplayRelease(form, null);

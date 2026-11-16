@@ -1,0 +1,30 @@
+@using ASI.Basecode.Services
+@using Microsoft.Extensions.Options
+@model (string StatusCode, DateTime SubmittedAtUtc, DateTime RequestedStartAtUtc)
+@inject IOptions<ReservationLifecycleOptions> LifecycleOptions
+@{
+    // Same deadline rule the background job uses to expire reservations.
+    var options = LifecycleOptions.Value;
+    var now = DateTime.UtcNow;
+    DateTime? deadline = Model.StatusCode switch
+    {
+        ReservationRules.Pending => ReservationRules.ReviewDeadline(Model.SubmittedAtUtc, Model.RequestedStartAtUtc, options.AutoCancelHours),
+        ReservationRules.Approved => ReservationRules.PickupDeadline(Model.RequestedStartAtUtc, options.AutoCancelHours),
+        _ => null,
+    };
+}
+@if (deadline.HasValue)
+{
+    var left = ReservationRules.FormatTimeLeft(deadline.Value, now);
+    var urgent = deadline.Value <= now.AddHours(Math.Max(1, options.ExpiryWarningHours));
+    var verb = Model.StatusCode == ReservationRules.Pending ? "Review within" : "Pick up within";
+    var full = $"Expires {deadline.Value.ToLocalTime():dd MMM yyyy, hh:mm tt} if not {(Model.StatusCode == ReservationRules.Pending ? "reviewed" : "picked up")}";
+    if (left == null)
+    {
+        <span class="cp-badge cp-badge-error" title="@full">Expiring now<span class="sr-only">. @full</span></span>
+    }
+    else
+    {
+        <span class="cp-badge @(urgent ? "cp-badge-warning" : "cp-badge-neutral")" title="@full">@verb @left<span class="sr-only">. @full</span></span>
+    }
+}

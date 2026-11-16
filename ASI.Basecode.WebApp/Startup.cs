@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Data;
+using ASI.Basecode.Data;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.WebApp.Extensions.Configuration;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -86,6 +86,7 @@ namespace ASI.Basecode.WebApp
                 options.IdleTimeout = TimeSpan.FromMinutes(30);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             });
 
             // Cookie authentication — screens 1.1-1.4 plus role based access control.
@@ -95,6 +96,8 @@ namespace ASI.Basecode.WebApp
                     options.Cookie.Name = "CampusPulse.Auth";
                     options.Cookie.HttpOnly = true;
                     options.Cookie.SameSite = SameSiteMode.Lax;
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.Events.OnValidatePrincipal = ASI.Basecode.WebApp.Mvc.AuthCookie.ValidateAsync;
                     options.LoginPath = "/Account/Login";
                     options.LogoutPath = "/Account/Logout";
                     options.AccessDeniedPath = "/Account/AccessDenied";
@@ -132,6 +135,7 @@ namespace ASI.Basecode.WebApp
 
             if (!this._environment.IsDevelopment())
             {
+                this._app.UseExceptionHandler("/Home/Error");
                 this._app.UseHsts();
             }
 

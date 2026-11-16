@@ -59,6 +59,12 @@ namespace ASI.Basecode.Services.Interfaces
         List<LookupViewModel> GetConditionOptions();
 
         /// <summary>
+        /// Moves units out of maintenance / unreconciled (<see cref="ASI.Basecode.Resources.Constants.StockAdjustments"/>):
+        /// back to available, or written off (total reduced).
+        /// </summary>
+        (bool Success, string Error) AdjustStock(long equipmentId, string action, int quantity, string note);
+
+        /// <summary>
         /// Availability status options (Available, Under Maintenance). Shares the conditions table.
         /// </summary>
         List<LookupViewModel> GetOperationalStatusOptions();

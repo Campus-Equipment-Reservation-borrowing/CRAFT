@@ -32,6 +32,12 @@ namespace ASI.Basecode.Services.Interfaces
         (bool Success, string Error, long ReservationId) Create(ReservationFormViewModel form);
 
         /// <summary>
+        /// Why the signed-in borrower can't reserve right now (account not active, or no custodian
+        /// responsible for them / for <paramref name="equipmentId"/>); null when they can.
+        /// </summary>
+        string GetReserveBlockReason(long? equipmentId = null);
+
+        /// <summary>
         /// The acting borrower's reservations, newest first.
         /// Empty (instead of null) when no borrower is selected in this session.
         /// </summary>

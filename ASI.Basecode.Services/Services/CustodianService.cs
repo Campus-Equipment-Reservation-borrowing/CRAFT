@@ -70,8 +70,26 @@ namespace ASI.Basecode.Services.Services
                 return null;
             }
 
+            string approveBlocked = null;
+            if (entity.Status.Code == "PENDING")
+            {
+                if (!this.IsBorrowerActive(entity.BorrowerUserId))
+                {
+                    approveBlocked = ErrorMessages.CustodianBorrowerNotActive;
+                }
+                else if (entity.RequestedStartAtUtc < DateTime.UtcNow)
+                {
+                    approveBlocked = ErrorMessages.CustodianPickupPassed;
+                }
+                else if (IsOutOfService(entity.Equipment))
+                {
+                    approveBlocked = ErrorMessages.CustodianApproveEquipmentOutOfService;
+                }
+            }
+
             return new ReservationReviewViewModel
             {
+                ApproveBlockedReason = approveBlocked,
                 AssignedCustodianName = entity.AssignedCustodianUser == null ? null : entity.AssignedCustodianUser.FirstName + " " + entity.AssignedCustodianUser.LastName,
                 CanClaim = entity.AssignedCustodianUserId == null && (entity.Status.Code == "PENDING" || entity.Status.Code == "APPROVED"),
                 ReservationId = entity.ReservationId,
@@ -94,10 +112,7 @@ namespace ASI.Basecode.Services.Services
                 ExpectedReturnAtUtc = entity.ExpectedReturnAtUtc,
                 Purpose = entity.Purpose,
                 SubmittedAtUtc = entity.SubmittedAtUtc,
-                CanApprove = entity.Status.Code == "PENDING" && !IsOutOfService(entity.Equipment),
-                ApproveBlockedReason = entity.Status.Code == "PENDING" && IsOutOfService(entity.Equipment)
-                    ? ErrorMessages.CustodianApproveEquipmentOutOfService
-                    : null,
+                CanApprove = entity.Status.Code == "PENDING" && approveBlocked == null,
                 CanReject = entity.Status.Code == "PENDING",
             };
         }
@@ -143,6 +158,14 @@ namespace ASI.Basecode.Services.Services
                 {
                     return (false, ErrorMessages.CustodianReservationNotPending);
                 }
+                if (!this.IsBorrowerActive(entity.BorrowerUserId))
+                {
+                    return (false, ErrorMessages.CustodianBorrowerNotActive);
+                }
+                if (entity.RequestedStartAtUtc < DateTime.UtcNow)
+                {
+                    return (false, ErrorMessages.CustodianPickupPassed);
+                }
                 // The item may have gone under maintenance (or been retired) after the request was made.
                 if (IsOutOfService(entity.Equipment))
                 {
@@ -164,12 +187,12 @@ namespace ASI.Basecode.Services.Services
 
                 this._unitOfWork.SaveChanges();
 
-                this.WriteNotification(entity.BorrowerUserId, "Reservation approved",
-                    $"Your reservation {entity.ReservationNumber} for {entity.Equipment.EquipmentName} has been approved. Please pick up at {entity.PickupLocation?.LocationName ?? "the designated location"}.");
-
                 this.WriteAudit("APPROVE", "Reservation", entity.ReservationId, entity.ReservationNumber,
                     $"Approved reservation {entity.ReservationNumber} for {entity.RequestedQuantity} unit(s) of {entity.Equipment.AssetCode}." +
                     (string.IsNullOrWhiteSpace(notes) ? string.Empty : " Notes: " + notes.Trim()));
+
+                this.WriteNotification(entity.BorrowerUserId, "Reservation approved",
+                    $"Your reservation {entity.ReservationNumber} for {entity.Equipment.EquipmentName} has been approved. Please pick up at {entity.PickupLocation?.LocationName ?? "the designated location"}.");
 
                 return (true, null);
             }
@@ -300,6 +323,24 @@ namespace ASI.Basecode.Services.Services
                 {
                     return (false, ErrorMessages.CustodianReleaseNotApproved, 0);
                 }
+
+                var actorId = this._currentUser.GetActorUserId();
+                if (!actorId.HasValue)
+                {
+                    return (false, ErrorMessages.CustodianActorRequired, 0);
+                }
+                if (!this.IsBorrowerActive(entity.BorrowerUserId))
+                {
+                    return (false, ErrorMessages.CustodianBorrowerNotActive, 0);
+                }
+                if (entity.ExpectedReturnAtUtc <= DateTime.UtcNow)
+                {
+                    return (false, ErrorMessages.CustodianReturnDatePassed, 0);
+                }
+                if (!this.DbContext.Conditions.Any(c => c.ConditionId == form.ReleaseConditionId.Value))
+                {
+                    return (false, ErrorMessages.InspectionConditionInvalid, 0);
+                }
                 var equipmentStatus = entity.Equipment?.OperationalStatus?.Code;
                 if (equipmentStatus != null && equipmentStatus != "AVAILABLE")
                 {
@@ -325,6 +366,7 @@ namespace ASI.Basecode.Services.Services
                     policyId = latest?.PolicyVersionId ?? 0;
                 }
 
+                using var transaction = this.DbContext.Database.BeginTransaction();
                 var txn = this._repository.GetNextTransactionNumber(DateTime.UtcNow.Year);
 
                 var borrowingStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == "ACTIVE");
@@ -344,23 +386,11 @@ namespace ASI.Basecode.Services.Services
                     ReleasedQuantity = form.ReleasedQuantity,
                     ReleaseConditionId = form.ReleaseConditionId.Value,
                     ReleasedAtUtc = DateTime.UtcNow,
-                    ReleasedByUserId = this._currentUser.GetActorUserId() ?? 0,
+                    ReleasedByUserId = actorId.Value,
                     DueAtUtc = entity.ExpectedReturnAtUtc,
                     StatusId = borrowingStatus.StatusId,
                     InspectionStatusId = inspectionStatus.StatusId,
                 };
-
-                if (borrowing.ReleasedByUserId == 0)
-                {
-                    // fall back to the first custodian/admin in the DB so the FK holds
-                    var fallback = this.DbContext.Users
-                        .Where(u => u.Role.RoleCode == "TECHNICIAN" || u.Role.RoleCode == "ADMIN")
-                        .OrderBy(u => u.UserId).FirstOrDefault();
-                    if (fallback != null)
-                    {
-                        borrowing.ReleasedByUserId = fallback.UserId;
-                    }
-                }
 
                 this.DbContext.Borrowings.Add(borrowing);
 
@@ -413,16 +443,23 @@ namespace ASI.Basecode.Services.Services
                     }
                 }
 
-                this.WriteNotification(entity.BorrowerUserId, "Equipment released",
-                    $"Your reservation {entity.ReservationNumber} has been released. Transaction {txn}: {form.ReleasedQuantity} unit(s) of {entity.Equipment.EquipmentName} are now with you. Due back by {entity.ExpectedReturnAtUtc:dd MMM yyyy}.");
-
                 this.WriteAudit("RELEASE", "Borrowing", borrowing.BorrowingId, txn,
                     $"Released {form.ReleasedQuantity} unit(s) of {entity.Equipment.AssetCode} under {txn} for reservation {entity.ReservationNumber}." +
                     (string.IsNullOrWhiteSpace(form.ReleaseNotes) ? string.Empty : " Notes: " + form.ReleaseNotes.Trim()));
+                transaction.Commit();
+
+                this.WriteNotification(entity.BorrowerUserId, "Equipment released",
+                    $"Your reservation {entity.ReservationNumber} has been released. Transaction {txn}: {form.ReleasedQuantity} unit(s) of {entity.Equipment.EquipmentName} are now with you. Due back by {entity.ExpectedReturnAtUtc:dd MMM yyyy}.");
 
                 this.NotifyIfLowStock(entity.Equipment);
 
                 return (true, null, borrowing.BorrowingId);
+            }
+            catch (DbUpdateException ex)
+            {
+                // Stock changed underneath us, or a concurrent release took the same transaction number.
+                this._logger.LogWarning(ex, "Release of reservation {ReservationId} conflicted; nothing was committed.", form?.ReservationId);
+                return (false, ErrorMessages.ReservationOperationConflict, 0);
             }
             catch (Exception ex)
             {
@@ -585,13 +622,8 @@ namespace ASI.Basecode.Services.Services
         /// </summary>
         private int RemainingHold(Reservation entity)
         {
-            if (entity.Status?.Code == "PENDING")
-            {
-                return entity.RequestedQuantity;
-            }
-
-            var approved = entity.ApprovedQuantity > 0 ? entity.ApprovedQuantity : entity.RequestedQuantity;
-            return Math.Max(0, approved - this._repository.SumReleasedForReservation(entity.ReservationId));
+            return ReservationRules.RemainingHold(
+                entity, entity.Status?.Code, this._repository.SumReleasedForReservation(entity.ReservationId));
         }
 
         /// <summary>Returns held units to the available pool. Returns how many were released.</summary>
@@ -765,6 +797,11 @@ namespace ASI.Basecode.Services.Services
                 OccurredAtUtc = DateTime.UtcNow,
             });
             this._unitOfWork.SaveChanges();
+        }
+
+        private bool IsBorrowerActive(long borrowerUserId)
+        {
+            return this.DbContext.Users.Any(u => u.UserId == borrowerUserId && u.AccountStatus.Code == AccountStatusCodes.Active);
         }
     }
 }

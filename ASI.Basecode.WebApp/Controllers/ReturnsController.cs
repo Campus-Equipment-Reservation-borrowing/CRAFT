@@ -62,9 +62,15 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Create(ReturnFormViewModel form)
         {
+            var ctx = this._service.GetReturnFormContext(form?.BorrowingId ?? 0);
+            if (ctx == null)
+            {
+                this.TempData["ErrorMessage"] = "Borrowing not found.";
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
             if (!this.ModelState.IsValid)
             {
-                var ctx = this._service.GetReturnFormContext(form.BorrowingId);
                 this.ViewBag.Context = ctx;
                 return this.View(form);
             }
@@ -73,8 +79,7 @@ namespace ASI.Basecode.WebApp.Controllers
             if (!success)
             {
                 this.ModelState.AddModelError(string.Empty, error);
-                var ctx = this._service.GetReturnFormContext(form.BorrowingId);
-                this.ViewBag.Context = ctx;
+                this.ViewBag.Context = this._service.GetReturnFormContext(form.BorrowingId) ?? ctx;
                 return this.View(form);
             }
 
@@ -112,6 +117,12 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Inspect(InspectionFormViewModel form, List<IFormFile> photos)
         {
+            if (this._service.GetReturnFormContext(form?.BorrowingId ?? 0) == null)
+            {
+                this.TempData["ErrorMessage"] = "Borrowing not found.";
+                return this.RedirectToAction(nameof(this.Index));
+            }
+
             if (!this.ModelState.IsValid)
             {
                 var ctx = this._service.GetReturnFormContext(form.BorrowingId);
@@ -132,9 +143,11 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.View(form);
             }
 
-            this.TempData["SuccessMessage"] = string.IsNullOrEmpty(error)
-                ? "Condition inspection recorded."
-                : "Condition inspection recorded. " + error;
+            this.TempData["SuccessMessage"] = "Condition inspection recorded.";
+            if (!string.IsNullOrEmpty(form.PhotoWarning))
+            {
+                this.TempData["ErrorMessage"] = form.PhotoWarning;
+            }
             return this.RedirectToAction(nameof(this.Index));
         }
         private SelectList ToSelectList(IEnumerable<LookupViewModel> options, long? selected, string emptyText)

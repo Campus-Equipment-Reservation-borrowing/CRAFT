@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Pending Verifications";
     var isRejectedTab = Model.Tab == "rejected";
+    var hasCustodians = Model.CustodianOptions != null && Model.CustodianOptions.Count > 0;
 }
 
 <div class="cp-page-header">
@@ -18,6 +19,16 @@
     <a class="tab @(isRejectedTab ? "on" : "")" role="tab" aria-selected="@(isRejectedTab ? "true" : "false")"
        asp-action="Verifications" asp-route-tab="rejected">Rejected <span class="cp-badge cp-badge-neutral">@Model.RejectedCount</span></a>
 </div>
+
+@if (!hasCustodians)
+{
+    <div class="banner warn" id="noCustodians" style="margin-bottom:12px">
+        <div class="banner-b">
+            Approving an account requires assigning a custodian, and there are no active custodian accounts yet.
+            <a asp-action="Create">Create a custodian account</a> first.
+        </div>
+    </div>
+}
 
 <div class="cp-filter-bar">
     <form method="get" asp-action="Verifications" class="cp-contents">
@@ -69,10 +80,11 @@ else
                             <td>@u.VerificationNote</td>
                         }
                         <td class="text-center">
-                            <form method="post" asp-action="Verify" asp-route-id="@u.UserId" asp-route-returnTab="@Model.Tab" class="cp-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="cp-btn cp-btn-success cp-btn-sm">Approve</button>
-                            </form>
+                            <button type="button" class="cp-btn cp-btn-success cp-btn-sm js-approve"
+                                    data-user-id="@u.UserId" data-user-name="@u.FirstName @u.LastName"
+                                    data-current-custodian="@(Model.CurrentCustodianByUser.TryGetValue(u.UserId, out var cur) ? cur.ToString() : "")"
+                                    disabled="@(!hasCustodians)"
+                                    aria-describedby="@(hasCustodians ? null : "noCustodians")">Approve</button>
                             @if (!isRejectedTab)
                             {
                                 <button type="button" class="cp-btn cp-btn-danger cp-btn-sm js-reject"
@@ -101,11 +113,37 @@ else
     }
 }
 
+<div class="cp-modal-overlay" id="approveModal" style="display:none;">
+    <div class="cp-modal" role="dialog" aria-modal="true" aria-labelledby="approveTitle">
+        <h2 class="cp-modal-title" id="approveTitle">Approve account</h2>
+        <form method="post" id="approveForm" data-action-template="@Url.Action("Verify", new { id = "__ID__" })">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnTab" value="@Model.Tab" />
+            <p class="cp-form-group"><strong id="approveName"></strong> will be able to reserve equipment. Their reservations are routed to the custodian you choose.</p>
+            <div class="cp-form-group">
+                <label class="cp-form-label" for="approveCustodian">Custodian <span class="required">*</span></label>
+                <select id="approveCustodian" name="custodianUserId" class="cp-select" required>
+                    <option value="">Select custodian…</option>
+                    @foreach (var c in Model.CustodianOptions)
+                    {
+                        <option value="@c.Id">@c.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="cp-page-actions">
+                <button type="button" class="cp-btn cp-btn-secondary cp-btn-sm js-modal-cancel">Cancel</button>
+                <button type="submit" class="cp-btn cp-btn-success cp-btn-sm">Approve and assign</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="cp-modal-overlay" id="rejectModal" style="display:none;">
     <div class="cp-modal" role="dialog" aria-modal="true" aria-labelledby="rejectTitle">
         <h2 class="cp-modal-title" id="rejectTitle">Reject verification</h2>
-        <form method="post" id="rejectForm">
+        <form method="post" id="rejectForm" data-action-template="@Url.Action("RejectVerification", new { id = "__ID__" })">
             @Html.AntiForgeryToken()
+            <input type="hidden" name="returnTab" value="@Model.Tab" />
             <p class="cp-form-group">The borrower <strong id="rejectName"></strong> will be notified with this reason and can appeal.</p>
             <div class="cp-form-group">
                 <label class="cp-form-label" for="rejectReason">Reason <span class="required">*</span></label>
@@ -113,7 +151,7 @@ else
                           placeholder="e.g. Account ID does not match the registrar's records."></textarea>
             </div>
             <div class="cp-page-actions">
-                <button type="button" class="cp-btn cp-btn-secondary cp-btn-sm" id="rejectCancel">Cancel</button>
+                <button type="button" class="cp-btn cp-btn-secondary cp-btn-sm js-modal-cancel">Cancel</button>
                 <button type="submit" class="cp-btn cp-btn-danger cp-btn-sm">Reject account</button>
             </div>
         </form>
@@ -123,30 +161,59 @@ else
 @section Scripts {
     <script>
         (function () {
-            var modal = document.getElementById('rejectModal');
-            var form = document.getElementById('rejectForm');
-            var reason = document.getElementById('rejectReason');
+            var openModal = null;
             var lastTrigger = null;
 
             function close() {
-                modal.style.display = 'none';
+                if (!openModal) return;
+                openModal.style.display = 'none';
+                openModal = null;
                 if (lastTrigger) lastTrigger.focus();
             }
 
-            document.querySelectorAll('.js-reject').forEach(function (btn) {
+            function open(modalId, btn, focusEl) {
+                lastTrigger = btn;
+                var modal = document.getElementById(modalId);
+                var form = modal.querySelector('form');
+                form.action = form.dataset.actionTemplate.replace('__ID__', encodeURIComponent(btn.dataset.userId));
+                modal.style.display = 'flex';
+                openModal = modal;
+                focusEl.focus();
+            }
+
+            document.querySelectorAll('.js-approve').forEach(function (btn) {
                 btn.addEventListener('click', function () {
-                    lastTrigger = btn;
-                    form.action = '/Users/RejectVerification/' + encodeURIComponent(btn.dataset.userId);
-                    document.getElementById('rejectName').textContent = btn.dataset.userName;
-                    reason.value = '';
-                    modal.style.display = 'flex';
-                    reason.focus();
+                    document.getElementById('approveName').textContent = btn.dataset.userName;
+                    var select = document.getElementById('approveCustodian');
+                    select.value = btn.dataset.currentCustodian || '';
+                    open('approveModal', btn, select);
                 });
             });
 
-            document.getElementById('rejectCancel').addEventListener('click', close);
-            modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
-            document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal.style.display !== 'none') close(); });
+            document.querySelectorAll('.js-reject').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    document.getElementById('rejectName').textContent = btn.dataset.userName;
+                    var reason = document.getElementById('rejectReason');
+                    reason.value = '';
+                    open('rejectModal', btn, reason);
+                });
+            });
+
+            document.querySelectorAll('.js-modal-cancel').forEach(function (b) { b.addEventListener('click', close); });
+            document.querySelectorAll('.cp-modal-overlay').forEach(function (m) {
+                m.addEventListener('click', function (e) { if (e.target === m) close(); });
+            });
+            document.addEventListener('keydown', function (e) {
+                if (!openModal) return;
+                if (e.key === 'Escape') { close(); return; }
+                if (e.key !== 'Tab') return;
+                // Keep keyboard focus inside the open dialog.
+                var items = openModal.querySelectorAll('button:not([disabled]), select, textarea, input:not([type=hidden])');
+                if (!items.length) return;
+                var first = items[0], last = items[items.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            });
         })();
     </script>
 }

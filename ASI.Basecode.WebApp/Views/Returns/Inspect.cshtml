@@ -5,6 +5,7 @@
 }
 @{
     var ctx = ViewBag.Context as ReturnFormContextViewModel;
+    var inspectable = ctx?.InspectableQuantity ?? 0;
 }
 
 <div class="cp-page-header">
@@ -45,8 +46,19 @@
 
             <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:0 16px">
                 <div class="cp-form-group">
-                    <label asp-for="InspectedQuantity" class="cp-form-label">Inspected Quantity <span class="required">*</span></label>
-                    <input asp-for="InspectedQuantity" type="number" min="1" max="@(ctx?.AwaitingInspection ?? 1000)" step="1" class="cp-input" />
+                    @if (inspectable <= 1)
+                    {
+                        <span class="cp-form-label" id="insQtyLabel">Inspected Quantity</span>
+                        <div class="cp-input cp-input-static" aria-labelledby="insQtyLabel" aria-describedby="insQtyHint">@(inspectable == 1 ? "1 unit" : "None waiting")</div>
+                        <input type="hidden" name="InspectedQuantity" value="@inspectable" />
+                        <div class="cp-form-hint" id="insQtyHint">@(inspectable == 1 ? "Only 1 returned unit is waiting for inspection." : "No returned units are waiting for inspection.")</div>
+                    }
+                    else
+                    {
+                        <label asp-for="InspectedQuantity" class="cp-form-label">Inspected Quantity <span class="required">*</span></label>
+                        <input asp-for="InspectedQuantity" type="number" min="1" max="@inspectable" class="cp-input" aria-describedby="insQtyHint" />
+                        <div class="cp-form-hint" id="insQtyHint">Up to @inspectable returned units.</div>
+                    }
                 </div>
                 <div class="cp-form-group">
                     <label asp-for="CurrentConditionId" class="cp-form-label">Current Condition <span class="required">*</span></label>
@@ -101,7 +113,8 @@
 
             <div class="cp-page-actions">
                 <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
-                <button type="submit" class="cp-btn cp-btn-success">Record Inspection</button>
+                <button type="submit" class="cp-btn cp-btn-success" disabled="@(inspectable == 0)"
+                        aria-describedby="@(inspectable == 0 ? "insQtyHint" : null)">Record Inspection</button>
             </div>
         </form>
     </div>

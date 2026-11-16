@@ -266,21 +266,23 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Verify(long id, string returnTab = "pending")
+        public IActionResult Verify(long id, long custodianUserId = 0, string returnTab = "pending")
         {
-            var (success, error) = this._userService.Verify(id);
-            this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Account verified." : error;
-            return this.RedirectToAction(nameof(this.Verifications), new { tab = returnTab });
+            var (success, error) = this._userService.Verify(id, custodianUserId);
+            this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Account verified and custodian assigned." : error;
+            return this.RedirectToAction(nameof(this.Verifications), new { tab = NormalizeTab(returnTab) });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult RejectVerification(long id, string reason)
+        public IActionResult RejectVerification(long id, string reason, string returnTab = "pending")
         {
             var (success, error) = this._userService.RejectVerification(id, reason);
             this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Verification rejected." : error;
-            return this.RedirectToAction(nameof(this.Verifications));
+            return this.RedirectToAction(nameof(this.Verifications), new { tab = NormalizeTab(returnTab) });
         }
+
+        private static string NormalizeTab(string tab) => tab == "rejected" ? "rejected" : "pending";
 
         private void PopulateFormSelectLists(long? roleId, long? departmentId, long? accountStatusId)
         {
