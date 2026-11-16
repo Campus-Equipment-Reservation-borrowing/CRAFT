@@ -149,6 +149,17 @@ namespace ASI.Basecode.Data.Repositories
                     || b.Reservation.AssignedCustodianUserId == scope)
                 .ToList();
         }
+
+        public List<Borrowing> GetAllForBorrower(long borrowerUserId)
+        {
+            return this.Context.Borrowings.AsNoTracking()
+                .Include(b => b.Equipment)
+                .Include(b => b.Status)
+                .Include(b => b.BorrowingReturns)
+                .Where(b => b.BorrowerUserId == borrowerUserId)
+                .OrderByDescending(b => b.ReleasedAtUtc)
+                .ToList();
+        }
     }
 
 }

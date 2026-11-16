@@ -143,5 +143,11 @@ namespace ASI.Basecode.Data.Interfaces
         /// Clears the assignee on support tickets assigned to the user (tracked; saved by the caller).
         /// </summary>
         void ClearSupportTicketAssignee(long userId);
+
+        /// <summary>Number of users per account status code.</summary>
+        Dictionary<string, int> CountByAccountStatusCode();
+
+        /// <summary>Created and verified timestamps of users that were verified (and have a creation time).</summary>
+        List<(DateTime CreatedAtUtc, DateTime VerifiedAtUtc)> GetVerificationTimes();
     }
 }

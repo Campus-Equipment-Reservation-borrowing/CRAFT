@@ -297,5 +297,23 @@ namespace ASI.Basecode.Data.Repositories
                 t.AssignedToUserId = null;
             }
         }
+
+        public Dictionary<string, int> CountByAccountStatusCode()
+        {
+            return this.Context.Users.AsNoTracking()
+                .GroupBy(u => u.AccountStatus.Code)
+                .Select(g => new { Code = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.Code, x => x.Count);
+        }
+
+        public List<(DateTime CreatedAtUtc, DateTime VerifiedAtUtc)> GetVerificationTimes()
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.VerifiedAtUtc != null && u.CreatedAtUtc != default)
+                .Select(u => new { u.CreatedAtUtc, Verified = u.VerifiedAtUtc.Value })
+                .ToList()
+                .Select(x => (x.CreatedAtUtc, x.Verified))
+                .ToList();
+        }
     }
 }

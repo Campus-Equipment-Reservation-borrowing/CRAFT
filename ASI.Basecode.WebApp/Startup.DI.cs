@@ -75,6 +75,8 @@ namespace ASI.Basecode.WebApp
             this._services.AddHostedService<ReservationLifecycleWorker>();
 
             // Announcements, support tickets, verification stats and borrower history
+            this._services.AddScoped<IAnnouncementRepository, AnnouncementRepository>();
+            this._services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
             this._services.AddScoped<ICommunicationService, CommunicationService>();
 
             // Custodian assignment, routing and scoping

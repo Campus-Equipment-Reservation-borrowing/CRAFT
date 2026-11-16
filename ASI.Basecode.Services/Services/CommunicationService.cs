@@ -1,10 +1,8 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -20,19 +18,32 @@ namespace ASI.Basecode.Services.Services
 
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditLogRepository _auditLogs;
+        private readonly IAnnouncementRepository _announcements;
+        private readonly ISupportTicketRepository _tickets;
+        private readonly IUserRepository _users;
+        private readonly IReservationRepository _reservations;
+        private readonly IBorrowingRepository _borrowings;
         private readonly ICurrentUserService _currentUser;
         private readonly INotificationDispatcher _notifications;
-
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
         public CommunicationService(
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
             ICurrentUserService currentUser,
             INotificationDispatcher notifications,
-            IAuditLogRepository auditLogs)
+            IAuditLogRepository auditLogs,
+            IAnnouncementRepository announcements,
+            ISupportTicketRepository tickets,
+            IUserRepository users,
+            IReservationRepository reservations,
+            IBorrowingRepository borrowings)
             : base(loggerFactory)
         {
+            this._announcements = announcements;
+            this._tickets = tickets;
+            this._users = users;
+            this._reservations = reservations;
+            this._borrowings = borrowings;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._currentUser = currentUser;
@@ -46,9 +57,7 @@ namespace ASI.Basecode.Services.Services
             var now = DateTime.UtcNow;
             return new AnnouncementIndexViewModel
             {
-                Items = this.DbContext.Announcements.AsNoTracking()
-                    .OrderByDescending(a => a.CreatedAtUtc)
-                    .Take(50)
+                Items = this._announcements.GetLatestWithAuthor(50)
                     .Select(a => new AnnouncementRowViewModel
                     {
                         AnnouncementId = a.AnnouncementId,
@@ -60,7 +69,6 @@ namespace ASI.Basecode.Services.Services
                         ExpiresAtUtc = a.ExpiresAtUtc,
                         IsActive = a.ExpiresAtUtc == null || a.ExpiresAtUtc > now,
                     })
-                    .ToList()
                     .Select(WithAudienceLabel)
                     .ToList(),
             };
@@ -97,7 +105,7 @@ namespace ASI.Basecode.Services.Services
                     // ExpiresOn is the last local day it shows; keep it through the end of that day.
                     ExpiresAtUtc = form.ExpiresOn?.Date.AddDays(1).ToUniversalTime(),
                 };
-                this.DbContext.Announcements.Add(entity);
+                this._announcements.Add(entity);
                 this._unitOfWork.SaveChanges();
 
                 this.WriteAudit("ANNOUNCE", "Announcement", entity.AnnouncementId, null,
@@ -119,13 +127,13 @@ namespace ASI.Basecode.Services.Services
         {
             try
             {
-                var entity = this.DbContext.Announcements.FirstOrDefault(a => a.AnnouncementId == announcementId);
+                var entity = this._announcements.GetTrackedById(announcementId);
                 if (entity == null)
                 {
                     return (false, ErrorMessages.ServerError);
                 }
 
-                this.DbContext.Announcements.Remove(entity);
+                this._announcements.Remove(entity);
                 this._unitOfWork.SaveChanges();
                 this.WriteAudit("DELETE", "Announcement", announcementId, null, $"Deleted announcement '{entity.Title}'.");
                 return (true, null);
@@ -146,12 +154,7 @@ namespace ASI.Basecode.Services.Services
 
             var now = DateTime.UtcNow;
             var code = roleCode.ToUpperInvariant();
-            // target_roles is a short comma list; match whole codes only.
-            return this.DbContext.Announcements.AsNoTracking()
-                .Where(a => a.ExpiresAtUtc == null || a.ExpiresAtUtc > now)
-                .Where(a => ("," + a.TargetRoles + ",").Contains("," + code + ","))
-                .OrderByDescending(a => a.CreatedAtUtc)
-                .Take(take)
+            return this._announcements.GetActiveForRole(code, now, take)
                 .Select(a => new AnnouncementRowViewModel
                 {
                     AnnouncementId = a.AnnouncementId,
@@ -171,28 +174,18 @@ namespace ASI.Basecode.Services.Services
         {
             var isStaff = this.IsSupportAgent();
             var actorId = this._currentUser.GetActorUserId() ?? -1;
-            var query = this.DbContext.SupportTickets.AsNoTracking().AsQueryable();
-            if (!isStaff)
-            {
-                query = query.Where(t => t.RequesterUserId == actorId);
-            }
+            long? requester = isStaff ? null : actorId;
 
-            var openCount = query.Count(t => t.Status == SupportTicketStatuses.Open);
+            var openCount = this._tickets.CountWithStatus(requester, SupportTicketStatuses.Open);
             var filter = status?.Trim().ToUpperInvariant();
-            if (filter == SupportTicketStatuses.Open || filter == SupportTicketStatuses.Resolved)
-            {
-                query = query.Where(t => t.Status == filter);
-            }
+            var statusFilter = filter == SupportTicketStatuses.Open || filter == SupportTicketStatuses.Resolved ? filter : null;
 
             return new SupportTicketIndexViewModel
             {
                 IsStaffView = isStaff,
                 Status = filter,
                 OpenCount = openCount,
-                Items = query
-                    .OrderBy(t => t.Status == SupportTicketStatuses.Open ? 0 : 1)
-                    .ThenByDescending(t => t.Replies.Max(r => (DateTime?)r.CreatedAtUtc) ?? t.CreatedAtUtc)
-                    .Take(100)
+                Items = this._tickets.GetList(requester, statusFilter, SupportTicketStatuses.Open, 100)
                     .Select(t => new SupportTicketRowViewModel
                     {
                         TicketId = t.TicketId,
@@ -232,7 +225,7 @@ namespace ASI.Basecode.Services.Services
                     Status = SupportTicketStatuses.Open,
                     CreatedAtUtc = DateTime.UtcNow,
                 };
-                this.DbContext.SupportTickets.Add(ticket);
+                this._tickets.Add(ticket);
                 this._unitOfWork.SaveChanges();
 
                 this.WriteAudit("CREATE", "SupportTicket", ticket.TicketId, $"TKT-{ticket.TicketId}",
@@ -256,33 +249,31 @@ namespace ASI.Basecode.Services.Services
         {
             var isStaff = this.IsSupportAgent();
             var actorId = this._currentUser.GetActorUserId() ?? -1;
-            var ticket = this.DbContext.SupportTickets.AsNoTracking()
-                .Where(t => t.TicketId == ticketId && (isStaff || t.RequesterUserId == actorId))
-                .Select(t => new SupportTicketDetailsViewModel
+            var entity = this._tickets.GetWithDetails(ticketId, isStaff ? null : actorId);
+            var ticket = entity == null ? null : new SupportTicketDetailsViewModel
                 {
-                    TicketId = t.TicketId,
-                    Category = t.Category,
-                    Subject = t.Subject,
-                    Body = t.Body,
-                    Status = t.Status,
-                    RequesterUserId = t.RequesterUserId,
-                    RequesterName = t.RequesterUser.FirstName + " " + t.RequesterUser.LastName,
-                    RequesterIdentifier = t.RequesterUser.AccountIdentifier,
-                    RequesterStatus = t.RequesterUser.AccountStatus.Description,
-                    CreatedAtUtc = t.CreatedAtUtc,
-                    ResolvedAtUtc = t.ResolvedAtUtc,
-                    Replies = t.Replies
+                    TicketId = entity.TicketId,
+                    Category = entity.Category,
+                    Subject = entity.Subject,
+                    Body = entity.Body,
+                    Status = entity.Status,
+                    RequesterUserId = entity.RequesterUserId,
+                    RequesterName = entity.RequesterUser.FirstName + " " + entity.RequesterUser.LastName,
+                    RequesterIdentifier = entity.RequesterUser.AccountIdentifier,
+                    RequesterStatus = entity.RequesterUser.AccountStatus?.Description,
+                    CreatedAtUtc = entity.CreatedAtUtc,
+                    ResolvedAtUtc = entity.ResolvedAtUtc,
+                    Replies = entity.Replies
                         .OrderBy(r => r.CreatedAtUtc)
                         .Select(r => new SupportReplyViewModel
                         {
                             AuthorName = r.AuthorUser.FirstName + " " + r.AuthorUser.LastName,
-                            AuthorIsStaff = r.AuthorUser.Role.RoleCode == RoleCodes.Admin,
+                            AuthorIsStaff = r.AuthorUser.Role?.RoleCode == RoleCodes.Admin,
                             Body = r.Body,
                             CreatedAtUtc = r.CreatedAtUtc,
                         })
                         .ToList(),
-                })
-                .FirstOrDefault();
+                };
 
             if (ticket != null)
             {
@@ -305,8 +296,7 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 var isStaff = this.IsSupportAgent();
-                var ticket = this.DbContext.SupportTickets
-                    .FirstOrDefault(t => t.TicketId == ticketId && (isStaff || t.RequesterUserId == actorId.Value));
+                var ticket = this._tickets.GetTracked(ticketId, isStaff ? null : actorId.Value);
                 if (ticket == null)
                 {
                     return (false, ErrorMessages.TicketNotFound);
@@ -317,7 +307,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.TicketClosed);
                 }
 
-                this.DbContext.SupportTicketReplies.Add(new SupportTicketReply
+                this._tickets.AddReply(new SupportTicketReply
                 {
                     TicketId = ticket.TicketId,
                     AuthorUserId = actorId.Value,
@@ -360,7 +350,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.TicketNotFound);
                 }
 
-                var ticket = this.DbContext.SupportTickets.FirstOrDefault(t => t.TicketId == ticketId);
+                var ticket = this._tickets.GetTracked(ticketId, null);
                 if (ticket == null)
                 {
                     return (false, ErrorMessages.TicketNotFound);
@@ -396,16 +386,10 @@ namespace ASI.Basecode.Services.Services
 
         public VerificationStatsViewModel GetVerificationStats()
         {
-            var counts = this.DbContext.Users.AsNoTracking()
-                .GroupBy(u => u.AccountStatus.Code)
-                .Select(g => new { Code = g.Key, Count = g.Count() })
-                .ToDictionary(x => x.Code, x => x.Count);
+            var counts = this._users.CountByAccountStatusCode();
 
-            var durations = this.DbContext.Users.AsNoTracking()
-                .Where(u => u.VerifiedAtUtc != null && u.CreatedAtUtc != default)
-                .Select(u => new { u.CreatedAtUtc, Verified = u.VerifiedAtUtc.Value })
-                .ToList()
-                .Select(x => (x.Verified - x.CreatedAtUtc).TotalHours)
+            var durations = this._users.GetVerificationTimes()
+                .Select(x => (x.VerifiedAtUtc - x.CreatedAtUtc).TotalHours)
                 .Where(h => h >= 0)
                 .OrderBy(h => h)
                 .ToList();
@@ -428,10 +412,8 @@ namespace ASI.Basecode.Services.Services
 
         public BorrowerHistoryViewModel GetBorrowerHistory(long userId)
         {
-            var user = this.DbContext.Users.AsNoTracking()
-                .Where(u => u.UserId == userId)
-                .Select(u => new { u.UserId, Name = u.FirstName + " " + u.LastName, u.AccountIdentifier })
-                .FirstOrDefault();
+            var userEntity = this._users.GetByIdWithDetails(userId);
+            var user = userEntity == null ? null : new { userEntity.UserId, Name = userEntity.FirstName + " " + userEntity.LastName, userEntity.AccountIdentifier };
             if (user == null)
             {
                 return null;
@@ -442,9 +424,7 @@ namespace ASI.Basecode.Services.Services
                 UserId = user.UserId,
                 BorrowerName = user.Name,
                 AccountIdentifier = user.AccountIdentifier,
-                Reservations = this.DbContext.Reservations.AsNoTracking()
-                    .Where(r => r.BorrowerUserId == userId)
-                    .OrderByDescending(r => r.SubmittedAtUtc)
+                Reservations = this._reservations.GetForBorrower(userId)
                     .Select(r => new BorrowerHistoryRowViewModel
                     {
                         Number = r.ReservationNumber,
@@ -456,9 +436,7 @@ namespace ASI.Basecode.Services.Services
                         EndUtc = r.ExpectedReturnAtUtc,
                     })
                     .ToList(),
-                Borrowings = this.DbContext.Borrowings.AsNoTracking()
-                    .Where(b => b.BorrowerUserId == userId)
-                    .OrderByDescending(b => b.ReleasedAtUtc)
+                Borrowings = this._borrowings.GetAllForBorrower(userId)
                     .Select(b => new BorrowerHistoryRowViewModel
                     {
                         Number = b.TransactionNumber,

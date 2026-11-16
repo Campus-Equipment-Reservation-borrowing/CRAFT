@@ -38,6 +38,9 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Untracked borrowings with borrower, equipment, status and inspection status, limited to the custodian's routed work plus walk-in/unassigned ones (all when scope is null).</summary>
         List<Borrowing> GetInCustodianScope(long? scopeCustodianUserId);
+
+        /// <summary>Every borrowing of the borrower (untracked, with equipment, status and returns), newest release first.</summary>
+        List<Borrowing> GetAllForBorrower(long borrowerUserId);
     }
 
 }
