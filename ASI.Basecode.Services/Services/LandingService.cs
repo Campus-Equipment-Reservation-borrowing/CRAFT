@@ -1,4 +1,3 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
@@ -10,37 +9,21 @@ namespace ASI.Basecode.Services.Services
 {
     public class LandingService : ServiceBase, ILandingService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IEquipmentRepository _equipment;
         private readonly IAuditLogRepository _auditLogs;
 
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
-
-        public LandingService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IAuditLogRepository auditLogs)
+        public LandingService(ILoggerFactory loggerFactory, IEquipmentRepository equipment, IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
             this._auditLogs = auditLogs;
-            this._unitOfWork = unitOfWork;
+            this._equipment = equipment;
         }
 
         public LandingViewModel GetLanding()
         {
-            var db = this.DbContext;
-
             // Same available-units formula as ReservationService / EquipmentService.
-            var perCategory = db.Equipment
-                .Where(e => e.IsActive && e.EquipmentInventoryBalance != null)
-                .GroupBy(e => e.EquipmentCategory.CategoryName)
-                .Select(g => new LandingCategoryViewModel
-                {
-                    Name = g.Key,
-                    Total = g.Sum(e => e.EquipmentInventoryBalance.TotalQuantity),
-                    Available = g.Sum(e => e.EquipmentInventoryBalance.TotalQuantity
-                        - e.EquipmentInventoryBalance.ReservedQuantity
-                        - e.EquipmentInventoryBalance.ReleasedQuantity
-                        - e.EquipmentInventoryBalance.AwaitingInspectionQuantity
-                        - e.EquipmentInventoryBalance.MaintenanceQuantity
-                        - e.EquipmentInventoryBalance.UnreconciledQuantity),
-                })
+            var perCategory = this._equipment.GetActiveCategoryUnitTotals()
+                .Select(c => new LandingCategoryViewModel { Name = c.Name, Total = c.Total, Available = c.Available })
                 .ToList();
 
             foreach (var c in perCategory)
@@ -68,7 +51,7 @@ namespace ASI.Basecode.Services.Services
             return new LandingViewModel
             {
                 ItemsInCatalog = perCategory.Sum(c => c.Total),
-                CategoryCount = db.EquipmentCategories.Count(),
+                CategoryCount = this._equipment.CountCategories(),
                 MedianDecisionHours = median,
                 UpdatedAtLocal = ToManila(DateTime.UtcNow),
                 Categories = perCategory.OrderByDescending(c => c.Total).ToList(),

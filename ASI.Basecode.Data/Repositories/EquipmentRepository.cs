@@ -161,5 +161,29 @@ namespace ASI.Basecode.Data.Repositories
                 UnreconciledUnits = balanceTotals.Sum(b => b.UnreconciledQuantity),
             };
         }
+
+        public System.Collections.Generic.List<CategoryUnitTotals> GetActiveCategoryUnitTotals()
+        {
+            return this.Context.Equipment
+                .Where(e => e.IsActive && e.EquipmentInventoryBalance != null)
+                .GroupBy(e => e.EquipmentCategory.CategoryName)
+                .Select(g => new CategoryUnitTotals
+                {
+                    Name = g.Key,
+                    Total = g.Sum(e => e.EquipmentInventoryBalance.TotalQuantity),
+                    Available = g.Sum(e => e.EquipmentInventoryBalance.TotalQuantity
+                        - e.EquipmentInventoryBalance.ReservedQuantity
+                        - e.EquipmentInventoryBalance.ReleasedQuantity
+                        - e.EquipmentInventoryBalance.AwaitingInspectionQuantity
+                        - e.EquipmentInventoryBalance.MaintenanceQuantity
+                        - e.EquipmentInventoryBalance.UnreconciledQuantity),
+                })
+                .ToList();
+        }
+
+        public int CountCategories()
+        {
+            return this.Context.EquipmentCategories.Count();
+        }
     }
 }

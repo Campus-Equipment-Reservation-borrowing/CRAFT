@@ -46,5 +46,11 @@ namespace ASI.Basecode.Data.Interfaces
         /// Aggregate counters for the administration dashboard cards.
         /// </summary>
         EquipmentTotals GetTotals();
+
+        /// <summary>Total and available units of active equipment with a balance, per category name.</summary>
+        System.Collections.Generic.List<CategoryUnitTotals> GetActiveCategoryUnitTotals();
+
+        /// <summary>Number of equipment categories.</summary>
+        int CountCategories();
     }
 }
