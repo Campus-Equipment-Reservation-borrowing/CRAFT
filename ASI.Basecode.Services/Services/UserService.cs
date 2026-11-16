@@ -24,6 +24,7 @@ namespace ASI.Basecode.Services.Services
     public class UserService : ServiceBase, IUserService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILookupRepository _lookups;
         private readonly IAuditLogRepository _auditLogs;
         private readonly IUserRepository _userRepository;
         private readonly ICurrentUserService _currentUser;
@@ -42,9 +43,11 @@ namespace ASI.Basecode.Services.Services
             INotificationDispatcher notifications,
             ICustodianAssignmentService assignments,
             IMapper mapper,
-            IAuditLogRepository auditLogs)
+            IAuditLogRepository auditLogs,
+            ILookupRepository lookups)
             : base(loggerFactory)
         {
+            this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._userRepository = userRepository;
@@ -58,9 +61,7 @@ namespace ASI.Basecode.Services.Services
         {
             var rejectedTab = string.Equals(tab, "rejected", StringComparison.OrdinalIgnoreCase);
             var statusCode = rejectedTab ? AccountStatusCodes.Rejected : AccountStatusCodes.Unverified;
-            var statusIds = this.DbContext.AccountStatuses
-                .AsNoTracking()
-                .ToDictionary(s => s.Code, s => s.AccountStatusId);
+            var statusIds = this._lookups.GetAccountStatusIdsByCode();
 
             var result = statusIds.TryGetValue(statusCode, out var statusId)
                 ? this._userRepository.GetPaged(search, null, null, statusId, page, pageSize)
@@ -123,7 +124,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.VerificationNotPending);
                 }
 
-                var active = this.DbContext.AccountStatuses.First(s => s.Code == AccountStatusCodes.Active);
+                var active = this._lookups.GetRequiredTrackedAccountStatusByCode(AccountStatusCodes.Active);
                 var now = DateTime.UtcNow;
                 var actorId = this._currentUser.GetActorUserId();
 
@@ -199,7 +200,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.VerificationNotPending);
                 }
 
-                var rejected = this.DbContext.AccountStatuses.FirstOrDefault(s => s.Code == AccountStatusCodes.Rejected);
+                var rejected = this._lookups.GetTrackedAccountStatusByCode(AccountStatusCodes.Rejected);
                 if (rejected == null)
                 {
                     return (false, ErrorMessages.ServerError);
@@ -396,30 +397,20 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetRoleOptions()
         {
-            return this.DbContext.Roles
-                .AsNoTracking()
-                .OrderBy(r => r.RoleName)
-                .Select(r => new LookupViewModel { Id = r.RoleId, Text = r.RoleName })
-                .ToList();
+            return this._lookups.GetRoleOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public List<LookupViewModel> GetDepartmentOptions()
         {
-            return this.DbContext.Departments
-                .AsNoTracking()
-                .Where(d => d.IsActive)
-                .OrderBy(d => d.DepartmentName)
-                .Select(d => new LookupViewModel { Id = d.DepartmentId, Text = d.DepartmentName })
-                .ToList();
+            return this._lookups.GetActiveDepartmentOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public List<LookupViewModel> GetAccountStatusOptions()
         {
-            return this.DbContext.AccountStatuses
-                .AsNoTracking()
-                .OrderBy(s => s.Code)
-                .Select(s => new LookupViewModel { Id = s.AccountStatusId, Text = s.Description })
-                .ToList();
+            return this._lookups.GetAccountStatusOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         /// <inheritdoc />
@@ -532,9 +523,8 @@ namespace ASI.Basecode.Services.Services
         {
             var newRoleId = form.RoleId ?? 0;
             var newStatusId = form.AccountStatusId ?? 0;
-            var newRole = this.DbContext.Roles.AsNoTracking().FirstOrDefault(r => r.RoleId == newRoleId);
-            var newStatusCode = this.DbContext.AccountStatuses.AsNoTracking()
-                .Where(st => st.AccountStatusId == newStatusId).Select(st => st.Code).FirstOrDefault();
+            var newRole = this._lookups.GetRoleById(newRoleId);
+            var newStatusCode = this._lookups.GetAccountStatusCodeById(newStatusId);
             var current = form.UserId > 0
                 ? this.DbContext.Users.AsNoTracking()
                     .Where(u => u.UserId == form.UserId)
@@ -572,8 +562,8 @@ namespace ASI.Basecode.Services.Services
 
         private bool IsActiveAdmin(long roleId, long accountStatusId)
         {
-            return this.DbContext.Roles.Any(r => r.RoleId == roleId && r.RoleCode == RoleCodes.Admin)
-                && this.DbContext.AccountStatuses.Any(s => s.AccountStatusId == accountStatusId && s.Code == AccountStatusCodes.Active);
+            return this._lookups.RoleHasCode(roleId, RoleCodes.Admin)
+                && this._lookups.AccountStatusHasCode(accountStatusId, AccountStatusCodes.Active);
         }
 
         private bool OtherActiveAdminExists(long excludeUserId)

@@ -26,13 +26,15 @@ namespace ASI.Basecode.Services.Services
         private const string LockedOutMessage = "Too many failed attempts. Please try again in 15 minutes.";
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILookupRepository _lookups;
         private readonly IAuditLogRepository _auditLogs;
 
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
-        public AuthService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IAuditLogRepository auditLogs)
+        public AuthService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IAuditLogRepository auditLogs, ILookupRepository lookups)
             : base(loggerFactory)
         {
+            this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
         }
@@ -171,7 +173,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, "Passwords do not match.", 0);
                 }
 
-                var role = this.DbContext.Roles.FirstOrDefault(r => r.RoleId == form.RoleId.Value);
+                var role = this._lookups.GetTrackedRoleById(form.RoleId.Value);
                 if (role == null || !role.IsBorrowerRole)
                 {
                     return (false, "Only Student or Faculty accounts can be registered here.", 0);
@@ -187,9 +189,8 @@ namespace ASI.Basecode.Services.Services
                     return (false, "An account with this email or ID already exists.", 0);
                 }
 
-                var unverified = this.DbContext.AccountStatuses
-                    .FirstOrDefault(s => s.Code == AccountStatusCodes.Unverified)
-                    ?? this.DbContext.AccountStatuses.FirstOrDefault(s => s.Code == AccountStatusCodes.Active);
+                var unverified = this._lookups.GetTrackedAccountStatusByCode(AccountStatusCodes.Unverified)
+                    ?? this._lookups.GetTrackedAccountStatusByCode(AccountStatusCodes.Active);
 
                 if (unverified == null)
                 {
@@ -382,22 +383,14 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetBorrowerRoleOptions()
         {
-            return this.DbContext.Roles
-                .AsNoTracking()
-                .Where(r => r.IsBorrowerRole)
-                .OrderBy(r => r.RoleName)
-                .Select(r => new LookupViewModel { Id = r.RoleId, Text = r.RoleName })
-                .ToList();
+            return this._lookups.GetBorrowerRoleOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public List<LookupViewModel> GetDepartmentOptions()
         {
-            return this.DbContext.Departments
-                .AsNoTracking()
-                .Where(d => d.IsActive)
-                .OrderBy(d => d.DepartmentName)
-                .Select(d => new LookupViewModel { Id = d.DepartmentId, Text = d.DepartmentName })
-                .ToList();
+            return this._lookups.GetActiveDepartmentOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public AuthenticatedUserViewModel GetAuthenticatedUser(long userId)

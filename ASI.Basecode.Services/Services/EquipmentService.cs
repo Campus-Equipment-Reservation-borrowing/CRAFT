@@ -23,6 +23,7 @@ namespace ASI.Basecode.Services.Services
     public class EquipmentService : ServiceBase, IEquipmentService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILookupRepository _lookups;
         private readonly IAuditLogRepository _auditLogs;
         private readonly IEquipmentRepository _equipmentRepository;
         private readonly ICurrentUserService _currentUser;
@@ -37,9 +38,11 @@ namespace ASI.Basecode.Services.Services
             IEquipmentRepository equipmentRepository,
             ICurrentUserService currentUser,
             IMapper mapper,
-            IAuditLogRepository auditLogs)
+            IAuditLogRepository auditLogs,
+            ILookupRepository lookups)
             : base(loggerFactory)
         {
+            this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._equipmentRepository = equipmentRepository;
@@ -113,15 +116,13 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 // Status and condition share one codebook; make sure each field holds a code of its own kind.
-                var statusCode = this.DbContext.Conditions.AsNoTracking()
-                    .Where(c => c.ConditionId == form.OperationalStatusId).Select(c => c.Code).FirstOrDefault();
+                var statusCode = this._lookups.GetConditionCodeById(form.OperationalStatusId);
                 if (statusCode == null || !OperationalStatusCodes.Contains(statusCode))
                 {
                     return (false, ErrorMessages.EquipmentInvalidOperationalStatus, form.EquipmentId);
                 }
 
-                var conditionCode = this.DbContext.Conditions.AsNoTracking()
-                    .Where(c => c.ConditionId == form.CurrentConditionId).Select(c => c.Code).FirstOrDefault();
+                var conditionCode = this._lookups.GetConditionCodeById(form.CurrentConditionId);
                 if (conditionCode == null || OperationalStatusCodes.Contains(conditionCode))
                 {
                     return (false, ErrorMessages.EquipmentInvalidCondition, form.EquipmentId);
@@ -216,22 +217,14 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetConditionOptions()
         {
-            return this.DbContext.Conditions
-                .AsNoTracking()
-                .Where(c => !OperationalStatusCodes.Contains(c.Code))
-                .OrderBy(c => c.ConditionId)
-                .Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description })
-                .ToList();
+            return this._lookups.GetConditionOptionsExcludingCodes(OperationalStatusCodes, orderByCode: false)
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public List<LookupViewModel> GetOperationalStatusOptions()
         {
-            return this.DbContext.Conditions
-                .AsNoTracking()
-                .Where(c => OperationalStatusCodes.Contains(c.Code))
-                .OrderBy(c => c.ConditionId)
-                .Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description })
-                .ToList();
+            return this._lookups.GetConditionOptionsWithCodes(OperationalStatusCodes)
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         private (bool Success, string Error, long EquipmentId) Create(EquipmentFormViewModel form)
@@ -298,8 +291,7 @@ namespace ASI.Basecode.Services.Services
 
             // Taking an item out of service (inactive or under maintenance) would strand open
             // reservations that borrowers are waiting on.
-            var maintenanceStatusId = this.DbContext.Conditions.AsNoTracking()
-                .Where(c => c.Code == ConditionCodes.UnderMaintenance).Select(c => (long?)c.ConditionId).FirstOrDefault();
+            var maintenanceStatusId = this._lookups.GetConditionIdByCode(ConditionCodes.UnderMaintenance);
             var goingOutOfService = (entity.IsActive && !form.IsActive)
                 || (maintenanceStatusId.HasValue && form.OperationalStatusId == maintenanceStatusId && entity.OperationalStatusId != maintenanceStatusId);
             if (goingOutOfService)

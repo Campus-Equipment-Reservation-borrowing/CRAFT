@@ -22,6 +22,7 @@ namespace ASI.Basecode.Services.Services
     public class ReturnProcessingService : ServiceBase, IReturnProcessingService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILookupRepository _lookups;
         private readonly IAuditLogRepository _auditLogs;
         private readonly IReturnProcessingRepository _repository;
         private readonly ICurrentUserService _currentUser;
@@ -37,9 +38,11 @@ namespace ASI.Basecode.Services.Services
             ICurrentUserService currentUser,
             INotificationDispatcher notifications,
             IMapper mapper,
-            IAuditLogRepository auditLogs)
+            IAuditLogRepository auditLogs,
+            ILookupRepository lookups)
             : base(loggerFactory)
         {
+            this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._repository = repository;
@@ -126,8 +129,7 @@ namespace ASI.Basecode.Services.Services
                 InspectableQuantity = Math.Max(0, alreadyReturned - alreadyInspected),
                 AlreadyInspected = alreadyInspected,
                 AwaitingInspection = Math.Max(0, alreadyReturned - alreadyInspected),
-                PendingInspectionStatusId = this.DbContext.InspectionStatuses.AsNoTracking()
-                    .Where(s => s.Code == InspectionStatusCodes.Pending).Select(s => s.StatusId).FirstOrDefault(),
+                PendingInspectionStatusId = this._lookups.GetInspectionStatusIdByCode(InspectionStatusCodes.Pending),
                 DueAtUtc = borrowing.DueAtUtc,
                 IsOverdue = overdue,
                 DaysOverdue = daysOverdue,
@@ -137,9 +139,8 @@ namespace ASI.Basecode.Services.Services
         public List<LookupViewModel> GetConditionOptions()
         {
             // Physical conditions only — "Available"/"Under Maintenance" are availability statuses.
-            return this.DbContext.Conditions.AsNoTracking()
-                .Where(c => !EquipmentService.OperationalStatusCodes.Contains(c.Code))
-                .OrderBy(c => c.ConditionId).Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description }).ToList();
+            return this._lookups.GetConditionOptionsExcludingCodes(EquipmentService.OperationalStatusCodes, orderByCode: false)
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         /// <summary>Units of a borrowing already covered by COMPLETED inspections.</summary>
@@ -154,8 +155,8 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetInspectionStatusOptions()
         {
-            return this.DbContext.InspectionStatuses.AsNoTracking()
-                .OrderBy(s => s.StatusId).Select(s => new LookupViewModel { Id = s.StatusId, Text = s.Description }).ToList();
+            return this._lookups.GetInspectionStatusOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public (bool Success, string Error, long ReturnId) CreateReturn(ReturnFormViewModel form)
@@ -230,7 +231,7 @@ namespace ASI.Basecode.Services.Services
                 var totalReturned = alreadyReturned + form.ReturnedQuantity;
                 if (totalReturned >= borrowing.ReleasedQuantity)
                 {
-                    var returnedStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.Returned);
+                    var returnedStatus = this._lookups.GetTrackedBorrowingStatusByCode(BorrowingStatusCodes.Returned);
                     if (returnedStatus != null)
                     {
                         borrowing.StatusId = returnedStatus.StatusId;
@@ -238,7 +239,7 @@ namespace ASI.Basecode.Services.Services
                 }
                 else
                 {
-                    var partialStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.PartiallyReturned);
+                    var partialStatus = this._lookups.GetTrackedBorrowingStatusByCode(BorrowingStatusCodes.PartiallyReturned);
                     if (partialStatus != null)
                     {
                         borrowing.StatusId = partialStatus.StatusId;
@@ -312,21 +313,20 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.InspectionReturnMismatch, 0);
                 }
 
-                var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.StatusId == form.InspectionStatusId)
-                    ?? this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == InspectionStatusCodes.Pending);
+                var inspectionStatus = this._lookups.GetTrackedInspectionStatusById(form.InspectionStatusId)
+                    ?? this._lookups.GetTrackedInspectionStatusByCode(InspectionStatusCodes.Pending);
                 if (inspectionStatus == null)
                 {
                     return (false, ErrorMessages.ServerError, 0);
                 }
 
-                var condition = this.DbContext.Conditions.AsNoTracking()
-                    .FirstOrDefault(c => c.ConditionId == form.CurrentConditionId);
+                var condition = this._lookups.GetConditionById(form.CurrentConditionId);
                 if (condition == null || EquipmentService.OperationalStatusCodes.Contains(condition.Code))
                 {
                     return (false, ErrorMessages.EquipmentInvalidCondition, 0);
                 }
 
-                if (form.ReleaseConditionId.HasValue && !this.DbContext.Conditions.Any(c => c.ConditionId == form.ReleaseConditionId.Value))
+                if (form.ReleaseConditionId.HasValue && !this._lookups.ConditionExists(form.ReleaseConditionId.Value))
                 {
                     return (false, ErrorMessages.InspectionConditionInvalid, 0);
                 }
@@ -543,7 +543,7 @@ namespace ASI.Basecode.Services.Services
             var allReturned = returned >= borrowing.ReleasedQuantity;
             if (allReturned && finalizedBefore + form.InspectedQuantity >= returned)
             {
-                var completed = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == InspectionStatusCodes.Completed);
+                var completed = this._lookups.GetTrackedInspectionStatusByCode(InspectionStatusCodes.Completed);
                 if (completed != null)
                 {
                     borrowing.InspectionStatusId = completed.StatusId;
@@ -555,7 +555,7 @@ namespace ASI.Basecode.Services.Services
                     .Sum(i => (int?)i.LostQuantity) ?? 0;
                 if (lostBefore + form.LostQuantity > 0)
                 {
-                    var lostStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.Lost);
+                    var lostStatus = this._lookups.GetTrackedBorrowingStatusByCode(BorrowingStatusCodes.Lost);
                     if (lostStatus != null)
                     {
                         borrowing.StatusId = lostStatus.StatusId;

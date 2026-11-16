@@ -28,6 +28,7 @@ namespace ASI.Basecode.Services.Services
         private const string BorrowingStatusReturned = BorrowingStatusCodes.Returned;
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILookupRepository _lookups;
         private readonly IAuditLogRepository _auditLogs;
         private readonly IReservationRepository _reservationRepository;
         private readonly ICurrentUserService _currentUser;
@@ -48,9 +49,11 @@ namespace ASI.Basecode.Services.Services
             ICustodianAssignmentService assignments,
             Microsoft.Extensions.Options.IOptions<ReservationLifecycleOptions> lifecycle,
             IMapper mapper,
-            IAuditLogRepository auditLogs)
+            IAuditLogRepository auditLogs,
+            ILookupRepository lookups)
             : base(loggerFactory)
         {
+            this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._reservationRepository = reservationRepository;
@@ -528,11 +531,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ReservationNotFound);
                 }
 
-                var statusCode = this.DbContext.ReservationStatuses
-                    .AsNoTracking()
-                    .Where(s => s.StatusId == entity.StatusId)
-                    .Select(s => s.Code)
-                    .FirstOrDefault();
+                var statusCode = this._lookups.GetReservationStatusCodeById(entity.StatusId);
                 if (!this.IsOpenStatus(statusCode))
                 {
                     return (false, ErrorMessages.ReservationNotCancellable);
@@ -670,9 +669,7 @@ namespace ASI.Basecode.Services.Services
 
         private Dictionary<string, long> GetReservationStatusIds()
         {
-            return this.DbContext.ReservationStatuses
-                .AsNoTracking()
-                .ToDictionary(s => s.Code, s => s.StatusId);
+            return this._lookups.GetReservationStatusIdsByCode();
         }
 
         /// <summary>

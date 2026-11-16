@@ -20,6 +20,7 @@ namespace ASI.Basecode.Services.Services
         private static readonly string[] OpenBorrowingStatuses = { BorrowingStatusCodes.Active, BorrowingStatusCodes.PartiallyReturned };
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILookupRepository _lookups;
         private readonly IAuditLogRepository _auditLogs;
         private readonly INotificationDispatcher _notifications;
         private readonly ReservationLifecycleOptions _options;
@@ -31,9 +32,11 @@ namespace ASI.Basecode.Services.Services
             IUnitOfWork unitOfWork,
             INotificationDispatcher notifications,
             IOptions<ReservationLifecycleOptions> options,
-            IAuditLogRepository auditLogs)
+            IAuditLogRepository auditLogs,
+            ILookupRepository lookups)
             : base(loggerFactory)
         {
+            this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._notifications = notifications;
@@ -61,7 +64,7 @@ namespace ASI.Basecode.Services.Services
         /// </summary>
         private int ExpireStaleReservations(DateTime now)
         {
-            var expired = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == ReservationStatusCodes.Expired);
+            var expired = this._lookups.GetTrackedReservationStatusByCode(ReservationStatusCodes.Expired);
             if (expired == null)
             {
                 return 0;
@@ -186,7 +189,7 @@ namespace ASI.Basecode.Services.Services
         /// <summary>Persist OVERDUE once due + grace has passed, and alert borrower, custodian and admins once.</summary>
         private int MarkOverdueBorrowings(DateTime now)
         {
-            var overdueStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.Overdue);
+            var overdueStatus = this._lookups.GetTrackedBorrowingStatusByCode(BorrowingStatusCodes.Overdue);
             if (overdueStatus == null)
             {
                 return 0;

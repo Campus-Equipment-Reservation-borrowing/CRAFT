@@ -18,6 +18,7 @@ namespace ASI.Basecode.Services.Services
     public class CustodianService : ServiceBase, ICustodianService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILookupRepository _lookups;
         private readonly IAuditLogRepository _auditLogs;
         private readonly ICustodianRepository _repository;
         private readonly IReservationRepository _reservationRepository;
@@ -35,9 +36,11 @@ namespace ASI.Basecode.Services.Services
             ICurrentUserService currentUser,
             INotificationDispatcher notifications,
             IMapper mapper,
-            IAuditLogRepository auditLogs)
+            IAuditLogRepository auditLogs,
+            ILookupRepository lookups)
             : base(loggerFactory)
         {
+            this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._repository = repository;
@@ -61,8 +64,8 @@ namespace ASI.Basecode.Services.Services
                 },
                 Search = search,
                 StatusId = statusId,
-                StatusOptions = this.DbContext.ReservationStatuses.AsNoTracking()
-                    .OrderBy(s => s.StatusId).Select(s => new LookupViewModel { Id = s.StatusId, Text = s.Description }).ToList(),
+                StatusOptions = this._lookups.GetReservationStatusOptions()
+                    .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList(),
             };
         }
 
@@ -177,7 +180,7 @@ namespace ASI.Basecode.Services.Services
                 }
                 this.ClaimIfPooled(entity);
 
-                var approvedStatus = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == ReservationStatusCodes.Approved);
+                var approvedStatus = this._lookups.GetTrackedReservationStatusByCode(ReservationStatusCodes.Approved);
                 if (approvedStatus == null)
                 {
                     return (false, ErrorMessages.ServerError);
@@ -237,7 +240,7 @@ namespace ASI.Basecode.Services.Services
                 }
                 this.ClaimIfPooled(entity);
 
-                var rejectedStatus = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == ReservationStatusCodes.Rejected);
+                var rejectedStatus = this._lookups.GetTrackedReservationStatusByCode(ReservationStatusCodes.Rejected);
                 if (rejectedStatus == null)
                 {
                     return (false, ErrorMessages.ServerError);
@@ -288,9 +291,8 @@ namespace ASI.Basecode.Services.Services
                 ExpectedReturnAtUtc = entity.ExpectedReturnAtUtc,
                 CanRelease = (entity.Status.Code == ReservationStatusCodes.Approved || entity.Status.Code == ReservationStatusCodes.PartiallyReleased) &&
                              this.RemainingHold(entity) > 0,
-                ConditionOptions = this.DbContext.Conditions.AsNoTracking()
-                    .Where(c => !NonReleasableConditions.Contains(c.Code))
-                    .OrderBy(c => c.Code).Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description }).ToList(),
+                ConditionOptions = this._lookups.GetConditionOptionsExcludingCodes(NonReleasableConditions, orderByCode: true)
+                    .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList(),
                 ActiveBorrowingExists = this._repository.CountActiveBorrowingsForReservation(reservationId) > 0,
             };
         }
@@ -305,8 +307,7 @@ namespace ASI.Basecode.Services.Services
                 return (false, ErrorMessages.CustodianReleaseQuantityInvalid, 0);
             }
 
-            var conditionCode = this.DbContext.Conditions.AsNoTracking()
-                .Where(c => c.ConditionId == form.ReleaseConditionId.Value).Select(c => c.Code).FirstOrDefault();
+            var conditionCode = this._lookups.GetConditionCodeById(form.ReleaseConditionId.Value);
             if (conditionCode == null || NonReleasableConditions.Contains(conditionCode))
             {
                 return (false, "Choose the condition the equipment is released in (damaged, lost or under-maintenance items can't be released).", 0);
@@ -341,7 +342,7 @@ namespace ASI.Basecode.Services.Services
                 {
                     return (false, ErrorMessages.CustodianReturnDatePassed, 0);
                 }
-                if (!this.DbContext.Conditions.Any(c => c.ConditionId == form.ReleaseConditionId.Value))
+                if (!this._lookups.ConditionExists(form.ReleaseConditionId.Value))
                 {
                     return (false, ErrorMessages.InspectionConditionInvalid, 0);
                 }
@@ -373,8 +374,8 @@ namespace ASI.Basecode.Services.Services
                 using var transaction = this._unitOfWork.BeginTransaction();
                 var txn = this._repository.GetNextTransactionNumber(DateTime.UtcNow.Year);
 
-                var borrowingStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.Active);
-                var inspectionStatus = this.DbContext.InspectionStatuses.FirstOrDefault(s => s.Code == InspectionStatusCodes.Pending);
+                var borrowingStatus = this._lookups.GetTrackedBorrowingStatusByCode(BorrowingStatusCodes.Active);
+                var inspectionStatus = this._lookups.GetTrackedInspectionStatusByCode(InspectionStatusCodes.Pending);
                 if (borrowingStatus == null || inspectionStatus == null)
                 {
                     return (false, ErrorMessages.ServerError, 0);
@@ -421,7 +422,7 @@ namespace ASI.Basecode.Services.Services
                 // Fully released → COMPLETED; otherwise the rest stays held for a later release.
                 entity.HeldQuantity = Math.Max(0, maxQty - form.ReleasedQuantity);
                 var nextCode = entity.HeldQuantity == 0 ? ReservationStatusCodes.Completed : ReservationStatusCodes.PartiallyReleased;
-                var nextStatus = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == nextCode);
+                var nextStatus = this._lookups.GetTrackedReservationStatusByCode(nextCode);
                 if (nextStatus != null)
                 {
                     entity.StatusId = nextStatus.StatusId;
@@ -517,7 +518,7 @@ namespace ASI.Basecode.Services.Services
 
                 // A partially released reservation keeps its borrowing; only the unreleased rest is cancelled.
                 var targetCode = expire ? ReservationStatusCodes.Expired : code == ReservationStatusCodes.PartiallyReleased ? ReservationStatusCodes.Completed : ReservationStatusCodes.Cancelled;
-                var target = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == targetCode);
+                var target = this._lookups.GetTrackedReservationStatusByCode(targetCode);
                 if (target == null)
                 {
                     return (false, ErrorMessages.ServerError);
