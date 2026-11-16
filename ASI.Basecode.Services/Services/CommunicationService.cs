@@ -79,6 +79,11 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.AnnouncementInvalid);
                 }
 
+                if (form.ExpiresOn.HasValue && form.ExpiresOn.Value.Date < DateTime.Now.Date)
+                {
+                    return (false, "The expiry date can't be in the past.");
+                }
+
                 var entity = new Announcement
                 {
                     Title = title.Length > 200 ? title.Substring(0, 200) : title,
@@ -96,7 +101,7 @@ namespace ASI.Basecode.Services.Services
                     $"Published announcement '{entity.Title}' to {entity.TargetRoles}.");
 
                 this._notifications.Notify(this._notifications.GetActiveUserIdsInRoles(roles.ToArray()),
-                    NotificationTypes.Announcement, entity.Title, entity.Body);
+                    NotificationTypes.Announcement, entity.Title, entity.Body, "/");
 
                 return (true, null);
             }
@@ -293,7 +298,7 @@ namespace ASI.Basecode.Services.Services
                 var actorId = this._currentUser.GetActorUserId();
                 if (string.IsNullOrWhiteSpace(body) || actorId == null)
                 {
-                    return (false, ErrorMessages.TicketInvalid);
+                    return (false, "Enter a reply message.");
                 }
 
                 var isStaff = this.IsStaff();
@@ -331,7 +336,8 @@ namespace ASI.Basecode.Services.Services
                         : this._notifications.GetActiveUserIdsInRoles(RoleCodes.Admin);
                 this._notifications.Notify(recipients, NotificationTypes.Support,
                     $"New reply on TKT-{ticket.TicketId}",
-                    $"{this._currentUser.GetActorName()} replied to \"{ticket.Subject}\".");
+                    $"{this._currentUser.GetActorName()} replied to \"{ticket.Subject}\".",
+                    $"/Support/Details/{ticket.TicketId}");
 
                 return (true, null);
             }
@@ -371,7 +377,8 @@ namespace ASI.Basecode.Services.Services
                     $"Resolved ticket '{ticket.Subject}'.");
                 this._notifications.Notify(ticket.RequesterUserId, NotificationTypes.Support,
                     $"Ticket TKT-{ticket.TicketId} resolved",
-                    $"Your ticket \"{ticket.Subject}\" was marked resolved. Open a new ticket if you still need help.");
+                    $"Your ticket \"{ticket.Subject}\" was marked resolved. Open a new ticket if you still need help.",
+                    $"/Support/Details/{ticket.TicketId}");
 
                 return (true, null);
             }

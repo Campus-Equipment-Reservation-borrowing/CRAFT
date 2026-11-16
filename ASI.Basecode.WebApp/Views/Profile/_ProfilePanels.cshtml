@@ -11,7 +11,32 @@
 <div class="cp-stack">
     <div class="cp-card">
         <div class="cp-profile-header">
-            <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+            <div class="cp-profile-photo">
+                @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
+                {
+                    <img class="cp-avatar-lg cp-avatar-img" src="@Model.ProfileImagePath" alt="Profile photo of @Model.FullName" />
+                }
+                else
+                {
+                    <div class="cp-avatar-lg">@(string.IsNullOrWhiteSpace(initials) ? "U" : initials)</div>
+                }
+                <form method="post" action="/Profile/UploadPhoto" enctype="multipart/form-data" class="cp-profile-photo-form">
+                    @Html.AntiForgeryToken()
+                    <input type="file" id="profilePhotoInput" name="photo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                           class="cp-visually-hidden" onchange="if (this.files.length) this.form.submit();" />
+                    <label class="cp-btn cp-btn-secondary cp-btn-sm" for="profilePhotoInput">
+                        @(string.IsNullOrWhiteSpace(Model.ProfileImagePath) ? "Upload photo" : "Change photo")
+                    </label>
+                </form>
+                @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
+                {
+                    <form method="post" action="/Profile/RemovePhoto" class="cp-profile-photo-form">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="cp-link-btn">Remove</button>
+                    </form>
+                }
+                <div class="cp-form-hint">JPG, PNG or WEBP, up to 2 MB.</div>
+            </div>
             <div class="cp-stack">
                 <div>
                     <div class="cp-profile-name">@Model.FullName</div>
@@ -48,11 +73,11 @@
                     <div class="cp-profile-grid">
                         <div class="cp-form-group">
                             <label class="cp-form-label" for="ContactNumber">Contact Number <span class="required">*</span></label>
-                            <input id="ContactNumber" name="ContactNumber" value="@Model.ContactNumber" class="cp-input" placeholder="+63 917 555 0142" required />
+                            <input id="ContactNumber" name="ContactNumber" value="@Model.ContactNumber" class="cp-input" placeholder="+63 917 555 0142" maxlength="50" required />
                         </div>
                         <div class="cp-form-group">
                             <label class="cp-form-label" for="AlternateContact">Alternate Contact</label>
-                            <input id="AlternateContact" name="AlternateContact" value="@Model.AlternateContact" class="cp-input" placeholder="Optional" />
+                            <input id="AlternateContact" name="AlternateContact" value="@Model.AlternateContact" class="cp-input" placeholder="Optional" maxlength="100" />
                         </div>
                     </div>
                     <div class="cp-form-hint">Notifications and password resets are sent to your school email.</div>
@@ -110,6 +135,11 @@
                     <button type="submit" class="cp-btn cp-btn-primary">Update Password</button>
                 </div>
             </form>
+            <div class="cp-card">
+                <div class="cp-card-header">Walkthrough <span class="cp-cell-sub">A guided tour of how to use CRAFT</span></div>
+                <p class="cp-form-hint">Replay the introduction, or open the Guide (?) button at the top for task-by-task tours.</p>
+                <button type="button" class="cp-btn cp-btn-secondary" data-guide-restart>Show the walkthrough again</button>
+            </div>
         </div>
     </div>
 </div>

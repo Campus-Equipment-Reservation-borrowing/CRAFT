@@ -28,6 +28,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         /// <summary>Returned units not yet covered by a completed inspection.</summary>
         public int InspectableQuantity { get; set; }
+        /// <summary>Units already covered by a completed inspection.</summary>
+        public int AlreadyInspected { get; set; }
+        /// <summary>Returned units still waiting for a completed inspection.</summary>
+        public int AwaitingInspection { get; set; }
+        /// <summary>Id of the PENDING inspection status (default selection on the inspection form).</summary>
+        public long PendingInspectionStatusId { get; set; }
         public DateTime DueAtUtc { get; set; }
         public bool IsOverdue { get; set; }
         public int DaysOverdue { get; set; }
@@ -36,6 +42,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
     public class ReturnRowViewModel
     {
         public long ReturnId { get; set; }
+        public long BorrowingId { get; set; }
+        /// <summary>Returned units on this borrowing still await a completed inspection.</summary>
+        public bool NeedsInspection { get; set; }
         public string TransactionNumber { get; set; }
         public string BorrowerName { get; set; }
         public string EquipmentName { get; set; }

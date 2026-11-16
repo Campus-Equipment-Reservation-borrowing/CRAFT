@@ -61,11 +61,12 @@
 
     <div class="cp-card">
         <div class="cp-card-header">Return Information</div>
-        @if (Model.IsReturned)
+        @if (Model.IsReturned || Model.ReturnedQuantity > 0)
         {
+            var returnedQty = Model.ReturnedQuantity ?? Model.Quantity;
             <dl class="cp-kv">
-                <dt>Returned On</dt><dd>@(Model.ReturnedAtUtc?.ToLocalTime().ToString("dd MMMM yyyy, hh:mm tt") ?? "-")</dd>
-                <dt>Returned Quantity</dt><dd>@(Model.ReturnedQuantity?.ToString() ?? Model.Quantity.ToString()) unit@(Model.Quantity == 1 ? "" : "s")</dd>
+                <dt>@(Model.IsReturned ? "Returned On" : "Last Return")</dt><dd>@(Model.ReturnedAtUtc?.ToLocalTime().ToString("dd MMMM yyyy, hh:mm tt") ?? "-")</dd>
+                <dt>Returned Quantity</dt><dd>@returnedQty of @Model.Quantity unit@(Model.Quantity == 1 ? "" : "s")</dd>
                 <dt>Received By</dt><dd>@(Model.ReceivedBy ?? "-")</dd>
                 <dt>Final Condition</dt>
                 <dd>

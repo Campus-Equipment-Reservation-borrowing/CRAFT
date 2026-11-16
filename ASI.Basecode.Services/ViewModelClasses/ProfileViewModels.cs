@@ -24,6 +24,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string ContactNumber { get; set; }
         public string AlternateContact { get; set; }
 
+        /// <summary>Web-relative path to the profile photo; null when the user has none.</summary>
+        public string ProfileImagePath { get; set; }
+
         public int ActiveBorrowings { get; set; }
         public int CompletedBorrowings { get; set; }
         public int OverdueItems { get; set; }

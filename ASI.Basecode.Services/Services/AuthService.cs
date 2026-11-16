@@ -53,7 +53,7 @@ namespace ASI.Basecode.Services.Services
 
             if (user == null)
             {
-                // Same message as a wrong password, so the form can't be used to discover accounts.
+                // Same wording as a wrong password, so the response does not reveal which IDs exist.
                 return (SignInResult.UserNotFound, null, "Invalid username or password.");
             }
 
@@ -235,7 +235,7 @@ namespace ASI.Basecode.Services.Services
                 .FirstOrDefault(u => u.SchoolEmail.ToLower() == key);
             if (user == null || !CanResetPassword(user.AccountStatus?.Code))
             {
-                // Unknown or disabled accounts get the same response as a real one, minus a token.
+                // Report success without a token so the page reads the same for unknown emails.
                 return (true, null, null);
             }
 

@@ -35,6 +35,9 @@ public partial class AllianceDbContext
             entity.Property(e => e.AlternateContact)
                 .HasMaxLength(100)
                 .HasColumnName("alternate_contact");
+            entity.Property(e => e.ProfileImagePath)
+                .HasMaxLength(500)
+                .HasColumnName("profile_image_path");
             entity.Property(e => e.VerificationNote)
                 .HasMaxLength(500)
                 .HasColumnName("verification_note");
@@ -82,6 +85,7 @@ public partial class AllianceDbContext
             entity.Property(e => e.UpdatedAtUtc)
                 .HasDefaultValueSql("(sysutcdatetime())")
                 .HasColumnName("updated_at_utc");
+            entity.Property(e => e.TourCompletedAtUtc).HasColumnName("tour_completed_at_utc");
 
             entity.HasOne(d => d.User).WithOne(p => p.Preference)
                 .HasForeignKey<UserPreference>(d => d.UserId)

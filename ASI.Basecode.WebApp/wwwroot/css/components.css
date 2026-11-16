@@ -688,3 +688,42 @@
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
+/* Validation: hide empty summaries everywhere, show field errors inline */
+.validation-summary-valid { display: none !important; }
+.cp-field-error { display: block; margin-top: 4px; font-size: 12px; color: var(--color-error); }
+.cp-field-error:empty, .field-validation-valid { display: none; }
+/* Field state: red when invalid (server or after user interaction), green once correct.
+   Placed after the :focus rule so it wins while the field is focused. */
+.cp-input.input-validation-error, .cp-select.input-validation-error, .cp-textarea.input-validation-error,
+.cp-input:user-invalid, .cp-select:user-invalid, .cp-textarea:user-invalid {
+    border-color: var(--color-error);
+}
+.cp-input.input-validation-error:focus, .cp-select.input-validation-error:focus, .cp-textarea.input-validation-error:focus,
+.cp-input:user-invalid:focus, .cp-select:user-invalid:focus, .cp-textarea:user-invalid:focus {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(201,74,74,0.15);
+}
+.cp-input:user-valid:not(:placeholder-shown):not(.input-validation-error),
+.cp-textarea:user-valid:not(:placeholder-shown):not(.input-validation-error),
+.cp-select:user-valid:required:not(.input-validation-error),
+.cp-input[type=date]:user-valid:required:not(.input-validation-error),
+.cp-input[type=time]:user-valid:required:not(.input-validation-error) {
+    border-color: var(--color-primary);
+}
+
+/* Layout utilities (replacing one-off inline styles in views) */
+.cp-btn-block { width: 100%; justify-content: center; }
+.cp-auth-footnote { font-size: 12.5px; color: var(--color-text-gray); margin: 16px 0 0; }
+.cp-auth-footnote--flush { margin: 0; }
+.cp-contents { display: contents; }
+.cp-inline { display: inline; }
+.cp-mb-12 { margin-bottom: 12px; }
+.cp-mt-12 { margin-top: 12px; }
+.cp-mt-16 { margin-top: 16px; }
+.cp-m-0 { margin: 0; }
+.cp-text-12 { font-size: 12px; }
+.cp-check-row { display: flex; gap: 8px; align-items: flex-start; }
+.cp-link-button { background: none; border: 0; cursor: pointer; font: inherit; font-size: 12.5px; }
+.cp-img-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cp-break-all { word-break: break-all; }
+#inviteLink { overflow-wrap: anywhere; }

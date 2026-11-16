@@ -1,6 +1,7 @@
 using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -28,7 +29,7 @@ namespace ASI.Basecode.Services.Services
         public BorrowingMineViewModel GetMine(long userId, string search)
         {
             var now = DateTime.UtcNow;
-            var today = now.Date;
+            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
 
             var query = this.DbContext.Borrowings
                 .AsNoTracking()
@@ -58,7 +59,7 @@ namespace ASI.Basecode.Services.Services
                 Search = search,
                 Borrowings = rows.Select(b =>
                 {
-                    var isOverdue = b.DueAtUtc < now;
+                    var isOverdue = BorrowingRules.IsOverdue(b.Status.Code, b.DueAtUtc, cutoff);
                     return new BorrowingListRowViewModel
                     {
                         BorrowingId = b.BorrowingId,
@@ -72,8 +73,8 @@ namespace ASI.Basecode.Services.Services
                         StatusCode = isOverdue ? "OVERDUE" : b.Status.Code,
                         StatusDescription = isOverdue ? "Overdue" : b.Status.Description,
                         IsOverdue = isOverdue,
-                        IsDueToday = b.DueAtUtc.Date == today,
-                        DaysOverdue = isOverdue ? (int)Math.Floor((now - b.DueAtUtc).TotalDays) : 0,
+                        IsDueToday = BorrowingRules.IsLocalToday(b.DueAtUtc, now),
+                        DaysOverdue = isOverdue ? BorrowingRules.DaysOverdue(b.DueAtUtc, now) : 0,
                     };
                 }).ToList(),
             };
@@ -99,9 +100,11 @@ namespace ASI.Basecode.Services.Services
                 return null;
             }
 
-            var returned = string.Equals(b.Status?.Code, "RETURNED", StringComparison.OrdinalIgnoreCase);
-            var isOverdue = !returned && b.DueAtUtc < now;
+            var returned = string.Equals(b.Status?.Code, "RETURNED", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(b.Status?.Code, "LOST", StringComparison.OrdinalIgnoreCase);
+            var isOverdue = BorrowingRules.IsOverdue(b.Status?.Code, b.DueAtUtc, BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now));
             var lastReturn = b.BorrowingReturns?.OrderByDescending(r => r.ReturnedAtUtc).FirstOrDefault();
+            var totalReturned = b.BorrowingReturns?.Sum(r => r.ReturnedQuantity) ?? 0;
             var lastInspection = b.ConditionInspections?.OrderByDescending(i => i.CreatedAtUtc).FirstOrDefault();
 
             return new BorrowingDetailsViewModel
@@ -121,9 +124,10 @@ namespace ASI.Basecode.Services.Services
                 StatusDescription = isOverdue ? "Overdue" : b.Status?.Description,
                 IsOverdue = isOverdue,
                 IsReturned = returned,
-                DaysOverdue = isOverdue ? (int)Math.Floor((now - b.DueAtUtc).TotalDays) : 0,
+                DaysOverdue = isOverdue ? BorrowingRules.DaysOverdue(b.DueAtUtc, now) : 0,
                 ReturnedAtUtc = lastReturn?.ReturnedAtUtc,
-                ReturnedQuantity = lastReturn?.ReturnedQuantity,
+                // Total across every partial return, not just the latest one.
+                ReturnedQuantity = lastReturn == null ? null : totalReturned,
                 ReceivedBy = lastReturn?.ReceivedByUser == null ? null : $"{lastReturn.ReceivedByUser.FirstName} {lastReturn.ReceivedByUser.LastName}".Trim(),
                 FinalConditionName = lastInspection?.CurrentCondition?.Description,
                 InspectionNotes = lastInspection?.InspectionNotes,
@@ -138,7 +142,7 @@ namespace ASI.Basecode.Services.Services
                 .Include(b => b.Status)
                 .Include(b => b.BorrowingReturns)
                 .Include(b => b.ConditionInspections).ThenInclude(i => i.CurrentCondition)
-                .Where(b => b.BorrowerUserId == userId && b.Status.Code == "RETURNED");
+                .Where(b => b.BorrowerUserId == userId && (b.Status.Code == "RETURNED" || b.Status.Code == "LOST"));
 
             if (!string.IsNullOrWhiteSpace(search))
             {

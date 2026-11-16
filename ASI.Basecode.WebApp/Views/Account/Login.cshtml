@@ -30,17 +30,17 @@
             <input asp-for="Password" type="password" class="cp-input" placeholder="Enter your password" autocomplete="current-password" required />
         </div>
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <label class="cp-form-hint" style="margin:0;">
+            <label class="cp-form-hint cp-m-0">
                 <input asp-for="RememberMe" /> Remember me
             </label>
-            <a href="/Account/ForgotPassword" class="cp-auth-link" style="font-size:12px;">Forgot password?</a>
+            <a href="/Account/ForgotPassword" class="cp-auth-link cp-text-12">Forgot password?</a>
         </div>
-        <button type="submit" class="cp-btn cp-btn-primary" style="width:100%;justify-content:center;">Sign In</button>
+        <button type="submit" class="cp-btn cp-btn-primary cp-btn-block">Sign In</button>
     </form>
 
     <div class="cp-auth-divider">or</div>
 
-    <p class="text-center" style="font-size:12.5px;color:var(--color-text-gray);margin:0;">
+    <p class="text-center cp-auth-footnote cp-auth-footnote--flush">
         Don't have an account? <a href="/Account/Register" class="cp-auth-link">Create Account</a>
     </p>
 </div>

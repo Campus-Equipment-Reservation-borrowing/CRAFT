@@ -6,15 +6,11 @@ using System.Security.Claims;
 namespace ASI.Basecode.WebApp.Mvc
 {
     /// <summary>
-    /// Resolves the acting user for audit logging.
-    /// Primary source is the authenticated cookie principal; the session keys remain as a
-    /// fallback for the legacy operator switcher.
+    /// Resolves the acting user for audit logging from the authenticated cookie principal only.
+    /// (The legacy session-based operator switcher has been retired.)
     /// </summary>
     public class CurrentUserService : ICurrentUserService
     {
-        private const string ActorUserIdSessionKey = "CurrentUserId";
-        private const string ActorNameSessionKey = "CurrentUserName";
-
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public CurrentUserService(IHttpContextAccessor httpContextAccessor)
@@ -27,26 +23,16 @@ namespace ASI.Basecode.WebApp.Mvc
             var httpContext = this._httpContextAccessor.HttpContext;
 
             var raw = httpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (long.TryParse(raw, out var id))
-            {
-                return id;
-            }
-
-            var sessionRaw = httpContext?.Session?.GetString(ActorUserIdSessionKey);
-            return long.TryParse(sessionRaw, out var sessionId) ? sessionId : null;
+            return long.TryParse(raw, out var id) ? id : null;
         }
 
         public string GetActorName()
         {
             var httpContext = this._httpContextAccessor.HttpContext;
 
-            var name = httpContext?.User?.Identity?.IsAuthenticated == true
+            return httpContext?.User?.Identity?.IsAuthenticated == true
                 ? httpContext.User.Identity.Name
                 : null;
-
-            return string.IsNullOrWhiteSpace(name)
-                ? httpContext?.Session?.GetString(ActorNameSessionKey)
-                : name;
         }
 
         public string GetActorRoleCode()

@@ -137,21 +137,27 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public long EquipmentId { get; set; }
 
         [Display(Name = "Quantity")]
+        [Required(ErrorMessage = "Enter how many units you need.")]
         public int? Quantity { get; set; }
 
         [Display(Name = "Pickup Point")]
+        [Required(ErrorMessage = "Choose a pickup point.")]
         public long? PickupLocationId { get; set; }
 
         [Display(Name = "Borrowing Date")]
+        [Required(ErrorMessage = "Choose a borrowing date.")]
         public DateOnly? BorrowingDate { get; set; }
 
         [Display(Name = "Borrowing Time")]
+        [Required(ErrorMessage = "Choose a borrowing time.")]
         public TimeOnly? BorrowingTime { get; set; }
 
         [Display(Name = "Expected Return Date")]
+        [Required(ErrorMessage = "Choose a return date.")]
         public DateOnly? ExpectedReturnDate { get; set; }
 
         [Display(Name = "Expected Return Time")]
+        [Required(ErrorMessage = "Choose a return time.")]
         public TimeOnly? ExpectedReturnTime { get; set; }
 
         [Display(Name = "Purpose of Borrowing")]
@@ -193,10 +199,11 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         public int MaxUnitsPerBorrower { get; set; }
 
-        public bool IsUnderMaintenance { get; set; }
+        /// <summary>Why the item itself can't be reserved (maintenance, out of service, damaged); null when it can.</summary>
+        public string BlockedReason { get; set; }
 
         /// <summary>The most units this borrower can request right now (policy cap and stock).</summary>
-        public int MaxSelectable => this.IsUnderMaintenance ? 0 : System.Math.Max(0, System.Math.Min(this.MaxUnitsPerBorrower, this.AvailableUnits));
+        public int MaxSelectable => this.BlockedReason != null ? 0 : System.Math.Max(0, System.Math.Min(this.MaxUnitsPerBorrower, this.AvailableUnits));
     }
 
     /// <summary>

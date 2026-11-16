@@ -117,7 +117,8 @@ namespace ASI.Basecode.Services.Services
                     "Reservation expired",
                     previousStatus == ReservationRules.Pending
                         ? $"Your reservation {reservation.ReservationNumber} for {item} expired before it was reviewed. The units have been released; you can submit a new request."
-                        : $"Your approved reservation {reservation.ReservationNumber} for {item} expired because it wasn't picked up. Submit a new request if you still need it.");
+                        : $"Your approved reservation {reservation.ReservationNumber} for {item} expired because it wasn't picked up. Submit a new request if you still need it.",
+                    $"/Reservations/Details/{reservation.ReservationId}");
 
                 var staff = reservation.AssignedCustodianUserId is long custodianId
                     ? new List<long> { custodianId }
@@ -186,11 +187,7 @@ namespace ASI.Basecode.Services.Services
                 return 0;
             }
 
-            var graceMinutes = this.DbContext.BorrowingPolicyVersions.AsNoTracking()
-                .Where(p => p.IsCurrent)
-                .Select(p => (int?)p.OverdueGracePeriodMinutes)
-                .FirstOrDefault() ?? 0;
-            var dueBefore = now.AddMinutes(-Math.Max(0, graceMinutes));
+            var dueBefore = Manager.BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
 
             var late = this.DbContext.Borrowings
                 .Include(b => b.Equipment)
@@ -228,7 +225,8 @@ namespace ASI.Basecode.Services.Services
                 var item = borrowing.Equipment?.EquipmentName ?? "equipment";
                 this._notifications.Notify(borrowing.BorrowerUserId, NotificationTypes.Overdue,
                     "Equipment overdue",
-                    $"{item} under {borrowing.TransactionNumber} was due {borrowing.DueAtUtc:dd MMM yyyy, hh:mm tt} UTC. Please return it as soon as possible; new reservations are blocked while it is overdue.");
+                    $"{item} under {borrowing.TransactionNumber} was due {borrowing.DueAtUtc:dd MMM yyyy, hh:mm tt} UTC. Please return it as soon as possible; new reservations are blocked while it is overdue.",
+                    $"/Borrowings/Details/{borrowing.BorrowingId}");
 
                 var staff = new List<long>(admins);
                 if (borrowing.Reservation?.AssignedCustodianUserId is long custodianId)
@@ -243,7 +241,8 @@ namespace ASI.Basecode.Services.Services
 
                 this._notifications.Notify(staff, NotificationTypes.Overdue,
                     $"Overdue: {borrowing.TransactionNumber}",
-                    $"{item} ({borrowing.TransactionNumber}) is overdue since {borrowing.DueAtUtc:dd MMM yyyy}. Follow up with the borrower.");
+                    $"{item} ({borrowing.TransactionNumber}) is overdue since {borrowing.DueAtUtc:dd MMM yyyy}. Follow up with the borrower.",
+                    "/Custodian/Borrowings?search=" + borrowing.TransactionNumber);
             }
 
             return late.Count;
@@ -276,7 +275,8 @@ namespace ASI.Basecode.Services.Services
             {
                 this._notifications.Notify(borrowing.BorrowerUserId, NotificationTypes.DueReminder,
                     "Return due soon",
-                    $"{borrowing.Equipment?.EquipmentName ?? "Your borrowed equipment"} ({borrowing.TransactionNumber}) is due back by {borrowing.DueAtUtc:dd MMM yyyy, hh:mm tt} UTC.");
+                    $"{borrowing.Equipment?.EquipmentName ?? "Your borrowed equipment"} ({borrowing.TransactionNumber}) is due back by {borrowing.DueAtUtc:dd MMM yyyy, hh:mm tt} UTC.",
+                    $"/Borrowings/Details/{borrowing.BorrowingId}");
             }
 
             return dueSoon.Count;

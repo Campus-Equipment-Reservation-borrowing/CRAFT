@@ -63,7 +63,11 @@ namespace ASI.Basecode.WebApp.Controllers
 
             if (!string.IsNullOrWhiteSpace(type) && !string.Equals(type, "all", StringComparison.OrdinalIgnoreCase))
             {
-                items = items.Where(n => string.Equals(n.NotificationType, type, StringComparison.OrdinalIgnoreCase));
+                // "BORROWING" groups the loan-related types (no notification is stored with that type itself).
+                var types = string.Equals(type, "BORROWING", StringComparison.OrdinalIgnoreCase)
+                    ? new[] { "DUE_REMINDER", "OVERDUE", "RETURN" }
+                    : new[] { type };
+                items = items.Where(n => types.Contains(n.NotificationType, StringComparer.OrdinalIgnoreCase));
             }
 
             model.Notifications = items.ToList();
@@ -72,6 +76,20 @@ namespace ASI.Basecode.WebApp.Controllers
             this.ViewBag.Type = string.IsNullOrWhiteSpace(type) ? "all" : type;
 
             return this.View(model);
+        }
+
+        /// <summary>Marks the notification read and goes to what it is about.</summary>
+        [HttpGet]
+        public IActionResult Open(long id)
+        {
+            var uid = this._currentUser.GetActorUserId();
+            var target = uid.HasValue ? this._service.OpenNotification(id, uid.Value) : null;
+            // Only local targets — a stored link must never become an open redirect.
+            if (!string.IsNullOrEmpty(target) && this.Url.IsLocalUrl(target))
+            {
+                return this.LocalRedirect(target);
+            }
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         [HttpPost]

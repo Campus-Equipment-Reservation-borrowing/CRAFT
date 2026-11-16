@@ -10,6 +10,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
     {
         [Display(Name = "School Email or Account ID")]
         [Required(ErrorMessage = "Please enter your username and password.")]
+        [StringLength(200)]
         public string UserId { get; set; }
 
         [Display(Name = "Password")]
@@ -31,47 +32,47 @@ namespace ASI.Basecode.Services.ViewModelClasses
     public class RegisterViewModel
     {
         [Display(Name = "First Name")]
-        [Required(ErrorMessage = "Please complete all required fields.")]
+        [Required(ErrorMessage = "First name is required.")]
         [StringLength(100)]
         public string FirstName { get; set; }
 
         [Display(Name = "Last Name")]
-        [Required(ErrorMessage = "Please complete all required fields.")]
+        [Required(ErrorMessage = "Last name is required.")]
         [StringLength(100)]
         public string LastName { get; set; }
 
         [Display(Name = "School ID / Employee ID")]
-        [Required(ErrorMessage = "Please complete all required fields.")]
-        [StringLength(100)]
+        [Required(ErrorMessage = "School ID / Employee ID is required.")]
+        [StringLength(20, MinimumLength = 4, ErrorMessage = "School ID must be 4 to 20 characters.")]
+        [RegularExpression(@"^[A-Za-z0-9-]+$", ErrorMessage = "Use letters, digits and dashes only.")]
         public string AccountIdentifier { get; set; }
 
         [Display(Name = "Role")]
-        [Required(ErrorMessage = "Please complete all required fields.")]
+        [Required(ErrorMessage = "Choose a role.")]
         public long? RoleId { get; set; }
 
         [Display(Name = "Department / Program")]
-        [Required(ErrorMessage = "Please complete all required fields.")]
+        [Required(ErrorMessage = "Choose a department or program.")]
         public long? DepartmentId { get; set; }
 
         [Display(Name = "School Email")]
-        [Required(ErrorMessage = "Please complete all required fields.")]
+        [Required(ErrorMessage = "School email is required.")]
         [EmailAddress(ErrorMessage = "Please use your school-issued email address.")]
         [StringLength(200)]
         public string SchoolEmail { get; set; }
 
         [Display(Name = "Password")]
-        [Required(ErrorMessage = "Please complete all required fields.")]
+        [Required(ErrorMessage = "Password is required.")]
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
         [Display(Name = "Confirm Password")]
-        [Required(ErrorMessage = "Please complete all required fields.")]
+        [Required(ErrorMessage = "Confirm your password.")]
         [DataType(DataType.Password)]
         [Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
         public string ConfirmPassword { get; set; }
 
         [Display(Name = "Data Privacy Consent")]
-        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the Data Privacy consent to continue.")]
         public bool PrivacyConsent { get; set; }
 
         /// <summary>Borrower role choices (Student / Faculty) for the form dropdown.</summary>

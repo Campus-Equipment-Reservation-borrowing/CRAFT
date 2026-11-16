@@ -54,7 +54,7 @@ namespace ASI.Basecode.Services.Interfaces
         List<LookupViewModel> GetLocationOptions();
 
         /// <summary>
-        /// Condition codebook options (current condition and operational status share the table).
+        /// Condition classification options (Good, Minor Damage, Damaged, Missing Parts, Lost).
         /// </summary>
         List<LookupViewModel> GetConditionOptions();
 
@@ -63,5 +63,10 @@ namespace ASI.Basecode.Services.Interfaces
         /// back to available, or written off (total reduced).
         /// </summary>
         (bool Success, string Error) AdjustStock(long equipmentId, string action, int quantity, string note);
+
+        /// <summary>
+        /// Availability status options (Available, Under Maintenance). Shares the conditions table.
+        /// </summary>
+        List<LookupViewModel> GetOperationalStatusOptions();
     }
 }

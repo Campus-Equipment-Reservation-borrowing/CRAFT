@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ASI.Basecode.Data.Models;
@@ -22,6 +22,17 @@ public partial class BorrowingPolicyVersion
     public int LowStockThreshold { get; set; }
 
     public bool BlockReservationWhenOverdue { get; set; }
+
+    public int MaxUnitsPerBorrower { get; set; } = 3;
+
+    /// <summary>Minimum days between submitting a reservation and its pickup.</summary>
+    public int ReservationLeadTimeDays { get; set; } = 1;
+
+    /// <summary>How many days ahead a pickup may be booked.</summary>
+    public int MaxAdvanceBookingDays { get; set; } = 30;
+
+    /// <summary>Borrow-duration limit for faculty (students use <see cref="MaxBorrowDurationDays"/>).</summary>
+    public int FacultyMaxBorrowDays { get; set; } = 21;
 
     public virtual ICollection<Borrowing> Borrowings { get; set; } = new List<Borrowing>();
 

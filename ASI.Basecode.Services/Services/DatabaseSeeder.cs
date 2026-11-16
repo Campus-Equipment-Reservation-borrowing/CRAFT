@@ -227,6 +227,24 @@ END;");
         private void EnsureLifecycleSchema()
         {
             this.DbContext.Database.ExecuteSqlRaw(@"
+IF COL_LENGTH('dbo.borrowing_policy_versions', 'max_units_per_borrower') IS NULL
+    ALTER TABLE dbo.borrowing_policy_versions ADD max_units_per_borrower int NOT NULL CONSTRAINT DF_policy_max_units DEFAULT (3);
+
+IF COL_LENGTH('dbo.borrowing_policy_versions', 'reservation_lead_time_days') IS NULL
+    ALTER TABLE dbo.borrowing_policy_versions ADD reservation_lead_time_days int NOT NULL CONSTRAINT DF_policy_lead_time DEFAULT (1);
+
+IF COL_LENGTH('dbo.borrowing_policy_versions', 'max_advance_booking_days') IS NULL
+    ALTER TABLE dbo.borrowing_policy_versions ADD max_advance_booking_days int NOT NULL CONSTRAINT DF_policy_max_advance DEFAULT (30);
+
+IF COL_LENGTH('dbo.borrowing_policy_versions', 'faculty_max_borrow_days') IS NULL
+    ALTER TABLE dbo.borrowing_policy_versions ADD faculty_max_borrow_days int NOT NULL CONSTRAINT DF_policy_faculty_days DEFAULT (21);
+
+IF COL_LENGTH('dbo.notifications', 'link_url') IS NULL
+    ALTER TABLE dbo.notifications ADD link_url nvarchar(300) NULL;
+
+IF COL_LENGTH('dbo.user_preferences', 'tour_completed_at_utc') IS NULL
+    ALTER TABLE dbo.user_preferences ADD tour_completed_at_utc datetime2 NULL;
+
 IF COL_LENGTH('dbo.borrowings', 'due_reminder_sent_at_utc') IS NULL
     ALTER TABLE dbo.borrowings ADD due_reminder_sent_at_utc datetime2 NULL;
 
@@ -389,6 +407,16 @@ IF COL_LENGTH('dbo.reservations', 'expiry_warning_sent_at_utc') IS NULL
                 }
             }
 
+            // Equipment availability statuses beyond Available / Under Maintenance (shared conditions table).
+            foreach (var (code, description) in new[] { ("BROKEN", "Broken / Out of Service"), ("RETIRED", "Retired") })
+            {
+                if (!db.Conditions.Any(c => c.Code == code))
+                {
+                    db.Conditions.Add(new Condition { Code = code, Description = description, AffectsAvailability = true });
+                    changed = true;
+                }
+            }
+
             if (changed)
             {
                 this._unitOfWork.SaveChanges();
@@ -419,6 +447,9 @@ IF COL_LENGTH('dbo.users', 'contact_number') IS NULL
 
 IF COL_LENGTH('dbo.users', 'alternate_contact') IS NULL
     ALTER TABLE dbo.users ADD alternate_contact nvarchar(100) NULL;
+
+IF COL_LENGTH('dbo.users', 'profile_image_path') IS NULL
+    ALTER TABLE dbo.users ADD profile_image_path nvarchar(500) NULL;
 
 IF COL_LENGTH('dbo.equipment', 'image_path') IS NULL
     ALTER TABLE dbo.equipment ADD image_path nvarchar(500) NULL;
