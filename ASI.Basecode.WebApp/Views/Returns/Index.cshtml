@@ -56,11 +56,11 @@ else
                         <td>
                             @if (r.WasReturnedLate)
                             {
-                                <span class="@StatusBadge.Css("OVERDUE")">Late @r.DaysOverdue d</span>
+                                <span class="@StatusBadge.Css(BorrowingStatusCodes.Overdue)">Late @r.DaysOverdue d</span>
                             }
                             else
                             {
-                                <span class="@StatusBadge.Css("RETURNED")">On time</span>
+                                <span class="@StatusBadge.Css(BorrowingStatusCodes.Returned)">On time</span>
                             }
                         </td>
                         <td>@(r.ReceivedBy ?? "—")</td>

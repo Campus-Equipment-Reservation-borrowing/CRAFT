@@ -17,7 +17,7 @@
     <div class="cp-card">
         <div class="cp-card-header">
             Summary
-            <span class="@StatusBadge.Css(Model.IsOverdue && !Model.IsReturned ? "OVERDUE" : Model.StatusCode)">@Model.StatusDescription</span>
+            <span class="@StatusBadge.Css(Model.IsOverdue && !Model.IsReturned ? BorrowingStatusCodes.Overdue : Model.StatusCode)">@Model.StatusDescription</span>
         </div>
         <dl class="cp-kv">
             <dt>Equipment</dt><dd>@Model.EquipmentName</dd>

@@ -59,7 +59,7 @@ else
                         <td>
                             @if (b.IsOverdue)
                             {
-                                <span class="@StatusBadge.Css("OVERDUE")">Overdue @b.DaysOverdue d</span>
+                                <span class="@StatusBadge.Css(BorrowingStatusCodes.Overdue)">Overdue @b.DaysOverdue d</span>
                             }
                             else
                             {

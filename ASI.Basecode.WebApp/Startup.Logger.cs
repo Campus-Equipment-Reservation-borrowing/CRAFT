@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Filters;
 using ASI.Basecode.Data;
+using ASI.Basecode.WebApp.Configuration;
 
 namespace ASI.Basecode.WebApp
 {

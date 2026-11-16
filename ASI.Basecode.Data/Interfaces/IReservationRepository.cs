@@ -1,6 +1,7 @@
 using ASI.Basecode.Data.Models;
 using System;
 using System.Collections.Generic;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Data.Interfaces
 {
@@ -39,5 +40,46 @@ namespace ASI.Basecode.Data.Interfaces
         /// Status filtering is left to the service (status codes live in the DB).
         /// </summary>
         List<Reservation> GetForBorrower(long borrowerUserId);
+
+        /// <summary>
+        /// True when a reservation assigned to the custodian is in one of the given statuses.
+        /// </summary>
+        bool AnyAssignedToCustodianInStatuses(long custodianUserId, IReadOnlyCollection<string> statusCodes);
+
+        /// <summary>Tracked reservations that are pending past their review window (or pickup) or approved past the pickup window, with status and equipment balance.</summary>
+        List<Reservation> GetTrackedStale(string pendingStatusCode, string approvedStatusCode, DateTime submittedBefore, DateTime pickupBefore, DateTime nowUtc);
+
+        /// <summary>Tracked reservations in the status that have not had an expiry warning, with equipment and borrower.</summary>
+        List<Reservation> GetTrackedWithoutExpiryWarning(string statusCode);
+
+        /// <summary>Untracked reservations with borrower, equipment and status, limited to the custodian's routed work plus the unassigned pool (all when scope is null).</summary>
+        List<Reservation> GetInCustodianScope(long? scopeCustodianUserId);
+
+        /// <summary>Reservations of the equipment in one of the given statuses.</summary>
+        int CountForEquipmentInStatuses(long equipmentId, IReadOnlyCollection<string> statusCodes);
+
+        /// <summary>Reservations of the borrower whose status id is one of the given ids.</summary>
+        int CountForBorrowerWithStatusIds(long borrowerUserId, IReadOnlyCollection<long> statusIds);
+
+        /// <summary>True when the location exists, is a pickup location and is active.</summary>
+        bool IsActivePickupLocation(long? locationId);
+
+        /// <summary>Active pickup locations (untracked) by name.</summary>
+        List<Location> GetActivePickupLocations();
+
+        /// <summary>Adds a reservation (saved by the caller).</summary>
+        void Add(Reservation reservation);
+
+        /// <summary>The highest reservation number with the prefix (longest first, then descending), or null.</summary>
+        string GetLastNumberWithPrefix(string prefix);
+
+        /// <summary>Reservations in one of the statuses (untracked) with borrower, equipment and status.</summary>
+        List<Reservation> GetInStatusesWithDetails(IReadOnlyCollection<string> statusCodes);
+
+        /// <summary>The reservation (tracked) with its status, or null.</summary>
+        Reservation GetTrackedWithStatus(long reservationId);
+
+        /// <summary>The borrower's reservations (tracked) in one of the statuses that are unassigned or assigned to the given custodian.</summary>
+        List<Reservation> GetTrackedForBorrowerInStatusesUnassignedOrWith(long borrowerUserId, IReadOnlyCollection<string> statusCodes, long? custodianUserId);
     }
 }

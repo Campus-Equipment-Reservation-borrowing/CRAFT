@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ASI.Basecode.Data.QueryModels;
 using ErrorMessages = ASI.Basecode.Resources.Messages.Errors;
 
 namespace ASI.Basecode.Services.Services
@@ -23,6 +24,11 @@ namespace ASI.Basecode.Services.Services
     public class UserService : ServiceBase, IUserService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IReservationRepository _reservationRepository;
+        private readonly ICustodianAssignmentRepository _custodianAssignments;
+        private readonly INotificationRepository _notificationRepository;
+        private readonly ILookupRepository _lookups;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly IUserRepository _userRepository;
         private readonly ICurrentUserService _currentUser;
         private readonly INotificationDispatcher _notifications;
@@ -30,8 +36,6 @@ namespace ASI.Basecode.Services.Services
         private readonly IMapper _mapper;
 
         /// <summary>Direct EF access for the small writes this service owns.</summary>
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
-
         public UserService(
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
@@ -39,9 +43,19 @@ namespace ASI.Basecode.Services.Services
             ICurrentUserService currentUser,
             INotificationDispatcher notifications,
             ICustodianAssignmentService assignments,
-            IMapper mapper)
+            IMapper mapper,
+            IAuditLogRepository auditLogs,
+            ILookupRepository lookups,
+            INotificationRepository notificationRepository,
+            ICustodianAssignmentRepository custodianAssignments,
+            IReservationRepository reservationRepository)
             : base(loggerFactory)
         {
+            this._reservationRepository = reservationRepository;
+            this._custodianAssignments = custodianAssignments;
+            this._notificationRepository = notificationRepository;
+            this._lookups = lookups;
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._userRepository = userRepository;
             this._currentUser = currentUser;
@@ -54,23 +68,18 @@ namespace ASI.Basecode.Services.Services
         {
             var rejectedTab = string.Equals(tab, "rejected", StringComparison.OrdinalIgnoreCase);
             var statusCode = rejectedTab ? AccountStatusCodes.Rejected : AccountStatusCodes.Unverified;
-            var statusIds = this.DbContext.AccountStatuses
-                .AsNoTracking()
-                .ToDictionary(s => s.Code, s => s.AccountStatusId);
+            var statusIds = this._lookups.GetAccountStatusIdsByCode();
 
             var result = statusIds.TryGetValue(statusCode, out var statusId)
                 ? this._userRepository.GetPaged(search, null, null, statusId, page, pageSize)
                 : new PagedResult<User> { Page = 1, PageSize = pageSize };
 
             int CountOf(string code) => statusIds.TryGetValue(code, out var id)
-                ? this.DbContext.Users.Count(u => u.AccountStatusId == id)
+                ? this._userRepository.CountWithAccountStatus(id)
                 : 0;
 
             var userIds = result.Items.Select(u => u.UserId).ToList();
-            var currentCustodians = this.DbContext.CustodianAssignments.AsNoTracking()
-                .Where(a => a.BorrowerUserId != null && userIds.Contains(a.BorrowerUserId.Value))
-                .Select(a => new { BorrowerId = a.BorrowerUserId.Value, a.CustodianUserId })
-                .ToDictionary(a => a.BorrowerId, a => a.CustodianUserId);
+            var currentCustodians = this._custodianAssignments.GetCustodianByBorrower(userIds);
 
             return new VerificationQueueViewModel
             {
@@ -99,10 +108,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.VerificationCustodianRequired);
                 }
 
-                var entity = this.DbContext.Users
-                    .Include(u => u.AccountStatus)
-                    .Include(u => u.Role)
-                    .FirstOrDefault(u => u.UserId == userId);
+                var entity = this._userRepository.GetTrackedByIdWithStatusAndRole(userId);
                 if (entity == null)
                 {
                     return (false, ErrorMessages.UserNotFound);
@@ -119,12 +125,12 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.VerificationNotPending);
                 }
 
-                var active = this.DbContext.AccountStatuses.First(s => s.Code == AccountStatusCodes.Active);
+                var active = this._lookups.GetRequiredTrackedAccountStatusByCode(AccountStatusCodes.Active);
                 var now = DateTime.UtcNow;
                 var actorId = this._currentUser.GetActorUserId();
 
                 // Activation and custodian assignment succeed or fail together.
-                using var transaction = this.DbContext.Database.BeginTransaction();
+                using var transaction = this._unitOfWork.BeginTransaction();
                 var staged = this._assignments.StageBorrowerAssignment(entity.UserId, custodianUserId);
                 if (!staged.Success)
                 {
@@ -182,9 +188,7 @@ namespace ASI.Basecode.Services.Services
                     reason = reason.Substring(0, 500);
                 }
 
-                var entity = this.DbContext.Users
-                    .Include(u => u.AccountStatus)
-                    .FirstOrDefault(u => u.UserId == userId);
+                var entity = this._userRepository.GetTrackedByIdWithStatus(userId);
                 if (entity == null)
                 {
                     return (false, ErrorMessages.UserNotFound);
@@ -195,7 +199,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.VerificationNotPending);
                 }
 
-                var rejected = this.DbContext.AccountStatuses.FirstOrDefault(s => s.Code == AccountStatusCodes.Rejected);
+                var rejected = this._lookups.GetTrackedAccountStatusByCode(AccountStatusCodes.Rejected);
                 if (rejected == null)
                 {
                     return (false, ErrorMessages.ServerError);
@@ -345,29 +349,18 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 // Assignment rows use NO ACTION foreign keys, so clear them explicitly.
-                var assignments = this.DbContext.CustodianAssignments
-                    .Where(a => a.CustodianUserId == userId || a.BorrowerUserId == userId)
-                    .ToList();
-                this.DbContext.CustodianAssignments.RemoveRange(assignments);
+                var assignments = this._custodianAssignments.GetTrackedInvolvingUser(userId);
+                this._custodianAssignments.RemoveRange(assignments);
 
                 // Keep announcements and tickets; just detach them from the deleted account.
-                foreach (var a in this.DbContext.Announcements.Where(a => a.CreatedByUserId == userId))
-                {
-                    a.CreatedByUserId = null;
-                }
-                foreach (var t in this.DbContext.SupportTickets.Where(t => t.AssignedToUserId == userId))
-                {
-                    t.AssignedToUserId = null;
-                }
+                this._userRepository.ClearAnnouncementCreator(userId);
+                this._userRepository.ClearSupportTicketAssignee(userId);
 
                 // A user's own inbox goes with them; audit rows stay, with the actor cleared.
-                this.DbContext.Notifications.RemoveRange(this.DbContext.Notifications.Where(n => n.RecipientUserId == userId));
-                foreach (var log in this.DbContext.AuditLogs.Where(l => l.ActorUserId == userId))
-                {
-                    log.ActorUserId = null;
-                }
+                this._notificationRepository.RemoveAllForRecipient(userId);
+                this._auditLogs.ClearActor(userId);
 
-                this.DbContext.Users.Remove(entity);
+                this._userRepository.Remove(entity);
                 this._unitOfWork.SaveChanges();
 
                 this.WriteAudit("DELETE", "User", entity.UserId, entity.AccountIdentifier,
@@ -395,30 +388,20 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetRoleOptions()
         {
-            return this.DbContext.Roles
-                .AsNoTracking()
-                .OrderBy(r => r.RoleName)
-                .Select(r => new LookupViewModel { Id = r.RoleId, Text = r.RoleName })
-                .ToList();
+            return this._lookups.GetRoleOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public List<LookupViewModel> GetDepartmentOptions()
         {
-            return this.DbContext.Departments
-                .AsNoTracking()
-                .Where(d => d.IsActive)
-                .OrderBy(d => d.DepartmentName)
-                .Select(d => new LookupViewModel { Id = d.DepartmentId, Text = d.DepartmentName })
-                .ToList();
+            return this._lookups.GetActiveDepartmentOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public List<LookupViewModel> GetAccountStatusOptions()
         {
-            return this.DbContext.AccountStatuses
-                .AsNoTracking()
-                .OrderBy(s => s.Code)
-                .Select(s => new LookupViewModel { Id = s.AccountStatusId, Text = s.Description })
-                .ToList();
+            return this._lookups.GetAccountStatusOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         /// <inheritdoc />
@@ -478,7 +461,7 @@ namespace ASI.Basecode.Services.Services
             entity.PasswordHash = PasswordManager.Hash(temporary);
             entity.MustChangePassword = true;
 
-            this.DbContext.Users.Add(entity);
+            this._userRepository.Add(entity);
             this._unitOfWork.SaveChanges();
 
             this.WriteAudit("CREATE", "User", entity.UserId, entity.AccountIdentifier,
@@ -531,21 +514,17 @@ namespace ASI.Basecode.Services.Services
         {
             var newRoleId = form.RoleId ?? 0;
             var newStatusId = form.AccountStatusId ?? 0;
-            var newRole = this.DbContext.Roles.AsNoTracking().FirstOrDefault(r => r.RoleId == newRoleId);
-            var newStatusCode = this.DbContext.AccountStatuses.AsNoTracking()
-                .Where(st => st.AccountStatusId == newStatusId).Select(st => st.Code).FirstOrDefault();
+            var newRole = this._lookups.GetRoleById(newRoleId);
+            var newStatusCode = this._lookups.GetAccountStatusCodeById(newStatusId);
             var current = form.UserId > 0
-                ? this.DbContext.Users.AsNoTracking()
-                    .Where(u => u.UserId == form.UserId)
-                    .Select(u => new { u.Role.RoleCode, StatusCode = u.AccountStatus.Code })
-                    .FirstOrDefault()
+                ? this._userRepository.GetRoleAndStatusCodes(form.UserId)
                 : null;
 
             var becomesActiveBorrower = newRole?.IsBorrowerRole == true
                 && newStatusCode == AccountStatusCodes.Active
                 && (current == null || current.StatusCode != AccountStatusCodes.Active || !this.IsBorrowerCode(current.RoleCode));
             if (becomesActiveBorrower
-                && (form.UserId <= 0 || !this.DbContext.CustodianAssignments.Any(a => a.BorrowerUserId == form.UserId)))
+                && (form.UserId <= 0 || !this._custodianAssignments.BorrowerHasAssignment(form.UserId)))
             {
                 return ErrorMessages.UserActivateNeedsCustodian;
             }
@@ -555,9 +534,8 @@ namespace ASI.Basecode.Services.Services
                 && current.StatusCode == AccountStatusCodes.Active
                 && (newRole?.RoleCode != RoleCodes.Technician || newStatusCode != AccountStatusCodes.Active);
             if (leavesCustodianService
-                && (this.DbContext.CustodianAssignments.Any(a => a.CustodianUserId == form.UserId)
-                    || this.DbContext.Reservations.Any(r => r.AssignedCustodianUserId == form.UserId
-                        && OpenReservationStatuses.Contains(r.Status.Code))))
+                && (this._custodianAssignments.CustodianHasAssignment(form.UserId)
+                    || this._reservationRepository.AnyAssignedToCustodianInStatuses(form.UserId, OpenReservationStatuses)))
             {
                 return ErrorMessages.CustodianDeactivateBlocked;
             }
@@ -565,21 +543,19 @@ namespace ASI.Basecode.Services.Services
             return null;
         }
 
-        private static readonly string[] OpenReservationStatuses = { "PENDING", "APPROVED", "READY_FOR_RELEASE", "PARTIALLY_RELEASED" };
+        private static readonly string[] OpenReservationStatuses = { ReservationStatusCodes.Pending, ReservationStatusCodes.Approved, ReservationStatusCodes.ReadyForRelease, ReservationStatusCodes.PartiallyReleased };
 
         private bool IsBorrowerCode(string roleCode) => roleCode == RoleCodes.Student || roleCode == RoleCodes.Faculty;
 
         private bool IsActiveAdmin(long roleId, long accountStatusId)
         {
-            return this.DbContext.Roles.Any(r => r.RoleId == roleId && r.RoleCode == RoleCodes.Admin)
-                && this.DbContext.AccountStatuses.Any(s => s.AccountStatusId == accountStatusId && s.Code == AccountStatusCodes.Active);
+            return this._lookups.RoleHasCode(roleId, RoleCodes.Admin)
+                && this._lookups.AccountStatusHasCode(accountStatusId, AccountStatusCodes.Active);
         }
 
         private bool OtherActiveAdminExists(long excludeUserId)
         {
-            return this.DbContext.Users.Any(u => u.UserId != excludeUserId
-                && u.Role.RoleCode == RoleCodes.Admin
-                && u.AccountStatus.Code == AccountStatusCodes.Active);
+            return this._userRepository.OtherUserWithRoleAndStatusExists(excludeUserId, RoleCodes.Admin, AccountStatusCodes.Active);
         }
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
@@ -590,7 +566,7 @@ namespace ASI.Basecode.Services.Services
 
         private void AddAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
                 ActionType = actionType,

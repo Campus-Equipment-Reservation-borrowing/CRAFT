@@ -34,7 +34,7 @@ namespace ASI.Basecode.Services.Interfaces
 
         /// <summary>
         /// Adds or changes the borrower's custodian and reroutes their open pooled reservations,
-        /// on the shared DbContext, without saving. The caller saves and owns the transaction.
+        /// in the shared unit of work, without saving. The caller saves and owns the transaction.
         /// </summary>
         BorrowerAssignmentStage StageBorrowerAssignment(long borrowerUserId, long custodianUserId);
 

@@ -1,4 +1,3 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
@@ -10,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ASI.Basecode.Services.Manager;
+using ASI.Basecode.Data.QueryModels;
 using ErrorMessages = ASI.Basecode.Resources.Messages.Errors;
 
 namespace ASI.Basecode.Services.Services
@@ -21,21 +22,31 @@ namespace ASI.Basecode.Services.Services
     public class EquipmentService : ServiceBase, IEquipmentService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILookupRepository _lookups;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly IEquipmentRepository _equipmentRepository;
         private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
 
-        /// <summary>Direct EF access for the small codebook/ledger writes this service owns.</summary>
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
+        private readonly IInventoryRepository _inventory;
+        private readonly IReservationRepository _reservations;
 
         public EquipmentService(
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
             IEquipmentRepository equipmentRepository,
             ICurrentUserService currentUser,
-            IMapper mapper)
+            IMapper mapper,
+            IAuditLogRepository auditLogs,
+            ILookupRepository lookups,
+            IInventoryRepository inventory,
+            IReservationRepository reservations)
             : base(loggerFactory)
         {
+            this._inventory = inventory;
+            this._reservations = reservations;
+            this._lookups = lookups;
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._equipmentRepository = equipmentRepository;
             this._currentUser = currentUser;
@@ -108,15 +119,13 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 // Status and condition share one codebook; make sure each field holds a code of its own kind.
-                var statusCode = this.DbContext.Conditions.AsNoTracking()
-                    .Where(c => c.ConditionId == form.OperationalStatusId).Select(c => c.Code).FirstOrDefault();
+                var statusCode = this._lookups.GetConditionCodeById(form.OperationalStatusId);
                 if (statusCode == null || !OperationalStatusCodes.Contains(statusCode))
                 {
                     return (false, ErrorMessages.EquipmentInvalidOperationalStatus, form.EquipmentId);
                 }
 
-                var conditionCode = this.DbContext.Conditions.AsNoTracking()
-                    .Where(c => c.ConditionId == form.CurrentConditionId).Select(c => c.Code).FirstOrDefault();
+                var conditionCode = this._lookups.GetConditionCodeById(form.CurrentConditionId);
                 if (conditionCode == null || OperationalStatusCodes.Contains(conditionCode))
                 {
                     return (false, ErrorMessages.EquipmentInvalidCondition, form.EquipmentId);
@@ -155,16 +164,15 @@ namespace ASI.Basecode.Services.Services
 
                 // Remove the balance row and movement ledger explicitly so the
                 // reverse-engineered ClientSetNull FK behaviour never bites us.
-                var movements = this.DbContext.InventoryMovements.Where(m => m.EquipmentId == equipmentId).ToList();
-                this.DbContext.InventoryMovements.RemoveRange(movements);
+                this._inventory.RemoveMovementsForEquipment(equipmentId);
 
-                var balance = this.DbContext.EquipmentInventoryBalances.FirstOrDefault(b => b.EquipmentId == equipmentId);
+                var balance = this._inventory.GetTrackedBalance(equipmentId);
                 if (balance != null)
                 {
-                    this.DbContext.EquipmentInventoryBalances.Remove(balance);
+                    this._inventory.RemoveBalance(balance);
                 }
 
-                this.DbContext.Equipment.Remove(entity);
+                this._equipmentRepository.Remove(entity);
                 this._unitOfWork.SaveChanges();
 
                 this.WriteAudit("DELETE", "Equipment", entity.EquipmentId, entity.AssetCode,
@@ -186,19 +194,14 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetCategoryOptions()
         {
-            return this.DbContext.EquipmentCategories
-                .AsNoTracking()
-                .OrderBy(c => c.CategoryName)
+            return this._equipmentRepository.GetCategoriesByName()
                 .Select(c => new LookupViewModel { Id = c.EquipmentCategoryId, Text = c.CategoryName })
                 .ToList();
         }
 
         public List<LookupViewModel> GetLocationOptions()
         {
-            return this.DbContext.Locations
-                .AsNoTracking()
-                .Where(l => l.IsActive)
-                .OrderBy(l => l.LocationName)
+            return this._equipmentRepository.GetActiveLocationsByName()
                 .Select(l => new LookupViewModel { Id = l.LocationId, Text = l.LocationName })
                 .ToList();
         }
@@ -207,26 +210,18 @@ namespace ASI.Basecode.Services.Services
         /// Codes in the shared <c>conditions</c> codebook that describe availability (operational status)
         /// rather than physical condition. Everything else is a condition classification.
         /// </summary>
-        internal static readonly string[] OperationalStatusCodes = { "AVAILABLE", "UNDER_MAINTENANCE", "BROKEN", "RETIRED" };
+        internal static readonly string[] OperationalStatusCodes = { ConditionCodes.Available, ConditionCodes.UnderMaintenance, ConditionCodes.Broken, ConditionCodes.Retired };
 
         public List<LookupViewModel> GetConditionOptions()
         {
-            return this.DbContext.Conditions
-                .AsNoTracking()
-                .Where(c => !OperationalStatusCodes.Contains(c.Code))
-                .OrderBy(c => c.ConditionId)
-                .Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description })
-                .ToList();
+            return this._lookups.GetConditionOptionsExcludingCodes(OperationalStatusCodes, orderByCode: false)
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public List<LookupViewModel> GetOperationalStatusOptions()
         {
-            return this.DbContext.Conditions
-                .AsNoTracking()
-                .Where(c => OperationalStatusCodes.Contains(c.Code))
-                .OrderBy(c => c.ConditionId)
-                .Select(c => new LookupViewModel { Id = c.ConditionId, Text = c.Description })
-                .ToList();
+            return this._lookups.GetConditionOptionsWithCodes(OperationalStatusCodes)
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         private (bool Success, string Error, long EquipmentId) Create(EquipmentFormViewModel form)
@@ -235,9 +230,9 @@ namespace ASI.Basecode.Services.Services
             entity.EquipmentId = 0; // ignore any posted id on create
             entity.CreatedAtUtc = default; // let the DB default (sysutcdatetime) fill it
 
-            this.DbContext.Equipment.Add(entity);
+            this._equipmentRepository.Add(entity);
 
-            this.DbContext.EquipmentInventoryBalances.Add(new EquipmentInventoryBalance
+            this._inventory.AddBalance(new EquipmentInventoryBalance
             {
                 Equipment = entity,
                 TotalQuantity = form.TotalQuantity,
@@ -248,7 +243,7 @@ namespace ASI.Basecode.Services.Services
                 UnreconciledQuantity = 0,
             });
 
-            this.DbContext.InventoryMovements.Add(new InventoryMovement
+            this._inventory.AddMovement(new InventoryMovement
             {
                 Equipment = entity,
                 MovementType = "INITIAL_STOCK",
@@ -275,12 +270,12 @@ namespace ASI.Basecode.Services.Services
             }
 
             var balance = entity.EquipmentInventoryBalance
-                ?? this.DbContext.EquipmentInventoryBalances.FirstOrDefault(b => b.EquipmentId == entity.EquipmentId);
+                ?? this._inventory.GetTrackedBalance(entity.EquipmentId);
 
             if (balance == null)
             {
                 balance = new EquipmentInventoryBalance { EquipmentId = entity.EquipmentId };
-                this.DbContext.EquipmentInventoryBalances.Add(balance);
+                this._inventory.AddBalance(balance);
             }
 
             // Every unit not on the shelf counts: held, out, awaiting inspection, in maintenance, or damaged/lost.
@@ -293,14 +288,12 @@ namespace ASI.Basecode.Services.Services
 
             // Taking an item out of service (inactive or under maintenance) would strand open
             // reservations that borrowers are waiting on.
-            var maintenanceStatusId = this.DbContext.Conditions.AsNoTracking()
-                .Where(c => c.Code == "UNDER_MAINTENANCE").Select(c => (long?)c.ConditionId).FirstOrDefault();
+            var maintenanceStatusId = this._lookups.GetConditionIdByCode(ConditionCodes.UnderMaintenance);
             var goingOutOfService = (entity.IsActive && !form.IsActive)
                 || (maintenanceStatusId.HasValue && form.OperationalStatusId == maintenanceStatusId && entity.OperationalStatusId != maintenanceStatusId);
             if (goingOutOfService)
             {
-                var openReservations = this.DbContext.Reservations.Count(r => r.EquipmentId == entity.EquipmentId
-                    && ReservationRules.HoldingStatuses.Contains(r.Status.Code));
+                var openReservations = this._reservations.CountForEquipmentInStatuses(entity.EquipmentId, ReservationRules.HoldingStatuses);
                 if (openReservations > 0)
                 {
                     return (false, string.Format(ErrorMessages.EquipmentHasOpenReservations, openReservations), form.EquipmentId);
@@ -315,7 +308,7 @@ namespace ASI.Basecode.Services.Services
             if (delta != 0)
             {
                 balance.TotalQuantity = form.TotalQuantity;
-                this.DbContext.InventoryMovements.Add(new InventoryMovement
+                this._inventory.AddMovement(new InventoryMovement
                 {
                     EquipmentId = entity.EquipmentId,
                     MovementType = delta > 0 ? "RESTOCK" : "STOCK_ADJUSTMENT",
@@ -362,7 +355,7 @@ namespace ASI.Basecode.Services.Services
                 var entity = this._equipmentRepository.GetTrackedById(equipmentId);
                 var balance = entity == null
                     ? null
-                    : entity.EquipmentInventoryBalance ?? this.DbContext.EquipmentInventoryBalances.FirstOrDefault(b => b.EquipmentId == equipmentId);
+                    : entity.EquipmentInventoryBalance ?? this._inventory.GetTrackedBalance(equipmentId);
                 if (entity == null || balance == null)
                 {
                     return (false, ErrorMessages.EquipmentNotFound);
@@ -397,7 +390,7 @@ namespace ASI.Basecode.Services.Services
                         return (false, ErrorMessages.EquipmentAdjustInvalid);
                 }
 
-                this.DbContext.InventoryMovements.Add(new InventoryMovement
+                this._inventory.AddMovement(new InventoryMovement
                 {
                     EquipmentId = equipmentId,
                     MovementType = "STOCK_ADJUSTMENT",
@@ -408,7 +401,7 @@ namespace ASI.Basecode.Services.Services
                     PerformedByUserId = this._currentUser.GetActorUserId(),
                 });
 
-                using var transaction = this.DbContext.Database.BeginTransaction();
+                using var transaction = this._unitOfWork.BeginTransaction();
                 this._unitOfWork.SaveChanges();
                 this.WriteAudit("STOCK_ADJUST", "Equipment", entity.EquipmentId, entity.AssetCode,
                     $"{quantity} unit(s) of '{entity.EquipmentName}' {summary}." + (string.IsNullOrWhiteSpace(note) ? string.Empty : " Note: " + note.Trim()));
@@ -428,7 +421,7 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
                 ActionType = actionType,

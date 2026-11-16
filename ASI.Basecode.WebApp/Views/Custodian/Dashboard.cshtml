@@ -4,9 +4,9 @@
     // Task types map onto the status they act on, so the colours match the status badges elsewhere.
     Func<string, string> taskStatus = type => type switch
     {
-        "REVIEW" => "PENDING",
-        "RELEASE" => "APPROVED",
-        "RETURN" => "ACTIVE",
+        "REVIEW" => ReservationStatusCodes.Pending,
+        "RELEASE" => ReservationStatusCodes.Approved,
+        "RETURN" => BorrowingStatusCodes.Active,
         _ => type,
     };
     Func<string, string> taskLabel = type => type switch
@@ -124,7 +124,7 @@
                     </div>
                     @if (alert.IsUnderMaintenance)
                     {
-                        <span class="@StatusBadge.Css("UNDER_MAINTENANCE")">Under Maintenance</span>
+                        <span class="@StatusBadge.Css(ConditionCodes.UnderMaintenance)">Under Maintenance</span>
                     }
                     else
                     {

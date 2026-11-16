@@ -3,6 +3,7 @@ using ASI.Basecode.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -159,6 +160,95 @@ namespace ASI.Basecode.Data.Repositories
                 MaintenanceUnits = balanceTotals.Sum(b => b.MaintenanceQuantity),
                 UnreconciledUnits = balanceTotals.Sum(b => b.UnreconciledQuantity),
             };
+        }
+
+        public System.Collections.Generic.List<CategoryUnitTotals> GetActiveCategoryUnitTotals()
+        {
+            return this.Context.Equipment
+                .Where(e => e.IsActive && e.EquipmentInventoryBalance != null)
+                .GroupBy(e => e.EquipmentCategory.CategoryName)
+                .Select(g => new CategoryUnitTotals
+                {
+                    Name = g.Key,
+                    Total = g.Sum(e => e.EquipmentInventoryBalance.TotalQuantity),
+                    Available = g.Sum(e => e.EquipmentInventoryBalance.TotalQuantity
+                        - e.EquipmentInventoryBalance.ReservedQuantity
+                        - e.EquipmentInventoryBalance.ReleasedQuantity
+                        - e.EquipmentInventoryBalance.AwaitingInspectionQuantity
+                        - e.EquipmentInventoryBalance.MaintenanceQuantity
+                        - e.EquipmentInventoryBalance.UnreconciledQuantity),
+                })
+                .ToList();
+        }
+
+        public int CountCategories()
+        {
+            return this.Context.EquipmentCategories.Count();
+        }
+
+        public System.Collections.Generic.List<Equipment> GetActiveWithStockState()
+        {
+            return this.Context.Equipment
+                .AsNoTracking()
+                .Include(e => e.EquipmentInventoryBalance)
+                .Include(e => e.OperationalStatus)
+                .Include(e => e.CurrentCondition)
+                .Where(e => e.IsActive)
+                .ToList();
+        }
+
+        public void Add(Equipment equipment)
+        {
+            this.Context.Equipment.Add(equipment);
+        }
+
+        public void Remove(Equipment equipment)
+        {
+            this.Context.Equipment.Remove(equipment);
+        }
+
+        public System.Collections.Generic.List<EquipmentCategory> GetCategoriesByName()
+        {
+            return this.Context.EquipmentCategories
+                .AsNoTracking()
+                .OrderBy(c => c.CategoryName)
+                .ToList();
+        }
+
+        public System.Collections.Generic.List<Location> GetActiveLocationsByName()
+        {
+            return this.Context.Locations
+                .AsNoTracking()
+                .Where(l => l.IsActive)
+                .OrderBy(l => l.LocationName)
+                .ToList();
+        }
+
+        public Equipment FindByAssetCodeUpper(string upperAssetCode)
+        {
+            return this.Context.Equipment.AsNoTracking()
+                .FirstOrDefault(e => e.AssetCode.ToUpper() == upperAssetCode);
+        }
+
+        public string GetLocationName(long locationId)
+        {
+            return this.Context.Locations.AsNoTracking()
+                .Where(l => l.LocationId == locationId).Select(l => l.LocationName).FirstOrDefault();
+        }
+
+        public string GetCategoryName(long categoryId)
+        {
+            return this.Context.EquipmentCategories.AsNoTracking()
+                .Where(c => c.EquipmentCategoryId == categoryId).Select(c => c.CategoryName).FirstOrDefault();
+        }
+
+        public (long? LocationId, long? CategoryId) GetLocationAndCategory(long equipmentId)
+        {
+            var equipment = this.Context.Equipment.AsNoTracking()
+                .Where(e => e.EquipmentId == equipmentId)
+                .Select(e => new { e.LocationId, CategoryId = (long?)e.EquipmentCategoryId })
+                .FirstOrDefault();
+            return (equipment?.LocationId, equipment?.CategoryId);
         }
     }
 }

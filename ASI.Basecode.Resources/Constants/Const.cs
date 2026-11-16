@@ -6,16 +6,6 @@
     public class Const
     {
         /// <summary>
-        ///API result success
-        /// </summary>
-        public const string ApiResultSuccess = "Success";
-
-        /// <summary>
-        ///API result error
-        /// </summary>
-        public const string ApiResultError = "Error";
-
-        /// <summary>
         /// System
         /// </summary>
         public const string System = "sys";

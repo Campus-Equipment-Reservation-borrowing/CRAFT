@@ -2,6 +2,7 @@ using ASI.Basecode.Data;
 using ASI.Basecode.Services.ViewModelClasses;
 using System;
 using System.Collections.Generic;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Services.ViewModelClasses
 {

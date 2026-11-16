@@ -1,6 +1,7 @@
 using ASI.Basecode.Data;
 using System;
 using System.Collections.Generic;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Services.ViewModelClasses
 {
@@ -82,6 +83,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         /// <summary>Set by the service when some photos were not stored (shown after saving).</summary>
         public string PhotoWarning { get; set; }
+    }
+
+    public class InspectionPhotoViewModel
+    {
+        public long InspectionId { get; set; }
+        public string FileName { get; set; }
     }
 
     public class InspectionFormContextViewModel

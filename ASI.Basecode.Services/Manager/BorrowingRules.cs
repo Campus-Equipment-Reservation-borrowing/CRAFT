@@ -1,7 +1,7 @@
-using ASI.Basecode.Data;
-using Microsoft.EntityFrameworkCore;
+using ASI.Basecode.Data.Interfaces;
 using System;
 using System.Linq;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Services.Manager
 {
@@ -20,23 +20,18 @@ namespace ASI.Basecode.Services.Manager
     public static class BorrowingRules
     {
         /// <summary>Borrowing statuses with units still out.</summary>
-        public static readonly string[] OpenStatusCodes = { "ACTIVE", "OVERDUE", "PARTIALLY_RETURNED" };
+        public static readonly string[] OpenStatusCodes = { BorrowingStatusCodes.Active, BorrowingStatusCodes.Overdue, BorrowingStatusCodes.PartiallyReturned };
 
         /// <summary>Overdue grace period from the current policy, in minutes (0 when no policy).</summary>
-        public static int GetGraceMinutes(AllianceDbContext db)
+        public static int GetGraceMinutes(ISettingsRepository settings)
         {
-            var grace = db.BorrowingPolicyVersions.AsNoTracking()
-                .OrderByDescending(p => p.IsCurrent)
-                .ThenByDescending(p => p.PolicyVersionId)
-                .Select(p => (int?)p.OverdueGracePeriodMinutes)
-                .FirstOrDefault() ?? 0;
-            return Math.Max(0, grace);
+            return Math.Max(0, settings.GetCurrentOverdueGracePeriodMinutes() ?? 0);
         }
 
         /// <summary>Borrowings due before this instant are overdue (now minus the grace period).</summary>
-        public static DateTime GetOverdueCutoffUtc(AllianceDbContext db, DateTime nowUtc)
+        public static DateTime GetOverdueCutoffUtc(ISettingsRepository settings, DateTime nowUtc)
         {
-            return nowUtc.AddMinutes(-GetGraceMinutes(db));
+            return nowUtc.AddMinutes(-GetGraceMinutes(settings));
         }
 
         public static bool IsOpen(string statusCode)

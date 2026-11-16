@@ -15,6 +15,14 @@ namespace ASI.Basecode.Services.Interfaces
 
         (bool Success, string Error, long ReturnId) CreateReturn(ReturnFormViewModel form);
 
+        /// <summary>Photos attached to a borrowing's inspections, when the actor may act on it.</summary>
+        List<InspectionPhotoViewModel> GetInspectionPhotos(long borrowingId);
+
+        /// <summary>
+        /// A stored inspection photo, only for staff allowed to act on that borrowing; (null, null) otherwise.
+        /// </summary>
+        (string Path, string ContentType) GetInspectionPhotoFile(long inspectionId, string fileName);
+
         (bool Success, string Error, long InspectionId) CreateInspection(InspectionFormViewModel form, IEnumerable<Microsoft.AspNetCore.Http.IFormFile> photos);
     }
 }

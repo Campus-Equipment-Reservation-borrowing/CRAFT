@@ -41,7 +41,7 @@
                                         @r.Status
                                         @if (r.Late)
                                         {
-                                            <span class="@StatusBadge.Css("OVERDUE")">Late</span>
+                                            <span class="@StatusBadge.Css(BorrowingStatusCodes.Overdue)">Late</span>
                                         }
                                     </td>
                                     <td>@r.StartUtc.ToLocalTime().ToString("dd MMM yyyy")</td>

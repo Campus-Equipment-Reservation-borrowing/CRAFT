@@ -118,13 +118,15 @@
       r = await RP('Campus123', 'Campus123'); check('AUTH-16c', 'reset valid', r.url.startsWith('/Account/Login'), r.url);
       r = await RP('Campus124', 'Campus124'); check('AUTH-16d', 'reset token single use', !r.url.startsWith('/Account/Login'), r.url);
     }
-    await login('2024-118002'); const u = await reserve(5);
+    // A fresh self-registration is UNVERIFIED (the AUTH-08 user is locked out by AUTH-11 by now).
+    await logout(); await R({ AccountIdentifier: 'QA-V' + stamp, SchoolEmail: `qa.v${stamp}@university.edu.ph` });
+    await login('QA-V' + stamp); const u = await reserve(5);
     check('AUTH-19', 'unverified cannot reserve', has(u.res, 'pending verification'), u.res.text);
   };
 
   suites.RBAC = async () => {
     const staff = ['/Custodian/Dashboard', '/Custodian/Reservations', '/Returns', '/Equipment', '/Equipment/Create'];
-    const admin = ['/Users', '/Users/Verifications', '/Settings', '/Monitoring/Dashboard', '/Monitoring/AuditLogs', '/Monitoring/ExportAuditCsv', '/Announcements', '/CustodianAssignments', '/Operator'];
+    const admin = ['/Users', '/Users/Verifications', '/Settings', '/Monitoring/Dashboard', '/Monitoring/AuditLogs', '/Monitoring/ExportAuditCsv', '/Announcements', '/CustodianAssignments'];
     await logout();
     for (const u of [...staff, ...admin, '/Borrower/Dashboard', '/Profile', '/Notifications']) { const g = await get(u); check('RBAC-01', 'anonymous ' + u, g.url.startsWith('/Account/Login'), g.url); }
     await login('2023-104857');
@@ -220,11 +222,11 @@
     const bid = (sc.url.match(/\/Returns\/Create\/(\d+)/) || [])[1] || idFromLink(sc.doc, /\/Returns\/Create\/\d+/);
     check('RET-00b', 'active borrowing reachable via Scan', !!bid, sc.url);
     if (!bid) return;
-    const c = await get('/Returns/Create/' + bid); const def = c.doc.querySelector('[name=ReturnedAtUtc]').value.slice(0, 16);
-    const RC = o => post('/Returns/Create', { BorrowingId: bid, ReturnedQuantity: '1', ReturnedAtUtc: def, Notes: '', ...o }, '/Returns/Create/' + bid);
+    const c = await get('/Returns/Create/' + bid);
+    check('RET-02', 'return time is not editable (server sets it)', !c.doc.querySelector('input[name=ReturnedAtUtc]:not([type=hidden])'), 'editable field present');
+    const RC = o => post('/Returns/Create', { BorrowingId: bid, ReturnedQuantity: '1', Notes: '', ...o }, '/Returns/Create/' + bid);
     let r = await RC({ ReturnedQuantity: '0' }); check('RET-01a', 'return qty 0 (D8)', /between|at least/i.test(r.text), r.text);
     r = await RC({ ReturnedQuantity: '5' }); check('RET-01b', 'over-return', has(r, 'between'), r.text);
-    r = await RC({ ReturnedAtUtc: day(30) + 'T10:00' }); check('RET-02', 'future return', has(r, 'future'), r.text);
     r = await RC({}); check('RET-03', 'return', has(r, 'Return recorded'), r.text);
     const I = (o, files) => postForm('/Returns/Inspect', { BorrowingId: bid, InspectedQuantity: '1', InspectionStatusId: '2', CurrentConditionId: '1', GoodQuantity: '1', DamagedQuantity: '0', LostQuantity: '0', RepairCost: '0', PenaltyAmount: '0', ...o }, files, '/Returns/Inspect/' + bid);
     r = await I({ GoodQuantity: '0' }); check('RET-06', 'outcome sum', has(r, 'add up'), r.text);
@@ -256,13 +258,15 @@
 
   suites.ADM = async () => {
     await login('ADMIN-0001');
-    const cf = await get('/Users/Create'); const st = opt(cf.doc, 'AccountStatusId', /^\s*active/i), dp = opt(cf.doc, 'DepartmentId');
+    const cf = await get('/Users/Create'); const st = opt(cf.doc, 'AccountStatusId', /unverified/i), stActive = opt(cf.doc, 'AccountStatusId', /^\s*active/i), dp = opt(cf.doc, 'DepartmentId');
     const n = Date.now().toString().slice(-5);
     const U = o => post('/Users/Create', { FirstName: 'QA', LastName: 'Adm', AccountIdentifier: 'QA-U' + n, SchoolEmail: `qa.u${n}@university.edu.ph`, RoleId: '1', DepartmentId: dp, AccountStatusId: st, TemporaryPassword: 'Temp1234', ...o }, '/Users/Create');
     let r = await U({ FirstName: '', AccountIdentifier: '', SchoolEmail: '', RoleId: '' }); check('ADM-01a', 'create blank', r.msgs.length >= 3, r.text);
     r = await U({ AccountIdentifier: '2023-104857' }); check('ADM-01b', 'create duplicate id', has(r, 'unique'), r.text);
     r = await U({ TemporaryPassword: 'abc' }); check('ADM-01c', 'weak temp password', has(r, 'Temporary password'), r.text);
     r = await U({ AccountIdentifier: 'bad id!!', SchoolEmail: `qa.b${n}@university.edu.ph` }); check('ADM-01d', 'bad id format refused (D10)', !has(r, 'created'), r.text);
+    r = await U({ AccountStatusId: stActive, AccountIdentifier: 'QA-A' + n, SchoolEmail: `qa.a${n}@university.edu.ph` });
+    check('ADM-02b', 'active borrower can only be created through verification', has(r, 'verification queue'), r.text);
     const created = await U({}); check('ADM-02', 'create user', has(created, 'created'), created.text);
     const uid = created.url.match(/Details\/(\d+)/)?.[1];
     const ef = await get('/Users/Edit/' + uid); const vals = {};
@@ -279,12 +283,14 @@
     r = await post('/Users/Delete/' + uid, {}, '/Users/Details/' + uid); check('ADM-04c', 'delete fresh user with history (D4)', has(r, 'deleted'), r.text);
     // Verify buttons are forms; prefer a QA-registered account so seeded people stay pending.
     const vq = await get('/Users/Verifications');
-    const vForms = [...vq.doc.querySelectorAll('form[action*="/Users/Verify/"]')];
-    const vForm = vForms.find(f => /QA/.test(f.closest('tr')?.textContent || '')) || vForms[0];
-    const vid = vForm?.getAttribute('action').match(/Verify\/(\d+)/)[1];
+    const vBtns = [...vq.doc.querySelectorAll('.js-approve[data-user-id]')];
+    const vBtn = vBtns.find(b => /QA/.test(b.closest('tr')?.textContent || '')) || vBtns[0];
+    const vid = vBtn?.dataset.userId;
+    const custodian = opt(vq.doc, 'custodianUserId');
     r = await post('/Users/RejectVerification/' + vid, { reason: '' }, '/Users/Verifications'); check('ADM-07a', 'reject needs reason', has(r, 'reason is required'), r.text);
-    r = await post('/Users/Verify/' + vid + '?returnTab=pending', {}, '/Users/Verifications'); check('ADM-07b', 'verify', has(r, 'verified'), r.text);
-    r = await post('/Users/Verify/' + vid + '?returnTab=pending', {}, '/Users/Verifications'); check('ADM-07c', 'verify twice', has(r, 'not awaiting'), r.text);
+    r = await post('/Users/Verify/' + vid + '?returnTab=pending', {}, '/Users/Verifications'); check('ADM-07d', 'verify needs a custodian', has(r, 'active custodian'), r.text);
+    r = await post('/Users/Verify/' + vid + '?returnTab=pending', { custodianUserId: custodian }, '/Users/Verifications'); check('ADM-07b', 'verify with custodian', has(r, 'verified'), r.text);
+    r = await post('/Users/Verify/' + vid + '?returnTab=pending', { custodianUserId: custodian }, '/Users/Verifications'); check('ADM-07c', 'verify twice', has(r, 'not awaiting'), r.text);
     const ca = await get('/CustodianAssignments');
     const catForm = [...ca.doc.querySelectorAll('form[action*="/CustodianAssignments/Assign"]')].find(f => f.querySelector('[name=scopeType]')?.value === 'CATEGORY');
     const tgt = [...catForm.querySelectorAll('[name=targetId] option')].map(x => x.value).filter(Boolean).pop();
@@ -311,8 +317,7 @@
     r = await post(del.getAttribute('action'), {}, '/Settings'); check('ADM-13d', 'category delete', has(r, 'deleted'), r.text);
     const lap = [...(await get('/Settings')).doc.querySelectorAll('form[action*=DeleteCategory]')].find(f => f.closest('tr').textContent.includes('LAPTOP'));
     r = await post(lap.getAttribute('action'), {}, '/Settings'); check('ADM-13e', 'category in use', has(r, 'used by'), r.text);
-    const op = await get('/Operator'); const oid = opt(op.doc, 'userId');
-    r = await post('/Operator/Select', { userId: oid }, '/Operator'); check('ADM-14', 'operator select', has(r, 'Now acting'), r.text);
+    check('ADM-14', 'retired operator switcher is gone', (await get('/Operator')).status === 404);
   };
 
   suites.MON = async () => {
@@ -397,7 +402,98 @@
     }
   };
 
-  const order = ['AUTH', 'RBAC', 'EQP', 'RES', 'CUS', 'RET', 'ADM', 'COM', 'PRF', 'MON', 'SEC', 'UI'];
+  // ACL: route x role matrix, cross-owner (IDOR) attempts and nav/permission consistency.
+  // Encodes the intended rules in docs/test-plan-v3.md (section ACL).
+  suites.ACL = async () => {
+    const ROUTES = {
+      borrower: ['/Borrower/Dashboard', '/Reservations/Available', '/Reservations/EquipmentDetails/1', '/Reservations/New/1', '/Reservations/Mine', '/Borrowings/Mine', '/Borrowings/History'],
+      staff: ['/Custodian/Dashboard', '/Custodian/Reservations', '/Custodian/Scan', '/Custodian/Borrowings', '/Returns', '/Equipment', '/Equipment/Details/1', '/Equipment/Label/1'],
+      admin: ['/Equipment/Create', '/Equipment/Edit/1', '/Users', '/Users/Create', '/Users/Verifications', '/Users/Details/1', '/Users/Edit/1', '/Users/History/1',
+        '/CustodianAssignments', '/Monitoring/Dashboard', '/Monitoring/Transactions', '/Monitoring/Reports', '/Monitoring/AuditLogs',
+        '/Monitoring/ExportAuditCsv', '/Monitoring/ExportReservationsCsv', '/Monitoring/ExportBorrowingsCsv', '/Monitoring/ExportMovementsCsv', '/Announcements', '/Settings'],
+      anyUser: ['/Profile', '/Notifications', '/Support', '/Support/Create'],
+    };
+    const ACTORS = [['anon', null], ['student', '2023-104857'], ['faculty', 'EMP-2001'], ['custodian', 'EMP-1001'], ['admin', 'ADMIN-0001']];
+    const allowed = { anon: [], student: ['borrower', 'anyUser'], faculty: ['borrower', 'anyUser'], custodian: ['staff', 'anyUser'], admin: ['staff', 'admin', 'anyUser'] };
+    const verdict = (g, path) => g.url.startsWith('/Account/Login') ? 'login' : (g.status === 403 || g.url.startsWith('/Account/AccessDenied')) ? '403' : g.status === 200 ? 'ok' : String(g.status);
+
+    // ACL-01..05: every protected GET route for every actor.
+    for (const [actor, id] of ACTORS) {
+      if (id) await login(id); else await logout();
+      for (const [group, paths] of Object.entries(ROUTES)) {
+        for (const p of paths) {
+          const v = verdict(await get(p), p);
+          const want = actor === 'anon' ? 'login' : allowed[actor].includes(group) ? 'ok' : '403';
+          check('ACL-01', `${actor} ${p}`, v === want, `got ${v}, want ${want}`);
+        }
+      }
+      // ACL-06: every sidebar link shown to this actor opens for them.
+      if (id) {
+        const dash = await get('/');
+        const links = [...dash.doc.querySelectorAll('#appSidebar a[href^="/"]')].map(a => a.getAttribute('href')).filter(h => !/Logout/i.test(h));
+        for (const h of new Set(links)) check('ACL-06', `${actor} nav ${h}`, verdict(await get(h), h) === 'ok', h);
+      }
+    }
+
+    // Fixtures: faculty Jose (routed to custodian Rina, EMP-1002) owns a reservation and a ticket.
+    await login('EMP-2001'); await cancelAllMine();
+    const jose = await reserve(1);
+    const joseResId = idFromLink((await get('/Reservations/Mine')).doc, /\/Reservations\/Details\/\d+/);
+    const t = await post('/Support/Create', { Category: 'OTHER', Subject: 'ACL fixture', Body: 'Ticket owned by faculty Jose.' }, '/Support/Create');
+    const joseTicket = (t.url.match(/\/Support\/Details\/(\d+)/) || [])[1];
+    check('ACL-FX', 'fixtures created', !!jose.rsv && !!joseResId && !!joseTicket, `${jose.rsv} res=${joseResId} ticket=${joseTicket}`);
+
+    // ACL-10: another borrower can't see or act on Jose's records.
+    await login('2023-104857');
+    for (const p of [`/Reservations/Details/${joseResId}`, `/Reservations/Slip/${joseResId}`, `/Support/Details/${joseTicket}`]) {
+      const g = await get(p); check('ACL-10', `student opens ${p}`, !(g.status === 200 && g.url === p), g.url);
+    }
+    let r = await post(`/Reservations/Cancel/${joseResId}`, {}, '/Reservations/Mine');
+    const stillOpen = (await (async () => { await login('EMP-2001'); return get('/Reservations/Mine'); })()).doc.body.textContent.includes(jose.rsv);
+    check('ACL-12', 'student cannot cancel another user\'s reservation', stillOpen, jose.rsv);
+    await login('2023-104857');
+    r = await post(`/Support/Reply/${joseTicket}`, { Body: 'ACL probe: not my ticket' }, '/Support');
+    await login('ADMIN-0001');
+    const thread = (await get(`/Support/Details/${joseTicket}`)).doc.body.textContent;
+    check('ACL-11', 'student cannot reply to another user\'s ticket', !thread.includes('ACL probe: not my ticket'), r.url);
+
+    // ACL-20: custodian Carlos (EMP-1001) vs a reservation routed to Rina (EMP-1002).
+    await login('EMP-1001');
+    r = { url: '' };
+    for (const p of [`/Reservations/Details/${joseResId}`, `/Reservations/Slip/${joseResId}`, `/Custodian/Review/${joseResId}`, `/Custodian/Release/${joseResId}`]) {
+      const g = await get(p); check('ACL-20', `other custodian opens ${p}`, !(g.status === 200 && g.url.startsWith(p.replace(/\/\d+$/, ''))), g.url);
+    }
+    r = await post(`/Custodian/Approve/${joseResId}`, { notes: 'acl' }, '/Custodian/Reservations');
+    check('ACL-21', 'other custodian cannot approve', has(r, 'another custodian|not found|assigned'), r.text);
+    // ACL-22..24: custodian is not an admin.
+    const g1 = await get(`/Support/Details/${joseTicket}`); check('ACL-22', 'custodian cannot read others\' tickets', !(g1.status === 200 && g1.url.startsWith('/Support/Details')), g1.url);
+    r = await post('/Equipment/AdjustStock/1', { adjustment: 'REPAIRED', quantity: '1' }, '/Equipment/Details/1');
+    check('ACL-23', 'custodian cannot adjust stock', r.status === 403 || r.url.startsWith('/Account/AccessDenied'), r.status + ' ' + r.url);
+    r = await post(`/Support/Resolve/${joseTicket}`, {}, '/Support');
+    check('ACL-24', 'custodian cannot resolve tickets', r.status === 403 || r.url.startsWith('/Account/AccessDenied'), r.status + ' ' + r.url);
+    for (const [u, data] of [['/Settings/SavePolicy', BASE_POLICY], ['/CustodianAssignments/Assign', { scopeType: 'LOCATION', custodianUserId: '2', targetId: '1' }], ['/Users/ResetPassword/4', {}], ['/Announcements/Publish', { Title: 'x', Body: 'x' }]]) {
+      r = await post(u, data, '/Profile'); check('ACL-25', 'custodian POST ' + u, r.status === 403 || r.url.startsWith('/Account/AccessDenied'), r.status + ' ' + r.url);
+    }
+    // ACL-30: borrower forging staff POSTs.
+    await login('2023-104857');
+    for (const u of [`/Custodian/Approve/${joseResId}`, `/Custodian/Reject/${joseResId}`, '/Returns/Create', '/Equipment/AdjustStock/1']) {
+      r = await post(u, {}, '/Profile'); check('ACL-30', 'student POST ' + u, r.status === 403 || r.url.startsWith('/Account/AccessDenied'), r.status + ' ' + r.url);
+    }
+    // ACL-31: admin can't use the custodian-only Claim (role rule), but can see everything else.
+    await login('ADMIN-0001');
+    r = await post(`/Custodian/Claim/${joseResId}`, {}, '/Custodian/Reservations');
+    check('ACL-31', 'admin cannot claim', r.status === 403 || r.url.startsWith('/Account/AccessDenied'), r.status + ' ' + r.url);
+    const g2 = await get(`/Support/Details/${joseTicket}`); check('ACL-32', 'admin reads any ticket', g2.status === 200 && g2.url.startsWith('/Support/Details'), g2.url);
+
+    // ACL-40: retired / private resources.
+    await logout();
+    const ph = await get('/Returns/Photo/1?file=photo_1.jpg'); check('ACL-40', 'anonymous inspection photo route', ph.url.startsWith('/Account/Login'), ph.url);
+
+    // Clean up the fixture reservation.
+    await login('EMP-2001'); await cancelAllMine();
+  };
+
+  const order = ['AUTH', 'RBAC', 'ACL', 'EQP', 'RES', 'CUS', 'RET', 'ADM', 'COM', 'PRF', 'MON', 'SEC', 'UI'];
   const runAll = async () => {
     results.length = 0;
     for (const s of order) {

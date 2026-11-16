@@ -15,7 +15,7 @@ namespace ASI.Basecode.Services
         /// <param name="loggerFactory">Logger factory.</param>
         public ServiceBase(ILoggerFactory loggerFactory)
         {
-            this._logger = loggerFactory.CreateLogger<ServiceBase>();
+            this._logger = loggerFactory.CreateLogger(this.GetType());
         }
 
         /// <summary>

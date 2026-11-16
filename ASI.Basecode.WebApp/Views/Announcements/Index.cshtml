@@ -2,7 +2,7 @@
 @model AnnouncementIndexViewModel
 @{
     ViewData["Title"] = "Announcements";
-    var audiences = new[] { ("STUDENT", "Students"), ("FACULTY", "Faculty"), ("TECHNICIAN", "Custodians"), ("ADMIN", "Administrators") };
+    var audiences = new[] { (RoleCodes.Student, "Students"), (RoleCodes.Faculty, "Faculty"), (RoleCodes.Technician, "Custodians"), (RoleCodes.Admin, "Administrators") };
     var chosen = Model.Form?.TargetRoles ?? new List<string>();
 }
 

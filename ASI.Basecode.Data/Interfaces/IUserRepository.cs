@@ -1,6 +1,7 @@
 using ASI.Basecode.Data.Models;
 using System;
 using System.Collections.Generic;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Data.Interfaces
 {
@@ -56,5 +57,128 @@ namespace ASI.Basecode.Data.Interfaces
         /// All user accounts (with role) ordered by name — source for the operator switcher.
         /// </summary>
         List<User> GetOperatorOptions();
+
+        /// <summary>
+        /// Id, email and preference row of each of the given users (untracked).
+        /// </summary>
+        List<NotificationRecipient> GetNotificationRecipients(IReadOnlyCollection<long> userIds);
+
+        /// <summary>
+        /// Ids of users holding one of the role codes whose account status has the given code.
+        /// </summary>
+        List<long> GetUserIdsInRolesWithStatus(IReadOnlyCollection<string> roleCodes, string accountStatusCode);
+
+        /// <summary>
+        /// The user (tracked, with role, department and status) whose lower-cased school email or account
+        /// identifier equals <paramref name="lowerKey"/>.
+        /// </summary>
+        User GetTrackedBySignInKeyWithDetails(string lowerKey);
+
+        /// <summary>
+        /// The user (tracked, with account status) whose lower-cased school email equals <paramref name="lowerEmail"/>.
+        /// </summary>
+        User GetTrackedBySchoolEmailWithStatus(string lowerEmail);
+
+        /// <summary>
+        /// The user (tracked, with account status), or null.
+        /// </summary>
+        User GetTrackedByIdWithStatus(long userId);
+
+        /// <summary>
+        /// The user's account identifier, or null when the user does not exist.
+        /// </summary>
+        string GetAccountIdentifier(long userId);
+
+        /// <summary>
+        /// True when an account identifier equals this one, compared lower-cased.
+        /// </summary>
+        bool AccountIdentifierExistsLowercase(string accountIdentifier);
+
+        /// <summary>
+        /// True when a school email equals this one, compared lower-cased.
+        /// </summary>
+        bool SchoolEmailExistsLowercase(string schoolEmail);
+
+        /// <summary>
+        /// Adds a user (saved by the caller's SaveChanges).
+        /// </summary>
+        void Add(User user);
+
+        /// <summary>
+        /// Removes a user (saved by the caller's SaveChanges).
+        /// </summary>
+        void Remove(User user);
+
+        /// <summary>
+        /// The user (tracked, with account status and role), or null.
+        /// </summary>
+        User GetTrackedByIdWithStatusAndRole(long userId);
+
+        /// <summary>
+        /// Number of users with the given account status id.
+        /// </summary>
+        int CountWithAccountStatus(long accountStatusId);
+
+        /// <summary>
+        /// The user's role code and account status code, or null when the user does not exist.
+        /// </summary>
+        UserRoleStatusCodes GetRoleAndStatusCodes(long userId);
+
+        /// <summary>
+        /// True when a user other than <paramref name="excludeUserId"/> has the role code and account status code.
+        /// </summary>
+        bool OtherUserWithRoleAndStatusExists(long excludeUserId, string roleCode, string accountStatusCode);
+
+        /// <summary>
+        /// The user's profile image path, or null.
+        /// </summary>
+        string GetProfileImagePath(long userId);
+
+        /// <summary>
+        /// Clears the creator on the user's announcements (tracked; saved by the caller).
+        /// </summary>
+        void ClearAnnouncementCreator(long userId);
+
+        /// <summary>
+        /// Clears the assignee on support tickets assigned to the user (tracked; saved by the caller).
+        /// </summary>
+        void ClearSupportTicketAssignee(long userId);
+
+        /// <summary>Number of users per account status code.</summary>
+        Dictionary<string, int> CountByAccountStatusCode();
+
+        /// <summary>Created and verified timestamps of users that were verified (and have a creation time).</summary>
+        List<(DateTime CreatedAtUtc, DateTime VerifiedAtUtc)> GetVerificationTimes();
+
+        /// <summary>Account status code of the user, or null.</summary>
+        string GetAccountStatusCode(long userId);
+
+        /// <summary>Role code of the user, or null.</summary>
+        string GetRoleCode(long userId);
+
+        /// <summary>"First Last" of the user, or null.</summary>
+        string GetFullName(long userId);
+
+        /// <summary>True when the user exists with the given account status code.</summary>
+        bool HasAccountStatus(long userId, string accountStatusCode);
+
+        /// <summary>Ids of users in a borrower role with the account status.</summary>
+        HashSet<long> GetBorrowerIdsWithStatus(string accountStatusCode);
+
+        /// <summary>Users in a borrower role with the account status (untracked), by last then first name.</summary>
+        List<User> GetBorrowersWithStatusByName(string accountStatusCode);
+
+        /// <summary>Users with the role code (untracked, with account status), by last then first name;
+        /// limited to the account status when one is given.</summary>
+        List<User> GetInRoleByName(string roleCode, string accountStatusCode = null);
+
+        /// <summary>The user (untracked) when they have the role code and account status, else null.</summary>
+        User GetInRoleWithStatus(long userId, string roleCode, string accountStatusCode);
+
+        /// <summary>The user (untracked) when they are in a borrower role, else null.</summary>
+        User GetBorrower(long userId);
+
+        /// <summary>True when the user is in a borrower role and has the account status.</summary>
+        bool IsBorrowerWithStatus(long userId, string accountStatusCode);
     }
 }

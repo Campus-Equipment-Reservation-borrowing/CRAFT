@@ -1,35 +1,51 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.Manager;
 
 namespace ASI.Basecode.Services.Services
 {
     /// <inheritdoc cref="IReservationLifecycleService" />
     public class ReservationLifecycleService : ServiceBase, IReservationLifecycleService
     {
-        private static readonly string[] OpenBorrowingStatuses = { "ACTIVE", "PARTIALLY_RETURNED" };
+        private static readonly string[] OpenBorrowingStatuses = { BorrowingStatusCodes.Active, BorrowingStatusCodes.PartiallyReturned };
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILookupRepository _lookups;
+        private readonly IReservationRepository _reservations;
+        private readonly IBorrowingRepository _borrowings;
+        private readonly ICustodianRepository _custodian;
+        private readonly ISettingsRepository _settings;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly INotificationDispatcher _notifications;
         private readonly ReservationLifecycleOptions _options;
-
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
         public ReservationLifecycleService(
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
             INotificationDispatcher notifications,
-            IOptions<ReservationLifecycleOptions> options)
+            IOptions<ReservationLifecycleOptions> options,
+            IAuditLogRepository auditLogs,
+            ILookupRepository lookups,
+            IReservationRepository reservations,
+            IBorrowingRepository borrowings,
+            ICustodianRepository custodian,
+            ISettingsRepository settings)
             : base(loggerFactory)
         {
+            this._reservations = reservations;
+            this._borrowings = borrowings;
+            this._custodian = custodian;
+            this._settings = settings;
+            this._lookups = lookups;
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._notifications = notifications;
             this._options = options?.Value ?? new ReservationLifecycleOptions();
@@ -56,7 +72,7 @@ namespace ASI.Basecode.Services.Services
         /// </summary>
         private int ExpireStaleReservations(DateTime now)
         {
-            var expired = this.DbContext.ReservationStatuses.FirstOrDefault(s => s.Code == "EXPIRED");
+            var expired = this._lookups.GetTrackedReservationStatusByCode(ReservationStatusCodes.Expired);
             if (expired == null)
             {
                 return 0;
@@ -64,12 +80,7 @@ namespace ASI.Basecode.Services.Services
 
             var submittedBefore = now.AddHours(-this.ReviewHours);
             var pickupBefore = now.AddHours(-this.ReviewHours);
-            var stale = this.DbContext.Reservations
-                .Include(r => r.Status)
-                .Include(r => r.Equipment).ThenInclude(e => e.EquipmentInventoryBalance)
-                .Where(r => (r.Status.Code == ReservationRules.Pending && (r.SubmittedAtUtc < submittedBefore || r.RequestedStartAtUtc < now))
-                    || (r.Status.Code == ReservationRules.Approved && r.RequestedStartAtUtc < pickupBefore))
-                .ToList();
+            var stale = this._reservations.GetTrackedStale(ReservationRules.Pending, ReservationRules.Approved, submittedBefore, pickupBefore, now);
             if (stale.Count == 0)
             {
                 return 0;
@@ -79,7 +90,7 @@ namespace ASI.Basecode.Services.Services
             foreach (var reservation in stale)
             {
                 var previousStatus = reservation.Status.Code;
-                var hold = ReservationRules.RemainingHold(reservation, previousStatus, ReservationRules.ReleasedSoFar(this.DbContext, reservation.ReservationId));
+                var hold = ReservationRules.RemainingHold(reservation, previousStatus, this._custodian.SumReleasedForReservation(reservation.ReservationId));
                 var balance = reservation.Equipment?.EquipmentInventoryBalance;
                 var released = 0;
                 if (balance != null && hold > 0)
@@ -92,7 +103,7 @@ namespace ASI.Basecode.Services.Services
                 reservation.HeldQuantity = 0;
                 reservation.CompletedAtUtc = now;
 
-                this.DbContext.AuditLogs.Add(new AuditLog
+                this._auditLogs.Add(new AuditLog
                 {
                     ActorUserId = null,
                     ActionType = "EXPIRE",
@@ -140,11 +151,7 @@ namespace ASI.Basecode.Services.Services
         private int WarnExpiringReservations(DateTime now)
         {
             var warnHours = Math.Max(1, this._options.ExpiryWarningHours);
-            var candidates = this.DbContext.Reservations
-                .Include(r => r.Equipment)
-                .Include(r => r.BorrowerUser)
-                .Where(r => r.Status.Code == ReservationRules.Pending && r.ExpiryWarningSentAtUtc == null)
-                .ToList();
+            var candidates = this._reservations.GetTrackedWithoutExpiryWarning(ReservationRules.Pending);
 
             var expiring = candidates
                 .Select(r => new { Reservation = r, Deadline = ReservationRules.ReviewDeadline(r.SubmittedAtUtc, r.RequestedStartAtUtc, this.ReviewHours) })
@@ -181,24 +188,16 @@ namespace ASI.Basecode.Services.Services
         /// <summary>Persist OVERDUE once due + grace has passed, and alert borrower, custodian and admins once.</summary>
         private int MarkOverdueBorrowings(DateTime now)
         {
-            var overdueStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == "OVERDUE");
+            var overdueStatus = this._lookups.GetTrackedBorrowingStatusByCode(BorrowingStatusCodes.Overdue);
             if (overdueStatus == null)
             {
                 return 0;
             }
 
-            var dueBefore = Manager.BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
+            var dueBefore = Manager.BorrowingRules.GetOverdueCutoffUtc(this._settings, now);
 
-            var late = this.DbContext.Borrowings
-                .Include(b => b.Equipment)
-                .Include(b => b.Reservation)
-                .Where(b => OpenBorrowingStatuses.Contains(b.Status.Code) && b.DueAtUtc < dueBefore)
-                .ToList();
-            var unnotifiedOverdue = this.DbContext.Borrowings
-                .Include(b => b.Equipment)
-                .Include(b => b.Reservation)
-                .Where(b => b.Status.Code == "OVERDUE" && b.OverdueNotifiedAtUtc == null)
-                .ToList();
+            var late = this._borrowings.GetTrackedInStatusesDueBefore(OpenBorrowingStatuses, dueBefore);
+            var unnotifiedOverdue = this._borrowings.GetTrackedInStatusNotOverdueNotified(BorrowingStatusCodes.Overdue);
 
             foreach (var borrowing in late)
             {
@@ -251,13 +250,7 @@ namespace ASI.Basecode.Services.Services
         private int SendDueReminders(DateTime now)
         {
             var windowEnd = now.AddHours(Math.Max(1, this._options.DueReminderHours));
-            var dueSoon = this.DbContext.Borrowings
-                .Include(b => b.Equipment)
-                .Where(b => OpenBorrowingStatuses.Contains(b.Status.Code)
-                    && b.DueReminderSentAtUtc == null
-                    && b.DueAtUtc >= now
-                    && b.DueAtUtc <= windowEnd)
-                .ToList();
+            var dueSoon = this._borrowings.GetTrackedDueForReminder(OpenBorrowingStatuses, now, windowEnd);
 
             if (dueSoon.Count == 0)
             {

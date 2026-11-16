@@ -34,10 +34,10 @@
 
     <div class="cp-card">
         <div class="cp-card-header">Enter code</div>
-        <form method="get" asp-action="Scan" style="display:flex;gap:8px;align-items:center;">
+        <form method="get" asp-action="Scan" class="cp-search-row">
             <input type="text" name="code" value="@Model.Code" class="cp-input" autofocus autocomplete="off"
                    placeholder="Asset code or reservation number" aria-label="Asset code or reservation number" />
-            <button type="submit" class="cp-btn cp-btn-primary cp-btn-sm">Look up</button>
+            <button type="submit" class="cp-btn cp-btn-primary">Search</button>
         </form>
         <p class="cp-form-hint">USB and Bluetooth scanners type into this box and press Enter.</p>
     </div>

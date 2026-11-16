@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.IO;
 using System.Text;
+using ASI.Basecode.WebApp.Configuration;
 
 namespace ASI.Basecode.WebApp
 {

@@ -4,8 +4,8 @@
     var isOut = Model.AvailableUnits <= 0;
     // A non-Available status (Under Maintenance, Broken / Out of Service, Retired) is shown as-is.
     var blockedStatus = !string.IsNullOrEmpty(Model.OperationalStatusCode)
-        && !string.Equals(Model.OperationalStatusCode, "AVAILABLE", StringComparison.OrdinalIgnoreCase);
-    var statusCode = blockedStatus ? Model.OperationalStatusCode : (isOut ? "OUT_OF_STOCK" : "AVAILABLE");
+        && !string.Equals(Model.OperationalStatusCode, ConditionCodes.Available, StringComparison.OrdinalIgnoreCase);
+    var statusCode = blockedStatus ? Model.OperationalStatusCode : (isOut ? "OUT_OF_STOCK" : ConditionCodes.Available);
     var statusLabel = blockedStatus ? Model.OperationalStatusName : (isOut ? "Out of Stock" : "Available");
     var pct = Model.TotalQuantity > 0 ? (int)Math.Round(Model.AvailableUnits * 100.0 / Model.TotalQuantity) : 0;
 }
