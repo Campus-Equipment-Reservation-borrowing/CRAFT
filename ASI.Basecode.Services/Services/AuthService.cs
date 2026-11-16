@@ -1,11 +1,9 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -26,12 +24,18 @@ namespace ASI.Basecode.Services.Services
         private const string LockedOutMessage = "Too many failed attempts. Please try again in 15 minutes.";
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IPasswordResetTokenRepository _resetTokens;
+        private readonly IUserRepository _userRepository;
+        private readonly ILookupRepository _lookups;
+        private readonly IAuditLogRepository _auditLogs;
 
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
-
-        public AuthService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork)
+        public AuthService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IAuditLogRepository auditLogs, ILookupRepository lookups, IUserRepository userRepository, IPasswordResetTokenRepository resetTokens)
             : base(loggerFactory)
         {
+            this._resetTokens = resetTokens;
+            this._userRepository = userRepository;
+            this._lookups = lookups;
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
         }
 
@@ -43,13 +47,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             var key = userId.Trim().ToLowerInvariant();
-            var user = this.DbContext.Users
-                .Include(u => u.Role)
-                .Include(u => u.Department)
-                .Include(u => u.AccountStatus)
-                .FirstOrDefault(u =>
-                    u.SchoolEmail.ToLower() == key ||
-                    u.AccountIdentifier.ToLower() == key);
+            var user = this._userRepository.GetTrackedBySignInKeyWithDetails(key);
 
             if (user == null)
             {
@@ -112,11 +110,7 @@ namespace ASI.Basecode.Services.Services
         {
             try
             {
-                var identifier = this.DbContext.Users
-                    .AsNoTracking()
-                    .Where(u => u.UserId == userId)
-                    .Select(u => u.AccountIdentifier)
-                    .FirstOrDefault();
+                var identifier = this._userRepository.GetAccountIdentifier(userId);
                 if (identifier != null)
                 {
                     this.WriteAudit(userId, identifier, "LOGOUT", "User", $"Signed out '{identifier}'.");
@@ -169,25 +163,22 @@ namespace ASI.Basecode.Services.Services
                     return (false, "Passwords do not match.", 0);
                 }
 
-                var role = this.DbContext.Roles.FirstOrDefault(r => r.RoleId == form.RoleId.Value);
+                var role = this._lookups.GetTrackedRoleById(form.RoleId.Value);
                 if (role == null || !role.IsBorrowerRole)
                 {
                     return (false, "Only Student or Faculty accounts can be registered here.", 0);
                 }
 
-                var identifierTaken = this.DbContext.Users
-                    .Any(u => u.AccountIdentifier.ToLower() == form.AccountIdentifier.ToLower());
-                var emailTaken = this.DbContext.Users
-                    .Any(u => u.SchoolEmail.ToLower() == form.SchoolEmail.ToLower());
+                var identifierTaken = this._userRepository.AccountIdentifierExistsLowercase(form.AccountIdentifier);
+                var emailTaken = this._userRepository.SchoolEmailExistsLowercase(form.SchoolEmail);
 
                 if (identifierTaken || emailTaken)
                 {
                     return (false, "An account with this email or ID already exists.", 0);
                 }
 
-                var unverified = this.DbContext.AccountStatuses
-                    .FirstOrDefault(s => s.Code == AccountStatusCodes.Unverified)
-                    ?? this.DbContext.AccountStatuses.FirstOrDefault(s => s.Code == AccountStatusCodes.Active);
+                var unverified = this._lookups.GetTrackedAccountStatusByCode(AccountStatusCodes.Unverified)
+                    ?? this._lookups.GetTrackedAccountStatusByCode(AccountStatusCodes.Active);
 
                 if (unverified == null)
                 {
@@ -207,7 +198,7 @@ namespace ASI.Basecode.Services.Services
                     CreatedAtUtc = default,
                 };
 
-                this.DbContext.Users.Add(entity);
+                this._userRepository.Add(entity);
                 this._unitOfWork.SaveChanges();
 
                 this.WriteAudit(entity.UserId, entity.AccountIdentifier, "REGISTER", "User",
@@ -230,9 +221,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             var key = email.Trim().ToLowerInvariant();
-            var user = this.DbContext.Users
-                .Include(u => u.AccountStatus)
-                .FirstOrDefault(u => u.SchoolEmail.ToLower() == key);
+            var user = this._userRepository.GetTrackedBySchoolEmailWithStatus(key);
             if (user == null || !CanResetPassword(user.AccountStatus?.Code))
             {
                 // Report success without a token so the page reads the same for unknown emails.
@@ -243,15 +232,13 @@ namespace ASI.Basecode.Services.Services
             var now = DateTime.UtcNow;
 
             // Invalidate any earlier outstanding tokens for this user.
-            var previous = this.DbContext.PasswordResetTokens
-                .Where(t => t.UserId == user.UserId && t.UsedAtUtc == null && t.ExpiresAtUtc > now)
-                .ToList();
+            var previous = this._resetTokens.GetTrackedOutstandingForUser(user.UserId, now);
             foreach (var old in previous)
             {
                 old.UsedAtUtc = now;
             }
 
-            this.DbContext.PasswordResetTokens.Add(new PasswordResetToken
+            this._resetTokens.Add(new PasswordResetToken
             {
                 UserId = user.UserId,
                 Token = token,
@@ -272,8 +259,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             var now = DateTime.UtcNow;
-            return this.DbContext.PasswordResetTokens
-                .Any(t => t.Token == token && t.UsedAtUtc == null && t.ExpiresAtUtc > now);
+            return this._resetTokens.IsOutstanding(token, now);
         }
 
         public (bool Success, string Error) ResetPassword(ResetPasswordViewModel form)
@@ -301,17 +287,14 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 var now = DateTime.UtcNow;
-                var reset = this.DbContext.PasswordResetTokens
-                    .FirstOrDefault(t => t.Token == form.Token && t.UsedAtUtc == null && t.ExpiresAtUtc > now);
+                var reset = this._resetTokens.GetTrackedOutstanding(form.Token, now);
 
                 if (reset == null)
                 {
                     return (false, "This reset link is no longer valid. Please request a new one.");
                 }
 
-                var user = this.DbContext.Users
-                    .Include(u => u.AccountStatus)
-                    .FirstOrDefault(u => u.UserId == reset.UserId);
+                var user = this._userRepository.GetTrackedByIdWithStatus(reset.UserId);
                 if (user == null || !CanResetPassword(user.AccountStatus?.Code))
                 {
                     return (false, "This reset link is no longer valid. Please request a new one.");
@@ -341,7 +324,7 @@ namespace ASI.Basecode.Services.Services
         {
             try
             {
-                var user = this.DbContext.Users.FirstOrDefault(u => u.UserId == userId);
+                var user = this._userRepository.GetTrackedById(userId);
                 if (user == null)
                 {
                     return (false, "User Account does not exist.");
@@ -380,32 +363,19 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetBorrowerRoleOptions()
         {
-            return this.DbContext.Roles
-                .AsNoTracking()
-                .Where(r => r.IsBorrowerRole)
-                .OrderBy(r => r.RoleName)
-                .Select(r => new LookupViewModel { Id = r.RoleId, Text = r.RoleName })
-                .ToList();
+            return this._lookups.GetBorrowerRoleOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public List<LookupViewModel> GetDepartmentOptions()
         {
-            return this.DbContext.Departments
-                .AsNoTracking()
-                .Where(d => d.IsActive)
-                .OrderBy(d => d.DepartmentName)
-                .Select(d => new LookupViewModel { Id = d.DepartmentId, Text = d.DepartmentName })
-                .ToList();
+            return this._lookups.GetActiveDepartmentOptions()
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
         }
 
         public AuthenticatedUserViewModel GetAuthenticatedUser(long userId)
         {
-            var user = this.DbContext.Users
-                .AsNoTracking()
-                .Include(u => u.Role)
-                .Include(u => u.Department)
-                .Include(u => u.AccountStatus)
-                .FirstOrDefault(u => u.UserId == userId);
+            var user = this._userRepository.GetByIdWithDetails(userId);
 
             return user == null ? null : this.MapUser(user);
         }
@@ -449,7 +419,7 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteAudit(long? userId, string referenceNumber, string actionType, string entityType, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = userId,
                 ActionType = actionType,

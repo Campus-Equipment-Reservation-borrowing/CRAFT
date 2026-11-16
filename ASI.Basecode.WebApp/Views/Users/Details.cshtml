@@ -74,13 +74,13 @@
                     <dt>Role</dt><dd>@(Model.Role?.RoleName ?? "-")</dd>
                     <dt>Department</dt><dd>@(Model.Department?.DepartmentName ?? "-")</dd>
                     <dt>Status</dt><dd><span class="@StatusBadge.AccountCss(statusCode)">@(Model.AccountStatus?.Description ?? "-")</span></dd>
-                    @if (statusCode == "REJECTED" && !string.IsNullOrWhiteSpace(Model.VerificationNote))
+                    @if (statusCode == AccountStatusCodes.Rejected && !string.IsNullOrWhiteSpace(Model.VerificationNote))
                     {
                         <dt>Rejection reason</dt><dd>@Model.VerificationNote</dd>
                     }
                     @if (Model.VerifiedAtUtc.HasValue)
                     {
-                        <dt>@(statusCode == "REJECTED" ? "Reviewed" : "Verified")</dt><dd>@Model.VerifiedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</dd>
+                        <dt>@(statusCode == AccountStatusCodes.Rejected ? "Reviewed" : "Verified")</dt><dd>@Model.VerifiedAtUtc.Value.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</dd>
                     }
                     <dt>Created</dt><dd>@Model.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</dd>
                 </dl>

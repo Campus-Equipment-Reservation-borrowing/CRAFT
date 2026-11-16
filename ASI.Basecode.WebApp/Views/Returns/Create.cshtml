@@ -34,7 +34,7 @@
                     @ctx.DueAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")
                     @if (ctx.IsOverdue)
                     {
-                        <span class="@StatusBadge.Css("OVERDUE")">Overdue @ctx.DaysOverdue d</span>
+                        <span class="@StatusBadge.Css(BorrowingStatusCodes.Overdue)">Overdue @ctx.DaysOverdue d</span>
                     }
                 </dd>
             </dl>

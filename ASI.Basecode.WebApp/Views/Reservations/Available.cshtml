@@ -64,13 +64,20 @@ else
                 <div class="eq-b">
                     <div class="cp-row-between">
                         <div class="eq-t">@eq.EquipmentName</div>
-                        @if (!string.IsNullOrWhiteSpace(eq.ConditionName))
+                        @{
+                            // Status wins over condition when it takes the item out of circulation
+                            // (Under Maintenance / Broken / Retired), so the card matches the details page.
+                            var statusBlocks = !string.IsNullOrWhiteSpace(eq.OperationalStatusName)
+                                && !string.Equals(eq.OperationalStatusName, "Available", StringComparison.OrdinalIgnoreCase);
+                            var badgeText = statusBlocks ? eq.OperationalStatusName : eq.ConditionName;
+                        }
+                        @if (!string.IsNullOrWhiteSpace(badgeText))
                         {
-                            <span class="@StatusBadge.Css(code(eq.ConditionName))">@eq.ConditionName</span>
+                            <span class="@StatusBadge.Css(code(badgeText))">@badgeText</span>
                         }
                     </div>
                     <div class="eq-m">@eq.CategoryName &middot; @(eq.LocationName ?? "No location")</div>
-                    <div class="eq-m">@(isOut ? "Out of stock" : $"{eq.AvailableUnits} of {eq.TotalQuantity} available")</div>
+                    <div class="eq-m">@(eq.UnavailableReason != null ? "Not available to reserve" : isOut ? "Out of stock" : $"{eq.AvailableUnits} of {eq.TotalQuantity} available")</div>
                     <div class="cp-progress"><span style="width:@(pct)%"></span></div>
                 </div>
             </a>

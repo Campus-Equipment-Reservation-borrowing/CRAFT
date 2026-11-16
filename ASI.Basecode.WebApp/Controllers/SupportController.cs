@@ -85,7 +85,7 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = RoleCodes.Staff)]
+        [Authorize(Roles = RoleCodes.Admin)]
         public IActionResult Resolve(long id)
         {
             var (success, error) = this._communication.Resolve(id);

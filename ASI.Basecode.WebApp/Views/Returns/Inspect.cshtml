@@ -6,6 +6,7 @@
 @{
     var ctx = ViewBag.Context as ReturnFormContextViewModel;
     var inspectable = ctx?.InspectableQuantity ?? 0;
+    var photos = ViewBag.Photos as List<InspectionPhotoViewModel> ?? new List<InspectionPhotoViewModel>();
 }
 
 <div class="cp-page-header">
@@ -17,6 +18,19 @@
 </div>
 
 <div class="cp-stack">
+    @if (photos.Count > 0)
+    {
+        <div class="cp-card">
+            <div class="cp-card-header">Photos from earlier inspections</div>
+            <div class="cp-photo-grid">
+                @foreach (var ph in photos)
+                {
+                    var url = Url.Action("Photo", "Returns", new { id = ph.InspectionId, file = ph.FileName });
+                    <a href="@url" target="_blank" rel="noopener"><img src="@url" alt="Inspection @ph.InspectionId photo @ph.FileName" loading="lazy" /></a>
+                }
+            </div>
+        </div>
+    }
     @if (ctx != null)
     {
         <div class="cp-card">

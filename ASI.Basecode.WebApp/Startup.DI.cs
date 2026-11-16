@@ -2,12 +2,14 @@
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Seeding;
+using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.Services;
-using ASI.Basecode.Services.ViewModelClasses;
-using ASI.Basecode.WebApp.Models;
-using ASI.Basecode.WebApp.Mvc;
+using ASI.Basecode.WebApp.HostedServices;
+using ASI.Basecode.WebApp.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -49,10 +51,18 @@ namespace ASI.Basecode.WebApp
 
             // Equipment administration
             this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+            this._services.AddScoped<IInventoryRepository, InventoryRepository>();
             this._services.AddScoped<IEquipmentService, EquipmentService>();
 
             // User management
             this._services.AddScoped<IUserRepository, UserRepository>();
+            this._services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+            this._services.AddScoped<ILookupRepository, LookupRepository>();
+            this._services.AddScoped<INotificationRepository, NotificationRepository>();
+            this._services.AddScoped<IUserPreferenceRepository, UserPreferenceRepository>();
+            this._services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+            this._services.AddScoped<IBorrowingRepository, BorrowingRepository>();
+            this._services.AddScoped<ICustodianAssignmentRepository, CustodianAssignmentRepository>();
             this._services.AddScoped<IUserService, UserService>();
 
             // Borrower reservations
@@ -60,12 +70,14 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IReservationService, ReservationService>();
 
             // Reservation lifecycle automation (expiry, overdue, due-soon reminders)
-            this._services.Configure<ASI.Basecode.Services.ReservationLifecycleOptions>(
-                this.Configuration.GetSection(ASI.Basecode.Services.ReservationLifecycleOptions.SectionName));
+            this._services.Configure<ReservationLifecycleOptions>(
+                this.Configuration.GetSection(ReservationLifecycleOptions.SectionName));
             this._services.AddScoped<IReservationLifecycleService, ReservationLifecycleService>();
-            this._services.AddHostedService<ASI.Basecode.WebApp.Mvc.ReservationLifecycleWorker>();
+            this._services.AddHostedService<ReservationLifecycleWorker>();
 
             // Announcements, support tickets, verification stats and borrower history
+            this._services.AddScoped<IAnnouncementRepository, AnnouncementRepository>();
+            this._services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
             this._services.AddScoped<ICommunicationService, CommunicationService>();
 
             // Custodian assignment, routing and scoping

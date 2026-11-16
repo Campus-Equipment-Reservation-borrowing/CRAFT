@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ASI.Basecode.Data.QueryModels;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -147,9 +149,9 @@ namespace ASI.Basecode.Data.Repositories
             return new UserTotals
             {
                 TotalAccounts = this.Context.Users.Count(),
-                Students = this.Context.Users.Count(u => u.Role.RoleCode == "STUDENT"),
-                Faculty = this.Context.Users.Count(u => u.Role.RoleCode == "FACULTY"),
-                CustodianAdmins = this.Context.Users.Count(u => u.Role.RoleCode == "TECHNICIAN" || u.Role.RoleCode == "ADMIN"),
+                Students = this.Context.Users.Count(u => u.Role.RoleCode == RoleCodes.Student),
+                Faculty = this.Context.Users.Count(u => u.Role.RoleCode == RoleCodes.Faculty),
+                CustodianAdmins = this.Context.Users.Count(u => u.Role.RoleCode == RoleCodes.Technician || u.Role.RoleCode == RoleCodes.Admin),
                 Unverified = this.Context.Users.Count(u => u.AccountStatus.Code == "UNVERIFIED"),
             };
         }
@@ -167,6 +169,226 @@ namespace ASI.Basecode.Data.Repositories
                 .ThenBy(u => u.FirstName)
                 .ThenBy(u => u.UserId)
                 .ToList();
+        }
+
+        public List<NotificationRecipient> GetNotificationRecipients(IReadOnlyCollection<long> userIds)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Include(u => u.Preference)
+                .Where(u => userIds.Contains(u.UserId))
+                .Select(u => new NotificationRecipient { UserId = u.UserId, SchoolEmail = u.SchoolEmail, Preference = u.Preference })
+                .ToList();
+        }
+
+        public List<long> GetUserIdsInRolesWithStatus(IReadOnlyCollection<string> roleCodes, string accountStatusCode)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Where(u => roleCodes.Contains(u.Role.RoleCode) && u.AccountStatus.Code == accountStatusCode)
+                .Select(u => u.UserId)
+                .ToList();
+        }
+
+        public User GetTrackedBySignInKeyWithDetails(string lowerKey)
+        {
+            return this.Context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Include(u => u.AccountStatus)
+                .FirstOrDefault(u =>
+                    u.SchoolEmail.ToLower() == lowerKey ||
+                    u.AccountIdentifier.ToLower() == lowerKey);
+        }
+
+        public User GetTrackedBySchoolEmailWithStatus(string lowerEmail)
+        {
+            return this.Context.Users
+                .Include(u => u.AccountStatus)
+                .FirstOrDefault(u => u.SchoolEmail.ToLower() == lowerEmail);
+        }
+
+        public User GetTrackedByIdWithStatus(long userId)
+        {
+            return this.Context.Users
+                .Include(u => u.AccountStatus)
+                .FirstOrDefault(u => u.UserId == userId);
+        }
+
+        public string GetAccountIdentifier(long userId)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.AccountIdentifier)
+                .FirstOrDefault();
+        }
+
+        public bool AccountIdentifierExistsLowercase(string accountIdentifier)
+        {
+            return this.Context.Users
+                .Any(u => u.AccountIdentifier.ToLower() == accountIdentifier.ToLower());
+        }
+
+        public bool SchoolEmailExistsLowercase(string schoolEmail)
+        {
+            return this.Context.Users
+                .Any(u => u.SchoolEmail.ToLower() == schoolEmail.ToLower());
+        }
+
+        public void Add(User user)
+        {
+            this.Context.Users.Add(user);
+        }
+
+        public void Remove(User user)
+        {
+            this.Context.Users.Remove(user);
+        }
+
+        public User GetTrackedByIdWithStatusAndRole(long userId)
+        {
+            return this.Context.Users
+                .Include(u => u.AccountStatus)
+                .Include(u => u.Role)
+                .FirstOrDefault(u => u.UserId == userId);
+        }
+
+        public int CountWithAccountStatus(long accountStatusId)
+        {
+            return this.Context.Users.Count(u => u.AccountStatusId == accountStatusId);
+        }
+
+        public UserRoleStatusCodes GetRoleAndStatusCodes(long userId)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => new UserRoleStatusCodes { RoleCode = u.Role.RoleCode, StatusCode = u.AccountStatus.Code })
+                .FirstOrDefault();
+        }
+
+        public bool OtherUserWithRoleAndStatusExists(long excludeUserId, string roleCode, string accountStatusCode)
+        {
+            return this.Context.Users.Any(u => u.UserId != excludeUserId
+                && u.Role.RoleCode == roleCode
+                && u.AccountStatus.Code == accountStatusCode);
+        }
+
+        public string GetProfileImagePath(long userId)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.ProfileImagePath)
+                .FirstOrDefault();
+        }
+
+        public void ClearAnnouncementCreator(long userId)
+        {
+            foreach (var a in this.Context.Announcements.Where(a => a.CreatedByUserId == userId))
+            {
+                a.CreatedByUserId = null;
+            }
+        }
+
+        public void ClearSupportTicketAssignee(long userId)
+        {
+            foreach (var t in this.Context.SupportTickets.Where(t => t.AssignedToUserId == userId))
+            {
+                t.AssignedToUserId = null;
+            }
+        }
+
+        public Dictionary<string, int> CountByAccountStatusCode()
+        {
+            return this.Context.Users.AsNoTracking()
+                .GroupBy(u => u.AccountStatus.Code)
+                .Select(g => new { Code = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.Code, x => x.Count);
+        }
+
+        public List<(DateTime CreatedAtUtc, DateTime VerifiedAtUtc)> GetVerificationTimes()
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.VerifiedAtUtc != null && u.CreatedAtUtc != default)
+                .Select(u => new { u.CreatedAtUtc, Verified = u.VerifiedAtUtc.Value })
+                .ToList()
+                .Select(x => (x.CreatedAtUtc, x.Verified))
+                .ToList();
+        }
+
+        public string GetAccountStatusCode(long userId)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.AccountStatus.Code)
+                .FirstOrDefault();
+        }
+
+        public string GetRoleCode(long userId)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.Role.RoleCode)
+                .FirstOrDefault();
+        }
+
+        public string GetFullName(long userId)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Where(u => u.UserId == userId)
+                .Select(u => u.FirstName + " " + u.LastName)
+                .FirstOrDefault();
+        }
+
+        public bool HasAccountStatus(long userId, string accountStatusCode)
+        {
+            return this.Context.Users.Any(u => u.UserId == userId && u.AccountStatus.Code == accountStatusCode);
+        }
+
+        public HashSet<long> GetBorrowerIdsWithStatus(string accountStatusCode)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.Role.IsBorrowerRole && u.AccountStatus.Code == accountStatusCode)
+                .Select(u => u.UserId)
+                .ToHashSet();
+        }
+
+        public List<User> GetBorrowersWithStatusByName(string accountStatusCode)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.Role.IsBorrowerRole && u.AccountStatus.Code == accountStatusCode)
+                .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+                .ToList();
+        }
+
+        public List<User> GetInRoleByName(string roleCode, string accountStatusCode = null)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Include(u => u.AccountStatus)
+                .Where(u => u.Role.RoleCode == roleCode && (accountStatusCode == null || u.AccountStatus.Code == accountStatusCode))
+                .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+                .ToList();
+        }
+
+        public User GetInRoleWithStatus(long userId, string roleCode, string accountStatusCode)
+        {
+            return this.Context.Users.AsNoTracking()
+                .FirstOrDefault(u => u.UserId == userId && u.Role.RoleCode == roleCode && u.AccountStatus.Code == accountStatusCode);
+        }
+
+        public User GetBorrower(long userId)
+        {
+            return this.Context.Users.AsNoTracking()
+                .FirstOrDefault(u => u.UserId == userId && u.Role.IsBorrowerRole);
+        }
+
+        public bool IsBorrowerWithStatus(long userId, string accountStatusCode)
+        {
+            return this.Context.Users.Any(u => u.UserId == userId
+                && u.Role.IsBorrowerRole
+                && u.AccountStatus.Code == accountStatusCode);
         }
     }
 }

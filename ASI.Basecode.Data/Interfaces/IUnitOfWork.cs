@@ -18,5 +18,10 @@ namespace ASI.Basecode.Data.Interfaces
         /// Saves the changes to database
         /// </summary>
         void SaveChanges();
+
+        /// <summary>
+        /// Begins a database transaction; dispose without committing to roll back.
+        /// </summary>
+        IUnitOfWorkTransaction BeginTransaction();
     }
 }

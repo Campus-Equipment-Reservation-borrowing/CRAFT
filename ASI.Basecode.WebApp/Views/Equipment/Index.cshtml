@@ -10,7 +10,7 @@
         <h1 class="cp-page-title">Equipment Management</h1>
         <p class="cp-page-subtitle">System-wide equipment records, categories, locations and maintenance information.</p>
     </div>
-    @if (User.IsInRole("ADMIN"))
+    @if (User.IsInRole(RoleCodes.Admin))
     {
         <div class="cp-page-actions">
             <a asp-action="Create" class="cp-btn cp-btn-primary">Add Equipment</a>
@@ -101,7 +101,7 @@
                             }
                         </td>
                         <td class="cp-cell-actions">
-                            @if (User.IsInRole("ADMIN"))
+                            @if (User.IsInRole(RoleCodes.Admin))
                             {
                                 <a asp-action="Edit" asp-route-id="@eq.EquipmentId" class="cp-btn cp-btn-secondary cp-btn-sm">Edit</a>
                                 <form method="post" asp-action="Delete" asp-route-id="@eq.EquipmentId" data-confirm="Delete @eq.EquipmentName? This can't be undone." onsubmit="return confirm(this.dataset.confirm);">

@@ -1,9 +1,7 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -16,14 +14,21 @@ namespace ASI.Basecode.Services.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmailSender _emailSender;
+        private readonly IUserRepository _userRepository;
+        private readonly INotificationRepository _notificationRepository;
 
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
-
-        public NotificationDispatcher(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IEmailSender emailSender)
+        public NotificationDispatcher(
+            ILoggerFactory loggerFactory,
+            IUnitOfWork unitOfWork,
+            IEmailSender emailSender,
+            IUserRepository userRepository,
+            INotificationRepository notificationRepository)
             : base(loggerFactory)
         {
             this._unitOfWork = unitOfWork;
             this._emailSender = emailSender;
+            this._userRepository = userRepository;
+            this._notificationRepository = notificationRepository;
         }
 
         public int Notify(long recipientUserId, string notificationType, string title, string message, string linkUrl = null)
@@ -39,12 +44,7 @@ namespace ASI.Basecode.Services.Services
                 return 0;
             }
 
-            var recipients = this.DbContext.Users
-                .AsNoTracking()
-                .Include(u => u.Preference)
-                .Where(u => ids.Contains(u.UserId))
-                .Select(u => new { u.UserId, u.SchoolEmail, u.Preference })
-                .ToList();
+            var recipients = this._userRepository.GetNotificationRecipients(ids);
 
             var now = DateTime.UtcNow;
             var written = 0;
@@ -55,7 +55,7 @@ namespace ASI.Basecode.Services.Services
                     continue;
                 }
 
-                this.DbContext.Notifications.Add(new Notification
+                this._notificationRepository.Add(new Notification
                 {
                     RecipientUserId = recipient.UserId,
                     NotificationType = notificationType,
@@ -94,16 +94,12 @@ namespace ASI.Basecode.Services.Services
                 return new List<long>();
             }
 
-            return this.DbContext.Users
-                .AsNoTracking()
-                .Where(u => roleCodes.Contains(u.Role.RoleCode) && u.AccountStatus.Code == AccountStatusCodes.Active)
-                .Select(u => u.UserId)
-                .ToList();
+            return this._userRepository.GetUserIdsInRolesWithStatus(roleCodes, AccountStatusCodes.Active);
         }
 
         public int GetUnreadCount(long userId)
         {
-            return this.DbContext.Notifications.Count(n => n.RecipientUserId == userId && !n.IsRead);
+            return this._notificationRepository.CountUnread(userId);
         }
 
         /// <summary>Missing preference rows mean "all on" (the seeder backfills defaults).</summary>

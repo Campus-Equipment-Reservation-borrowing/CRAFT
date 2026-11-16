@@ -57,6 +57,11 @@
             </div>
 
             <div class="cp-section-title">Borrowing Schedule</div>
+            <div class="cp-form-hint" id="rsv-schedule-hint"
+                 data-lead-days="@(Model.Equipment?.ReservationLeadTimeDays ?? 1)"
+                 data-max-days="@(Model.Equipment?.MaxAdvanceBookingDays ?? 30)">
+                Pickup must be at least @(Model.Equipment?.ReservationLeadTimeDays ?? 1) day(s) from now and at most @(Model.Equipment?.MaxAdvanceBookingDays ?? 30) days ahead.
+            </div>
             <div class="cp-form-row">
                 <div class="cp-form-group">
                     <label asp-for="Form.BorrowingDate" class="cp-form-label">Borrowing Date <span class="required">*</span></label>
@@ -119,6 +124,55 @@
                 <button type="submit" class="cp-btn cp-btn-success" disabled="@(!canReserve)" aria-describedby="@(canReserve ? null : "reserveBlocked")">Submit Reservation</button>
             </div>
         </form>
+        <script>
+            // Keep the pickers inside the policy window so past / too-early times can't be chosen.
+            // The server re-checks everything; this just stops the user picking a time it will reject.
+            (function () {
+                var hint = document.getElementById('rsv-schedule-hint');
+                var bd = document.querySelector('[name="Form.BorrowingDate"]');
+                var bt = document.querySelector('[name="Form.BorrowingTime"]');
+                var rd = document.querySelector('[name="Form.ExpectedReturnDate"]');
+                var rt = document.querySelector('[name="Form.ExpectedReturnTime"]');
+                if (!hint || !bd || !bt || !rd || !rt) return;
+                var leadDays = parseInt(hint.getAttribute('data-lead-days'), 10) || 0;
+                var maxDays = parseInt(hint.getAttribute('data-max-days'), 10) || 30;
+                function pad(n) { return (n < 10 ? '0' : '') + n; }
+                function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+                function hm(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+                function at(dateStr, timeStr) { return dateStr && timeStr ? new Date(dateStr + 'T' + timeStr) : null; }
+                function earliest() {
+                    // now + lead time, rounded up to the next 5 minutes
+                    var e = new Date(Date.now() + leadDays * 86400000);
+                    e.setSeconds(0, 0);
+                    e.setMinutes(Math.ceil(e.getMinutes() / 5) * 5);
+                    return e;
+                }
+                function latest() { return new Date(Date.now() + maxDays * 86400000); }
+                var fmt = { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' };
+
+                function refresh() {
+                    var e = earliest(), l = latest();
+                    bd.min = ymd(e); bd.max = ymd(l);
+                    bt.min = bd.value === ymd(e) ? hm(e) : '';
+                    bt.max = bd.value === ymd(l) ? hm(l) : '';
+                    rd.min = bd.value || ymd(e);
+                    rt.min = (rd.value && rd.value === bd.value && bt.value) ? bt.value : '';
+                    hint.textContent = 'Earliest pickup: ' + e.toLocaleString(undefined, fmt) +
+                        ' (at least ' + leadDays + ' day' + (leadDays === 1 ? '' : 's') + ' from now), up to ' + maxDays + ' days ahead.';
+
+                    var start = at(bd.value, bt.value), end = at(rd.value, rt.value);
+                    bt.setCustomValidity(start && start < e ? 'Pick a pickup time on or after ' + e.toLocaleString(undefined, fmt) + '.' : '');
+                    rt.setCustomValidity(start && end && end <= start ? 'The return must be after the pickup time.' : '');
+                }
+                [bd, bt, rd, rt].forEach(function (el) { el.addEventListener('input', refresh); el.addEventListener('change', refresh); });
+                // Re-check right before submitting, in case the page sat open and the clock moved on.
+                bd.form.addEventListener('submit', function (ev) {
+                    refresh();
+                    if (!bd.form.checkValidity()) { ev.preventDefault(); bd.form.reportValidity(); }
+                }, true);
+                refresh();
+            })();
+        </script>
     </div>
 
     <div class="cp-stack">

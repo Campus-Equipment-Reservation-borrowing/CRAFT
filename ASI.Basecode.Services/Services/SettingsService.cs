@@ -1,10 +1,7 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
-using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -20,18 +17,22 @@ namespace ASI.Basecode.Services.Services
         private static readonly Regex CodePattern = new Regex(@"^[A-Z0-9_-]{2,50}$");
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationRepository _notificationRepository;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly ISettingsRepository _repository;
         private readonly ICurrentUserService _currentUser;
-
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
         public SettingsService(
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
             ISettingsRepository repository,
-            ICurrentUserService currentUser)
+            ICurrentUserService currentUser,
+            IAuditLogRepository auditLogs,
+            INotificationRepository notificationRepository)
             : base(loggerFactory)
         {
+            this._notificationRepository = notificationRepository;
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._repository = repository;
             this._currentUser = currentUser;
@@ -138,7 +139,7 @@ namespace ASI.Basecode.Services.Services
                     BlockReservationWhenOverdue = form.BlockReservationWhenOverdue,
                 };
 
-                this.DbContext.BorrowingPolicyVersions.Add(newPolicy);
+                this._repository.AddPolicy(newPolicy);
                 this._unitOfWork.SaveChanges();
 
                 var summary = $"{newPolicy.MaxBorrowDurationDays} days max, {newPolicy.MaxUnitsPerBorrower} units per reservation, {newPolicy.MaxActiveBorrowingUnits} open requests";
@@ -164,13 +165,13 @@ namespace ASI.Basecode.Services.Services
                 return (false, invalid);
             }
 
-            if (this.DbContext.EquipmentCategories.Any(c => c.CategoryCode.ToUpper() == code))
+            if (this._repository.CategoryCodeExists(code))
             {
                 return (false, $"Category code {code} already exists.");
             }
 
             var upperName = name.ToUpper();
-            if (this.DbContext.EquipmentCategories.Any(c => c.CategoryName.ToUpper() == upperName))
+            if (this._repository.CategoryNameExists(upperName))
             {
                 return (false, $"A category named \"{name}\" already exists.");
             }
@@ -178,7 +179,7 @@ namespace ASI.Basecode.Services.Services
             try
             {
                 var entity = new EquipmentCategory { CategoryCode = code, CategoryName = name };
-                this.DbContext.EquipmentCategories.Add(entity);
+                this._repository.AddCategory(entity);
                 this._unitOfWork.SaveChanges();
                 this.Audit("CREATE", "EquipmentCategory", entity.EquipmentCategoryId, code, $"Added equipment category {code} ({name}).");
                 return (true, $"Category {code} added.");
@@ -192,13 +193,13 @@ namespace ASI.Basecode.Services.Services
 
         public (bool Success, string Error) DeleteCategory(long categoryId)
         {
-            var entity = this.DbContext.EquipmentCategories.FirstOrDefault(c => c.EquipmentCategoryId == categoryId);
+            var entity = this._repository.GetTrackedCategory(categoryId);
             if (entity == null)
             {
                 return (false, "That category no longer exists.");
             }
 
-            var inUse = this.DbContext.Equipment.Count(e => e.EquipmentCategoryId == categoryId);
+            var inUse = this._repository.CountEquipmentInCategory(categoryId);
             if (inUse > 0)
             {
                 return (false, $"Category {entity.CategoryCode} is used by {inUse} equipment record(s). Reassign them first.");
@@ -206,7 +207,7 @@ namespace ASI.Basecode.Services.Services
 
             try
             {
-                this.DbContext.EquipmentCategories.Remove(entity);
+                this._repository.RemoveCategory(entity);
                 this._unitOfWork.SaveChanges();
                 this.Audit("DELETE", "EquipmentCategory", categoryId, entity.CategoryCode, $"Deleted equipment category {entity.CategoryCode} ({entity.CategoryName}).");
                 return (true, $"Category {entity.CategoryCode} deleted.");
@@ -214,7 +215,7 @@ namespace ASI.Basecode.Services.Services
             catch (Exception ex)
             {
                 this._logger.LogError(ex, "Failed to delete category.");
-                this.DbContext.Entry(entity).State = EntityState.Unchanged;
+                this._repository.MarkUnchanged(entity);
                 return (false, $"Category {entity.CategoryCode} is still referenced elsewhere (e.g. custodian assignments) and can't be deleted.");
             }
         }
@@ -229,7 +230,7 @@ namespace ASI.Basecode.Services.Services
                 return (false, invalid);
             }
 
-            if (this.DbContext.Locations.Any(l => l.LocationCode.ToUpper() == code))
+            if (this._repository.LocationCodeExists(code))
             {
                 return (false, $"Location code {code} already exists.");
             }
@@ -243,7 +244,7 @@ namespace ASI.Basecode.Services.Services
                     IsPickupLocation = isPickup,
                     IsActive = true,
                 };
-                this.DbContext.Locations.Add(entity);
+                this._repository.AddLocation(entity);
                 this._unitOfWork.SaveChanges();
                 this.Audit("CREATE", "Location", entity.LocationId, code, $"Added location {code} ({name}).");
                 return (true, $"Location {code} added.");
@@ -257,7 +258,7 @@ namespace ASI.Basecode.Services.Services
 
         public (bool Success, string Error) DeleteLocation(long locationId)
         {
-            var entity = this.DbContext.Locations.FirstOrDefault(l => l.LocationId == locationId);
+            var entity = this._repository.GetTrackedLocation(locationId);
             if (entity == null)
             {
                 return (false, "That location no longer exists.");
@@ -270,7 +271,7 @@ namespace ASI.Basecode.Services.Services
 
             try
             {
-                this.DbContext.Locations.Remove(entity);
+                this._repository.RemoveLocation(entity);
                 this._unitOfWork.SaveChanges();
                 this.Audit("DELETE", "Location", locationId, entity.LocationCode, $"Deleted location {entity.LocationCode} ({entity.LocationName}).");
                 return (true, $"Location {entity.LocationCode} deleted.");
@@ -278,18 +279,14 @@ namespace ASI.Basecode.Services.Services
             catch (Exception ex)
             {
                 this._logger.LogError(ex, "Failed to delete location.");
-                this.DbContext.Entry(entity).State = EntityState.Unchanged;
+                this._repository.MarkUnchanged(entity);
                 return (false, $"Location {entity.LocationCode} is still referenced (e.g. by reservations) and can't be deleted.");
             }
         }
 
         public NotificationsIndexViewModel GetNotifications(long userId)
         {
-            var items = this.DbContext.Notifications
-                .AsNoTracking()
-                .Where(n => n.RecipientUserId == userId)
-                .OrderByDescending(n => n.CreatedAtUtc)
-                .Take(100)
+            var items = this._notificationRepository.GetLatestForRecipient(userId, 100)
                 .Select(n => new NotificationRowViewModel
                 {
                     NotificationId = n.NotificationId,
@@ -312,7 +309,7 @@ namespace ASI.Basecode.Services.Services
         /// <summary>Marks the user's notification read and returns where it should open, or null if it isn't theirs.</summary>
         public string OpenNotification(long notificationId, long userId)
         {
-            var entity = this.DbContext.Notifications.FirstOrDefault(n => n.NotificationId == notificationId && n.RecipientUserId == userId);
+            var entity = this._notificationRepository.GetTrackedForRecipient(notificationId, userId);
             if (entity == null)
             {
                 return null;
@@ -329,7 +326,7 @@ namespace ASI.Basecode.Services.Services
 
         public void MarkNotificationRead(long notificationId, long userId)
         {
-            var entity = this.DbContext.Notifications.FirstOrDefault(n => n.NotificationId == notificationId && n.RecipientUserId == userId);
+            var entity = this._notificationRepository.GetTrackedForRecipient(notificationId, userId);
             if (entity != null)
             {
                 entity.IsRead = true;
@@ -339,7 +336,7 @@ namespace ASI.Basecode.Services.Services
 
         public void MarkAllNotificationsRead(long userId)
         {
-            var unread = this.DbContext.Notifications.Where(n => n.RecipientUserId == userId && !n.IsRead).ToList();
+            var unread = this._notificationRepository.GetTrackedUnreadForRecipient(userId);
             foreach (var n in unread)
             {
                 n.IsRead = true;
@@ -382,7 +379,7 @@ namespace ASI.Basecode.Services.Services
 
         private void Audit(string action, string entityType, long entityId, string reference, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
                 ActionType = action,

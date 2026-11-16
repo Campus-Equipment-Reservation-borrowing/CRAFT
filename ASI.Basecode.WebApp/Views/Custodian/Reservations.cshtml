@@ -47,7 +47,7 @@ else
             <tbody>
                 @foreach (var r in Model.Page.Items)
                 {
-                    var claimable = r.AssignedCustodianUserId == null && (r.StatusCode == "PENDING" || r.StatusCode == "APPROVED");
+                    var claimable = r.AssignedCustodianUserId == null && (r.StatusCode == ReservationStatusCodes.Pending || r.StatusCode == ReservationStatusCodes.Approved);
                     <tr>
                         <td class="cp-mono">@r.ReservationNumber</td>
                         <td>@r.BorrowerName</td>
@@ -74,7 +74,7 @@ else
                         <td>@r.SubmittedAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
                         <td>@r.RequestedStartAtUtc.ToLocalTime().ToString("dd MMM") – @r.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
                         <td class="text-center">
-                            @if (claimable && User.IsInRole("TECHNICIAN"))
+                            @if (claimable && User.IsInRole(RoleCodes.Technician))
                             {
                                 <form method="post" asp-action="Claim" asp-route-id="@r.ReservationId" class="cp-inline">
                                     @Html.AntiForgeryToken()
@@ -82,7 +82,7 @@ else
                                 </form>
                             }
                             <a asp-action="Review" asp-route-id="@r.ReservationId" class="cp-btn cp-btn-secondary cp-btn-sm">Review</a>
-                            @if (r.StatusCode == "APPROVED" || r.StatusCode == "PARTIALLY_RELEASED")
+                            @if (r.StatusCode == ReservationStatusCodes.Approved || r.StatusCode == ReservationStatusCodes.PartiallyReleased)
                             {
                                 <a asp-action="Release" asp-route-id="@r.ReservationId" class="cp-btn cp-btn-success cp-btn-sm">Release</a>
                             }

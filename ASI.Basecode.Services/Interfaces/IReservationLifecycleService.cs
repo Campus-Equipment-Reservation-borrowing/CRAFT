@@ -1,16 +1,8 @@
 using System;
+using ASI.Basecode.Services.ServiceModels;
 
 namespace ASI.Basecode.Services.Interfaces
 {
-    /// <summary>Counts from one lifecycle pass (for logging).</summary>
-    public class LifecycleRunResult
-    {
-        public int Expired { get; set; }
-        public int MarkedOverdue { get; set; }
-        public int DueReminders { get; set; }
-        public int ExpiryWarnings { get; set; }
-    }
-
     /// <summary>
     /// Time-driven reservation/borrowing transitions: expire stale PENDING reservations (releasing
     /// their held units), persist OVERDUE borrowings past due + grace, and send due-soon reminders.

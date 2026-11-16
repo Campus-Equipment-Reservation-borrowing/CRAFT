@@ -1,13 +1,12 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Services.Services
 {
@@ -16,43 +15,22 @@ namespace ASI.Basecode.Services.Services
     /// </summary>
     public class BorrowingService : ServiceBase, IBorrowingService
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IBorrowingRepository _borrowings;
+        private readonly ISettingsRepository _settings;
 
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
-
-        public BorrowingService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork)
+        public BorrowingService(ILoggerFactory loggerFactory, IBorrowingRepository borrowings, ISettingsRepository settings)
             : base(loggerFactory)
         {
-            this._unitOfWork = unitOfWork;
+            this._borrowings = borrowings;
+            this._settings = settings;
         }
 
         public BorrowingMineViewModel GetMine(long userId, string search)
         {
             var now = DateTime.UtcNow;
-            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
+            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this._settings, now);
 
-            var query = this.DbContext.Borrowings
-                .AsNoTracking()
-                .Include(b => b.Equipment)
-                .Include(b => b.Status)
-                .Include(b => b.ReleaseCondition)
-                .Where(b => b.BorrowerUserId == userId
-                    && b.Status.Code != "RETURNED"
-                    && b.Status.Code != "LOST");
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var term = search.Trim();
-                query = query.Where(b =>
-                    b.TransactionNumber.Contains(term) ||
-                    b.Equipment.EquipmentName.Contains(term) ||
-                    b.Equipment.AssetCode.Contains(term));
-            }
-
-            var rows = query
-                .OrderBy(b => b.DueAtUtc)
-                .ThenBy(b => b.BorrowingId)
-                .ToList();
+            var rows = this._borrowings.GetForBorrowerExcludingStatuses(userId, BorrowingStatusCodes.Returned, BorrowingStatusCodes.Lost, search);
 
             return new BorrowingMineViewModel
             {
@@ -70,7 +48,7 @@ namespace ASI.Basecode.Services.Services
                         ReleasedAtUtc = b.ReleasedAtUtc,
                         DueAtUtc = b.DueAtUtc,
                         ReleaseConditionName = b.ReleaseCondition?.Description,
-                        StatusCode = isOverdue ? "OVERDUE" : b.Status.Code,
+                        StatusCode = isOverdue ? BorrowingStatusCodes.Overdue : b.Status.Code,
                         StatusDescription = isOverdue ? "Overdue" : b.Status.Description,
                         IsOverdue = isOverdue,
                         IsDueToday = BorrowingRules.IsLocalToday(b.DueAtUtc, now),
@@ -84,25 +62,16 @@ namespace ASI.Basecode.Services.Services
         {
             var now = DateTime.UtcNow;
 
-            var b = this.DbContext.Borrowings
-                .AsNoTracking()
-                .Include(x => x.Equipment).ThenInclude(e => e.EquipmentCategory)
-                .Include(x => x.Equipment).ThenInclude(e => e.Location)
-                .Include(x => x.Status)
-                .Include(x => x.ReleaseCondition)
-                .Include(x => x.ReleasedByUser)
-                .Include(x => x.BorrowingReturns).ThenInclude(r => r.ReceivedByUser)
-                .Include(x => x.ConditionInspections).ThenInclude(i => i.CurrentCondition)
-                .FirstOrDefault(x => x.BorrowingId == borrowingId && x.BorrowerUserId == userId);
+            var b = this._borrowings.GetDetailsForBorrower(borrowingId, userId);
 
             if (b == null)
             {
                 return null;
             }
 
-            var returned = string.Equals(b.Status?.Code, "RETURNED", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(b.Status?.Code, "LOST", StringComparison.OrdinalIgnoreCase);
-            var isOverdue = BorrowingRules.IsOverdue(b.Status?.Code, b.DueAtUtc, BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now));
+            var returned = string.Equals(b.Status?.Code, BorrowingStatusCodes.Returned, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(b.Status?.Code, BorrowingStatusCodes.Lost, StringComparison.OrdinalIgnoreCase);
+            var isOverdue = BorrowingRules.IsOverdue(b.Status?.Code, b.DueAtUtc, BorrowingRules.GetOverdueCutoffUtc(this._settings, now));
             var lastReturn = b.BorrowingReturns?.OrderByDescending(r => r.ReturnedAtUtc).FirstOrDefault();
             var totalReturned = b.BorrowingReturns?.Sum(r => r.ReturnedQuantity) ?? 0;
             var lastInspection = b.ConditionInspections?.OrderByDescending(i => i.CreatedAtUtc).FirstOrDefault();
@@ -120,7 +89,7 @@ namespace ASI.Basecode.Services.Services
                 ReleasedBy = b.ReleasedByUser == null ? null : $"{b.ReleasedByUser.FirstName} {b.ReleasedByUser.LastName}".Trim(),
                 ReleaseConditionName = b.ReleaseCondition?.Description,
                 DueAtUtc = b.DueAtUtc,
-                StatusCode = isOverdue ? "OVERDUE" : b.Status?.Code,
+                StatusCode = isOverdue ? BorrowingStatusCodes.Overdue : b.Status?.Code,
                 StatusDescription = isOverdue ? "Overdue" : b.Status?.Description,
                 IsOverdue = isOverdue,
                 IsReturned = returned,
@@ -136,27 +105,7 @@ namespace ASI.Basecode.Services.Services
 
         public BorrowingHistoryViewModel GetHistory(long userId, string search, string condition)
         {
-            var query = this.DbContext.Borrowings
-                .AsNoTracking()
-                .Include(b => b.Equipment)
-                .Include(b => b.Status)
-                .Include(b => b.BorrowingReturns)
-                .Include(b => b.ConditionInspections).ThenInclude(i => i.CurrentCondition)
-                .Where(b => b.BorrowerUserId == userId && (b.Status.Code == "RETURNED" || b.Status.Code == "LOST"));
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var term = search.Trim();
-                query = query.Where(b =>
-                    b.TransactionNumber.Contains(term) ||
-                    b.Equipment.EquipmentName.Contains(term) ||
-                    b.Equipment.AssetCode.Contains(term));
-            }
-
-            var rows = query
-                .OrderByDescending(b => b.BorrowingReturns.OrderByDescending(r => r.ReturnedAtUtc).Select(r => r.ReturnedAtUtc).FirstOrDefault())
-                .ThenByDescending(b => b.BorrowingId)
-                .ToList()
+            var rows = this._borrowings.GetHistoryForBorrower(userId, BorrowingStatusCodes.Returned, BorrowingStatusCodes.Lost, search)
                 .Select(b =>
                 {
                     var lastReturn = b.BorrowingReturns?.OrderByDescending(r => r.ReturnedAtUtc).FirstOrDefault();

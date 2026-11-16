@@ -16,7 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using AuthSignInResult = ASI.Basecode.Services.Interfaces.SignInResult;
+using AuthSignInResult = ASI.Basecode.Services.ViewModelClasses.SignInResult;
 
 namespace ASI.Basecode.WebApp.Controllers
 {

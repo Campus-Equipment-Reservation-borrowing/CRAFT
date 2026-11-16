@@ -3,6 +3,8 @@ using ASI.Basecode.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using ASI.Basecode.Data.QueryModels;
+using ASI.Basecode.Resources.Constants;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -98,7 +100,7 @@ namespace ASI.Basecode.Data.Repositories
                 .Include(b => b.Status)
                 .Include(b => b.InspectionStatus)
                 .AsNoTracking()
-                .Where(b => b.Status.Code == "ACTIVE" || b.Status.Code == "PARTIALLY_RETURNED" || b.Status.Code == "OVERDUE");
+                .Where(b => b.Status.Code == BorrowingStatusCodes.Active || b.Status.Code == BorrowingStatusCodes.PartiallyReturned || b.Status.Code == BorrowingStatusCodes.Overdue);
 
             if (scopeCustodianUserId.HasValue)
             {
@@ -184,6 +186,46 @@ namespace ASI.Basecode.Data.Repositories
                 .Include(b => b.Status)
                 .Include(b => b.InspectionStatus)
                 .FirstOrDefault(b => b.BorrowingId == borrowingId);
+        }
+
+        public void AddBorrowing(Borrowing borrowing)
+        {
+            this.Context.Borrowings.Add(borrowing);
+        }
+
+        public Reservation FindReservationByNumberInScope(string upperReservationNumber, long? scopeCustodianUserId)
+        {
+            var scope = scopeCustodianUserId;
+            return this.Context.Reservations.AsNoTracking()
+                .Include(r => r.Status)
+                .Include(r => r.Equipment)
+                .Include(r => r.BorrowerUser)
+                .Where(r => r.ReservationNumber.ToUpper() == upperReservationNumber)
+                .Where(r => scope == null || r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == scope)
+                .FirstOrDefault();
+        }
+
+        public System.Collections.Generic.List<Reservation> GetReservationsForEquipmentInScope(long equipmentId, System.Collections.Generic.IReadOnlyCollection<string> statusCodes, long? scopeCustodianUserId)
+        {
+            var scope = scopeCustodianUserId;
+            return this.Context.Reservations.AsNoTracking()
+                .Include(r => r.BorrowerUser)
+                .Where(r => r.EquipmentId == equipmentId && statusCodes.Contains(r.Status.Code))
+                .Where(r => scope == null || r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == scope)
+                .OrderBy(r => r.RequestedStartAtUtc)
+                .ToList();
+        }
+
+        public System.Collections.Generic.List<Borrowing> GetBorrowingsForEquipmentInScope(long equipmentId, System.Collections.Generic.IReadOnlyCollection<string> statusCodes, long? scopeCustodianUserId)
+        {
+            var scope = scopeCustodianUserId;
+            return this.Context.Borrowings.AsNoTracking()
+                .Include(b => b.BorrowerUser)
+                .Include(b => b.Status)
+                .Where(b => b.EquipmentId == equipmentId && statusCodes.Contains(b.Status.Code))
+                .Where(b => scope == null || b.Reservation == null || b.Reservation.AssignedCustodianUserId == null || b.Reservation.AssignedCustodianUserId == scope)
+                .OrderBy(b => b.DueAtUtc)
+                .ToList();
         }
     }
 }

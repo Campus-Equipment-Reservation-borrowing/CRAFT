@@ -14,6 +14,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ASI.Basecode.Data.QueryModels;
+using ASI.Basecode.WebApp.Helpers;
 
 namespace ASI.Basecode.WebApp.Controllers
 {
@@ -215,6 +217,7 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleCodes.Admin)]
         public IActionResult AdjustStock(long id, string adjustment, int quantity, string note)
         {
             var (success, error) = this._equipmentService.AdjustStock(id, adjustment, quantity, note);

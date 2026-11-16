@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.WebApp.Controllers
 {
