@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
@@ -87,6 +88,65 @@ namespace ASI.Basecode.Data.Repositories
                 .Include(r => r.ReceivedByUser)
                 .Include(r => r.ConditionInspections)
                 .FirstOrDefault(r => r.ReturnId == returnId);
+        }
+
+        public HashSet<long> GetBorrowingIdsWithUninspectedReturns(IReadOnlyCollection<long> borrowingIds, string completedInspectionStatusCode)
+        {
+            return this.Context.Borrowings.AsNoTracking()
+                .Where(b => borrowingIds.Contains(b.BorrowingId))
+                .Select(b => new
+                {
+                    b.BorrowingId,
+                    Returned = b.BorrowingReturns.Sum(x => (int?)x.ReturnedQuantity) ?? 0,
+                    Inspected = b.ConditionInspections.Where(i => i.InspectionStatus.Code == completedInspectionStatusCode).Sum(i => (int?)i.InspectedQuantity) ?? 0,
+                })
+                .Where(x => x.Returned > x.Inspected)
+                .Select(x => x.BorrowingId)
+                .ToHashSet();
+        }
+
+        public int SumInspectedQuantity(long borrowingId, string inspectionStatusCode, long? excludeInspectionId = null)
+        {
+            return this.Context.ConditionInspections
+                .Where(i => i.BorrowingId == borrowingId
+                    && i.InspectionStatus.Code == inspectionStatusCode
+                    && (excludeInspectionId == null || i.InspectionId != excludeInspectionId))
+                .Sum(i => (int?)i.InspectedQuantity) ?? 0;
+        }
+
+        public int SumLostQuantity(long borrowingId, long excludeInspectionId, string inspectionStatusCode)
+        {
+            return this.Context.ConditionInspections
+                .Where(i => i.BorrowingId == borrowingId && i.InspectionId != excludeInspectionId && i.InspectionStatus.Code == inspectionStatusCode)
+                .Sum(i => (int?)i.LostQuantity) ?? 0;
+        }
+
+        public List<long> GetInspectionIds(long borrowingId)
+        {
+            return this.Context.ConditionInspections.AsNoTracking()
+                .Where(i => i.BorrowingId == borrowingId)
+                .OrderBy(i => i.InspectionId)
+                .Select(i => i.InspectionId)
+                .ToList();
+        }
+
+        public (bool Exists, long? AssignedCustodianUserId) GetInspectionCustodian(long inspectionId)
+        {
+            var row = this.Context.ConditionInspections.AsNoTracking()
+                .Where(i => i.InspectionId == inspectionId)
+                .Select(i => new { i.Borrowing.Reservation.AssignedCustodianUserId })
+                .FirstOrDefault();
+            return row == null ? (false, null) : (true, row.AssignedCustodianUserId);
+        }
+
+        public void AddReturn(BorrowingReturn borrowingReturn)
+        {
+            this.Context.BorrowingReturns.Add(borrowingReturn);
+        }
+
+        public void AddInspection(ConditionInspection inspection)
+        {
+            this.Context.ConditionInspections.Add(inspection);
         }
     }
 }

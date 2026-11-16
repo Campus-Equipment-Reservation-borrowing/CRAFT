@@ -1,4 +1,3 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
@@ -29,7 +28,7 @@ namespace ASI.Basecode.Services.Services
         private readonly INotificationDispatcher _notifications;
         private readonly IMapper _mapper;
 
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
+        private readonly IInventoryRepository _inventory;
 
         public ReturnProcessingService(
             ILoggerFactory loggerFactory,
@@ -39,9 +38,11 @@ namespace ASI.Basecode.Services.Services
             INotificationDispatcher notifications,
             IMapper mapper,
             IAuditLogRepository auditLogs,
-            ILookupRepository lookups)
+            ILookupRepository lookups,
+            IInventoryRepository inventory)
             : base(loggerFactory)
         {
+            this._inventory = inventory;
             this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
@@ -57,17 +58,7 @@ namespace ASI.Basecode.Services.Services
 
             // Borrowings on this page with returned units not yet covered by a completed inspection.
             var borrowingIds = result.Items.Select(r => r.BorrowingId).Distinct().ToList();
-            var awaitingInspection = this.DbContext.Borrowings.AsNoTracking()
-                .Where(b => borrowingIds.Contains(b.BorrowingId))
-                .Select(b => new
-                {
-                    b.BorrowingId,
-                    Returned = b.BorrowingReturns.Sum(x => (int?)x.ReturnedQuantity) ?? 0,
-                    Inspected = b.ConditionInspections.Where(i => i.InspectionStatus.Code == InspectionStatusCodes.Completed).Sum(i => (int?)i.InspectedQuantity) ?? 0,
-                })
-                .Where(x => x.Returned > x.Inspected)
-                .Select(x => x.BorrowingId)
-                .ToHashSet();
+            var awaitingInspection = this._repository.GetBorrowingIdsWithUninspectedReturns(borrowingIds, InspectionStatusCodes.Completed);
 
             return new ReturnsIndexViewModel
             {
@@ -146,11 +137,7 @@ namespace ASI.Basecode.Services.Services
         /// <summary>Units of a borrowing already covered by COMPLETED inspections.</summary>
         private int SumCompletedInspections(long borrowingId, long? excludeInspectionId = null)
         {
-            return this.DbContext.ConditionInspections
-                .Where(i => i.BorrowingId == borrowingId
-                    && i.InspectionStatus.Code == InspectionStatusCodes.Completed
-                    && (excludeInspectionId == null || i.InspectionId != excludeInspectionId))
-                .Sum(i => (int?)i.InspectedQuantity) ?? 0;
+            return this._repository.SumInspectedQuantity(borrowingId, InspectionStatusCodes.Completed, excludeInspectionId);
         }
 
         public List<LookupViewModel> GetInspectionStatusOptions()
@@ -217,7 +204,7 @@ namespace ASI.Basecode.Services.Services
                 };
 
                 using var transaction = this._unitOfWork.BeginTransaction();
-                this.DbContext.BorrowingReturns.Add(returnEntity);
+                this._repository.AddReturn(returnEntity);
 
                 // update balance: released -> awaiting inspection (finalized by CreateInspection)
                 var balance = borrowing.Equipment.EquipmentInventoryBalance;
@@ -246,7 +233,7 @@ namespace ASI.Basecode.Services.Services
                     }
                 }
 
-                this.DbContext.InventoryMovements.Add(new InventoryMovement
+                this._inventory.AddMovement(new InventoryMovement
                 {
                     EquipmentId = borrowing.EquipmentId,
                     MovementType = "RETURN",
@@ -376,7 +363,7 @@ namespace ASI.Basecode.Services.Services
                 // can't leave a COMPLETED inspection whose units never left "awaiting inspection".
                 using (var transaction = this._unitOfWork.BeginTransaction())
                 {
-                    this.DbContext.ConditionInspections.Add(inspection);
+                    this._repository.AddInspection(inspection);
                     this._unitOfWork.SaveChanges();
 
                     if (finalize)
@@ -472,11 +459,7 @@ namespace ASI.Basecode.Services.Services
                 return new List<InspectionPhotoViewModel>();
             }
 
-            return this.DbContext.ConditionInspections.AsNoTracking()
-                .Where(i => i.BorrowingId == borrowingId)
-                .OrderBy(i => i.InspectionId)
-                .Select(i => i.InspectionId)
-                .ToList()
+            return this._repository.GetInspectionIds(borrowingId)
                 .SelectMany(id => InspectionPhotoStore.List(id).Select(f => new InspectionPhotoViewModel { InspectionId = id, FileName = f }))
                 .ToList();
         }
@@ -484,11 +467,8 @@ namespace ASI.Basecode.Services.Services
         /// <inheritdoc />
         public (string Path, string ContentType) GetInspectionPhotoFile(long inspectionId, string fileName)
         {
-            var inspection = this.DbContext.ConditionInspections.AsNoTracking()
-                .Where(i => i.InspectionId == inspectionId)
-                .Select(i => new { i.Borrowing.Reservation.AssignedCustodianUserId })
-                .FirstOrDefault();
-            if (inspection == null || !this._currentUser.CanActOn(inspection.AssignedCustodianUserId))
+            var inspection = this._repository.GetInspectionCustodian(inspectionId);
+            if (!inspection.Exists || !this._currentUser.CanActOn(inspection.AssignedCustodianUserId))
             {
                 return (null, null);
             }
@@ -522,7 +502,7 @@ namespace ASI.Basecode.Services.Services
                     return;
                 }
 
-                this.DbContext.InventoryMovements.Add(new InventoryMovement
+                this._inventory.AddMovement(new InventoryMovement
                 {
                     EquipmentId = borrowing.EquipmentId,
                     MovementType = "INSPECTION",
@@ -550,9 +530,7 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 // Fully inspected: a transaction with any unit lost closes as LOST rather than RETURNED.
-                var lostBefore = this.DbContext.ConditionInspections
-                    .Where(i => i.BorrowingId == borrowing.BorrowingId && i.InspectionId != inspection.InspectionId && i.InspectionStatus.Code == InspectionStatusCodes.Completed)
-                    .Sum(i => (int?)i.LostQuantity) ?? 0;
+                var lostBefore = this._repository.SumLostQuantity(borrowing.BorrowingId, inspection.InspectionId, InspectionStatusCodes.Completed);
                 if (lostBefore + form.LostQuantity > 0)
                 {
                     var lostStatus = this._lookups.GetTrackedBorrowingStatusByCode(BorrowingStatusCodes.Lost);
