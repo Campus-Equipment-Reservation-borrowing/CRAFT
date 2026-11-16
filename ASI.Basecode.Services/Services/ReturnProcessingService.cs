@@ -212,7 +212,7 @@ namespace ASI.Basecode.Services.Services
                     DaysOverdue = daysOverdue,
                 };
 
-                using var transaction = this.DbContext.Database.BeginTransaction();
+                using var transaction = this._unitOfWork.BeginTransaction();
                 this.DbContext.BorrowingReturns.Add(returnEntity);
 
                 // update balance: released -> awaiting inspection (finalized by CreateInspection)
@@ -371,7 +371,7 @@ namespace ASI.Basecode.Services.Services
 
                 // The inspection, the stock movement and the audit commit together, so a failure
                 // can't leave a COMPLETED inspection whose units never left "awaiting inspection".
-                using (var transaction = this.DbContext.Database.BeginTransaction())
+                using (var transaction = this._unitOfWork.BeginTransaction())
                 {
                     this.DbContext.ConditionInspections.Add(inspection);
                     this._unitOfWork.SaveChanges();

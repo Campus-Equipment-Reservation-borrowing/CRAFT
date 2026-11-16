@@ -367,7 +367,7 @@ namespace ASI.Basecode.Services.Services
                     policyId = latest?.PolicyVersionId ?? 0;
                 }
 
-                using var transaction = this.DbContext.Database.BeginTransaction();
+                using var transaction = this._unitOfWork.BeginTransaction();
                 var txn = this._repository.GetNextTransactionNumber(DateTime.UtcNow.Year);
 
                 var borrowingStatus = this.DbContext.BorrowingStatuses.FirstOrDefault(s => s.Code == BorrowingStatusCodes.Active);

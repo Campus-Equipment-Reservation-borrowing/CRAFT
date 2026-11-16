@@ -33,6 +33,14 @@ namespace ASI.Basecode.Data
         }
 
         /// <summary>
+        /// Begins a database transaction on the underlying context.
+        /// </summary>
+        public IUnitOfWorkTransaction BeginTransaction()
+        {
+            return new UnitOfWorkTransaction(Database.Database.BeginTransaction());
+        }
+
+        /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()

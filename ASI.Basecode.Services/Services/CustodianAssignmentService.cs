@@ -372,7 +372,7 @@ namespace ASI.Basecode.Services.Services
                 return (false, ErrorMessages.AssignmentBorrowerNotActive);
             }
 
-            using var transaction = this.DbContext.Database.BeginTransaction();
+            using var transaction = this._unitOfWork.BeginTransaction();
             var staged = this.StageBorrowerAssignment(borrowerUserId, custodianUserId);
             if (!staged.Success)
             {

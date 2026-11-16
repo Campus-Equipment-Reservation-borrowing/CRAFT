@@ -410,7 +410,7 @@ namespace ASI.Basecode.Services.Services
                     PerformedByUserId = this._currentUser.GetActorUserId(),
                 });
 
-                using var transaction = this.DbContext.Database.BeginTransaction();
+                using var transaction = this._unitOfWork.BeginTransaction();
                 this._unitOfWork.SaveChanges();
                 this.WriteAudit("STOCK_ADJUST", "Equipment", entity.EquipmentId, entity.AssetCode,
                     $"{quantity} unit(s) of '{entity.EquipmentName}' {summary}." + (string.IsNullOrWhiteSpace(note) ? string.Empty : " Note: " + note.Trim()));

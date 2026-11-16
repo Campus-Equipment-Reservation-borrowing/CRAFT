@@ -125,7 +125,7 @@ namespace ASI.Basecode.Services.Services
                 var actorId = this._currentUser.GetActorUserId();
 
                 // Activation and custodian assignment succeed or fail together.
-                using var transaction = this.DbContext.Database.BeginTransaction();
+                using var transaction = this._unitOfWork.BeginTransaction();
                 var staged = this._assignments.StageBorrowerAssignment(entity.UserId, custodianUserId);
                 if (!staged.Success)
                 {

@@ -375,7 +375,7 @@ namespace ASI.Basecode.Services.Services
 
                 var quantity = form.Quantity.Value;
                 var submittedAt = DateTime.UtcNow;
-                using var transaction = this.DbContext.Database.BeginTransaction();
+                using var transaction = this._unitOfWork.BeginTransaction();
 
                 // Atomic hold: only succeeds while enough units are still free, so two borrowers
                 // racing for the last unit cannot both get it.
