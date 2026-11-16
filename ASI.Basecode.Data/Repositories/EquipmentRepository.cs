@@ -229,5 +229,26 @@ namespace ASI.Basecode.Data.Repositories
             return this.Context.Equipment.AsNoTracking()
                 .FirstOrDefault(e => e.AssetCode.ToUpper() == upperAssetCode);
         }
+
+        public string GetLocationName(long locationId)
+        {
+            return this.Context.Locations.AsNoTracking()
+                .Where(l => l.LocationId == locationId).Select(l => l.LocationName).FirstOrDefault();
+        }
+
+        public string GetCategoryName(long categoryId)
+        {
+            return this.Context.EquipmentCategories.AsNoTracking()
+                .Where(c => c.EquipmentCategoryId == categoryId).Select(c => c.CategoryName).FirstOrDefault();
+        }
+
+        public (long? LocationId, long? CategoryId) GetLocationAndCategory(long equipmentId)
+        {
+            var equipment = this.Context.Equipment.AsNoTracking()
+                .Where(e => e.EquipmentId == equipmentId)
+                .Select(e => new { e.LocationId, CategoryId = (long?)e.EquipmentCategoryId })
+                .FirstOrDefault();
+            return (equipment?.LocationId, equipment?.CategoryId);
+        }
     }
 }

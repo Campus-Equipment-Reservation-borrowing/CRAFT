@@ -25,5 +25,38 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>True when the borrower has an assignment whose custodian has the given account status.</summary>
         bool BorrowerHasAssignmentWithCustodianStatus(long borrowerUserId, string custodianAccountStatusCode);
+
+        /// <summary>Every assignment (untracked) with custodian, borrower, location and category.</summary>
+        List<CustodianAssignment> GetAllWithDetails();
+
+        /// <summary>The assignment (untracked) with custodian, borrower, location and category, or null.</summary>
+        CustodianAssignment GetWithDetailsById(long assignmentId);
+
+        /// <summary>Assignments of the custodian (untracked) with custodian, borrower, location and category.</summary>
+        List<CustodianAssignment> GetWithDetailsForCustodian(long custodianUserId);
+
+        CustodianAssignment GetTrackedById(long assignmentId);
+
+        /// <summary>The borrower-scoped assignment of the borrower (tracked), or null.</summary>
+        CustodianAssignment GetTrackedForBorrower(long borrowerUserId);
+
+        /// <summary>The borrower-scoped assignment of the borrower (untracked, with custodian), or null.</summary>
+        CustodianAssignment GetForBorrowerWithCustodian(long borrowerUserId);
+
+        bool LocationHasAssignment(long locationId);
+
+        bool CategoryHasAssignment(long categoryId);
+
+        /// <summary>Scope type and custodian of assignments matching the borrower, location or category whose custodian has the account status.</summary>
+        List<(string ScopeType, long CustodianUserId)> GetRoutingCandidates(long borrowerUserId, long? locationId, long? categoryId, string custodianAccountStatusCode);
+
+        /// <summary>Number of assignments per custodian user id.</summary>
+        Dictionary<long, int> CountByCustodian();
+
+        /// <summary>Adds an assignment (saved by the caller).</summary>
+        void Add(CustodianAssignment assignment);
+
+        /// <summary>Removes an assignment (saved by the caller).</summary>
+        void Remove(CustodianAssignment assignment);
     }
 }

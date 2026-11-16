@@ -346,5 +346,49 @@ namespace ASI.Basecode.Data.Repositories
         {
             return this.Context.Users.Any(u => u.UserId == userId && u.AccountStatus.Code == accountStatusCode);
         }
+
+        public HashSet<long> GetBorrowerIdsWithStatus(string accountStatusCode)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.Role.IsBorrowerRole && u.AccountStatus.Code == accountStatusCode)
+                .Select(u => u.UserId)
+                .ToHashSet();
+        }
+
+        public List<User> GetBorrowersWithStatusByName(string accountStatusCode)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Where(u => u.Role.IsBorrowerRole && u.AccountStatus.Code == accountStatusCode)
+                .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+                .ToList();
+        }
+
+        public List<User> GetInRoleByName(string roleCode, string accountStatusCode = null)
+        {
+            return this.Context.Users.AsNoTracking()
+                .Include(u => u.AccountStatus)
+                .Where(u => u.Role.RoleCode == roleCode && (accountStatusCode == null || u.AccountStatus.Code == accountStatusCode))
+                .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+                .ToList();
+        }
+
+        public User GetInRoleWithStatus(long userId, string roleCode, string accountStatusCode)
+        {
+            return this.Context.Users.AsNoTracking()
+                .FirstOrDefault(u => u.UserId == userId && u.Role.RoleCode == roleCode && u.AccountStatus.Code == accountStatusCode);
+        }
+
+        public User GetBorrower(long userId)
+        {
+            return this.Context.Users.AsNoTracking()
+                .FirstOrDefault(u => u.UserId == userId && u.Role.IsBorrowerRole);
+        }
+
+        public bool IsBorrowerWithStatus(long userId, string accountStatusCode)
+        {
+            return this.Context.Users.Any(u => u.UserId == userId
+                && u.Role.IsBorrowerRole
+                && u.AccountStatus.Code == accountStatusCode);
+        }
     }
 }

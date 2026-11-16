@@ -72,5 +72,14 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>The highest reservation number with the prefix (longest first, then descending), or null.</summary>
         string GetLastNumberWithPrefix(string prefix);
+
+        /// <summary>Reservations in one of the statuses (untracked) with borrower, equipment and status.</summary>
+        List<Reservation> GetInStatusesWithDetails(IReadOnlyCollection<string> statusCodes);
+
+        /// <summary>The reservation (tracked) with its status, or null.</summary>
+        Reservation GetTrackedWithStatus(long reservationId);
+
+        /// <summary>The borrower's reservations (tracked) in one of the statuses that are unassigned or assigned to the given custodian.</summary>
+        List<Reservation> GetTrackedForBorrowerInStatusesUnassignedOrWith(long borrowerUserId, IReadOnlyCollection<string> statusCodes, long? custodianUserId);
     }
 }

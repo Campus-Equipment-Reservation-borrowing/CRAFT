@@ -50,5 +50,87 @@ namespace ASI.Basecode.Data.Repositories
             return this.Context.CustodianAssignments.Any(a => a.BorrowerUserId == borrowerUserId
                 && a.CustodianUser.AccountStatus.Code == custodianAccountStatusCode);
         }
+
+        private IQueryable<CustodianAssignment> WithDetails()
+        {
+            return this.Context.CustodianAssignments.AsNoTracking()
+                .Include(a => a.CustodianUser)
+                .Include(a => a.BorrowerUser)
+                .Include(a => a.Location)
+                .Include(a => a.EquipmentCategory);
+        }
+
+        public List<CustodianAssignment> GetAllWithDetails()
+        {
+            return this.WithDetails().ToList();
+        }
+
+        public CustodianAssignment GetWithDetailsById(long assignmentId)
+        {
+            return this.WithDetails().FirstOrDefault(a => a.AssignmentId == assignmentId);
+        }
+
+        public List<CustodianAssignment> GetWithDetailsForCustodian(long custodianUserId)
+        {
+            return this.WithDetails().Where(a => a.CustodianUserId == custodianUserId).ToList();
+        }
+
+        public CustodianAssignment GetTrackedById(long assignmentId)
+        {
+            return this.Context.CustodianAssignments.FirstOrDefault(a => a.AssignmentId == assignmentId);
+        }
+
+        public CustodianAssignment GetTrackedForBorrower(long borrowerUserId)
+        {
+            return this.Context.CustodianAssignments.FirstOrDefault(a => a.BorrowerUserId == borrowerUserId);
+        }
+
+        public CustodianAssignment GetForBorrowerWithCustodian(long borrowerUserId)
+        {
+            return this.Context.CustodianAssignments.AsNoTracking()
+                .Include(a => a.CustodianUser)
+                .FirstOrDefault(a => a.BorrowerUserId == borrowerUserId);
+        }
+
+        public bool LocationHasAssignment(long locationId)
+        {
+            return this.Context.CustodianAssignments.Any(a => a.LocationId == locationId);
+        }
+
+        public bool CategoryHasAssignment(long categoryId)
+        {
+            return this.Context.CustodianAssignments.Any(a => a.EquipmentCategoryId == categoryId);
+        }
+
+        public List<(string ScopeType, long CustodianUserId)> GetRoutingCandidates(long borrowerUserId, long? locationId, long? categoryId, string custodianAccountStatusCode)
+        {
+            return this.Context.CustodianAssignments.AsNoTracking()
+                .Where(a => a.CustodianUser.AccountStatus.Code == custodianAccountStatusCode
+                    && (a.BorrowerUserId == borrowerUserId
+                        || (locationId != null && a.LocationId == locationId)
+                        || (categoryId != null && a.EquipmentCategoryId == categoryId)))
+                .Select(a => new { a.ScopeType, a.CustodianUserId })
+                .ToList()
+                .Select(a => (a.ScopeType, a.CustodianUserId))
+                .ToList();
+        }
+
+        public Dictionary<long, int> CountByCustodian()
+        {
+            return this.Context.CustodianAssignments.AsNoTracking()
+                .GroupBy(a => a.CustodianUserId)
+                .Select(g => new { g.Key, Count = g.Count() })
+                .ToDictionary(x => x.Key, x => x.Count);
+        }
+
+        public void Add(CustodianAssignment assignment)
+        {
+            this.Context.CustodianAssignments.Add(assignment);
+        }
+
+        public void Remove(CustodianAssignment assignment)
+        {
+            this.Context.CustodianAssignments.Remove(assignment);
+        }
     }
 }

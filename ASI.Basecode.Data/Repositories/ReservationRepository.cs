@@ -197,5 +197,31 @@ namespace ASI.Basecode.Data.Repositories
                 .Select(r => r.ReservationNumber)
                 .FirstOrDefault();
         }
+
+        public List<Reservation> GetInStatusesWithDetails(IReadOnlyCollection<string> statusCodes)
+        {
+            return this.Context.Reservations.AsNoTracking()
+                .Include(r => r.BorrowerUser)
+                .Include(r => r.Equipment)
+                .Include(r => r.Status)
+                .Where(r => statusCodes.Contains(r.Status.Code))
+                .ToList();
+        }
+
+        public Reservation GetTrackedWithStatus(long reservationId)
+        {
+            return this.Context.Reservations
+                .Include(r => r.Status)
+                .FirstOrDefault(r => r.ReservationId == reservationId);
+        }
+
+        public List<Reservation> GetTrackedForBorrowerInStatusesUnassignedOrWith(long borrowerUserId, IReadOnlyCollection<string> statusCodes, long? custodianUserId)
+        {
+            return this.Context.Reservations
+                .Where(r => r.BorrowerUserId == borrowerUserId
+                    && statusCodes.Contains(r.Status.Code)
+                    && (r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == custodianUserId))
+                .ToList();
+        }
     }
 }

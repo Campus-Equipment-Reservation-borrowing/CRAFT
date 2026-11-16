@@ -23,7 +23,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
     }
 
     /// <summary>
-    /// Result of staging a borrower → custodian assignment on the shared DbContext without
+    /// Result of staging a borrower → custodian assignment in the shared unit of work without
     /// saving, so the caller can commit it together with its own changes.
     /// </summary>
     public class BorrowerAssignmentStage

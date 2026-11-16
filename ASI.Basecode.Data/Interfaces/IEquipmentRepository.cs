@@ -70,5 +70,14 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Equipment (untracked) whose asset code matches case-insensitively (pass it upper-cased), or null.</summary>
         Equipment FindByAssetCodeUpper(string upperAssetCode);
+
+        /// <summary>Name of the location, or null.</summary>
+        string GetLocationName(long locationId);
+
+        /// <summary>Name of the category, or null.</summary>
+        string GetCategoryName(long categoryId);
+
+        /// <summary>Location and category of the equipment; both null when it doesn't exist.</summary>
+        (long? LocationId, long? CategoryId) GetLocationAndCategory(long equipmentId);
     }
 }

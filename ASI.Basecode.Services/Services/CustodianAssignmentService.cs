@@ -1,4 +1,3 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
@@ -23,16 +22,27 @@ namespace ASI.Basecode.Services.Services
         private readonly ICurrentUserService _currentUser;
         private readonly INotificationDispatcher _notifications;
 
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
+        private readonly ICustodianAssignmentRepository _assignments;
+        private readonly IUserRepository _users;
+        private readonly IEquipmentRepository _equipment;
+        private readonly IReservationRepository _reservations;
 
         public CustodianAssignmentService(
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
             ICurrentUserService currentUser,
             INotificationDispatcher notifications,
-            IAuditLogRepository auditLogs)
+            IAuditLogRepository auditLogs,
+            ICustodianAssignmentRepository assignments,
+            IUserRepository users,
+            IEquipmentRepository equipment,
+            IReservationRepository reservations)
             : base(loggerFactory)
         {
+            this._assignments = assignments;
+            this._users = users;
+            this._equipment = equipment;
+            this._reservations = reservations;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._currentUser = currentUser;
@@ -41,11 +51,8 @@ namespace ASI.Basecode.Services.Services
 
         public CustodianAssignmentIndexViewModel GetIndex()
         {
-            var rows = this.LoadRows(this.DbContext.CustodianAssignments.AsNoTracking());
-            var activeBorrowerIds = this.DbContext.Users.AsNoTracking()
-                .Where(u => u.Role.IsBorrowerRole && u.AccountStatus.Code == AccountStatusCodes.Active)
-                .Select(u => u.UserId)
-                .ToHashSet();
+            var rows = this.LoadRows(this._assignments.GetAllWithDetails());
+            var activeBorrowerIds = this._users.GetBorrowerIdsWithStatus(AccountStatusCodes.Active);
             foreach (var row in rows.Where(r => r.ScopeType == CustodianScopeTypes.Borrower))
             {
                 row.RemovalLocked = activeBorrowerIds.Contains(row.TargetId);
@@ -61,25 +68,17 @@ namespace ASI.Basecode.Services.Services
                 LocationAssignments = rows.Where(r => r.ScopeType == CustodianScopeTypes.Location).OrderBy(r => r.TargetName).ToList(),
                 CategoryAssignments = rows.Where(r => r.ScopeType == CustodianScopeTypes.Category).OrderBy(r => r.TargetName).ToList(),
                 CustodianOptions = this.GetCustodianOptions(),
-                UnassignedBorrowerOptions = this.DbContext.Users.AsNoTracking()
-                    .Where(u => u.Role.IsBorrowerRole && u.AccountStatus.Code == AccountStatusCodes.Active)
-                    .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+                UnassignedBorrowerOptions = this._users.GetBorrowersWithStatusByName(AccountStatusCodes.Active)
                     .Select(u => new { u.UserId, Text = u.LastName + ", " + u.FirstName + " (" + u.AccountIdentifier + ")" })
-                    .ToList()
                     .Where(u => !assignedBorrowers.Contains(u.UserId))
                     .Select(u => new LookupViewModel { Id = u.UserId, Text = u.Text })
                     .ToList(),
-                UnassignedLocationOptions = this.DbContext.Locations.AsNoTracking()
-                    .Where(l => l.IsActive)
-                    .OrderBy(l => l.LocationName)
+                UnassignedLocationOptions = this._equipment.GetActiveLocationsByName()
                     .Select(l => new LookupViewModel { Id = l.LocationId, Text = l.LocationName })
-                    .ToList()
                     .Where(l => !assignedLocations.Contains(l.Id))
                     .ToList(),
-                UnassignedCategoryOptions = this.DbContext.EquipmentCategories.AsNoTracking()
-                    .OrderBy(c => c.CategoryName)
+                UnassignedCategoryOptions = this._equipment.GetCategoriesByName()
                     .Select(c => new LookupViewModel { Id = c.EquipmentCategoryId, Text = c.CategoryName })
-                    .ToList()
                     .Where(c => !assignedCategories.Contains(c.Id))
                     .ToList(),
             };
@@ -101,10 +100,8 @@ namespace ASI.Basecode.Services.Services
                     return this.AssignBorrower(targetId, custodianUserId);
                 }
 
-                var custodian = this.DbContext.Users.AsNoTracking()
-                    .Where(u => u.UserId == custodianUserId && u.Role.RoleCode == RoleCodes.Technician && u.AccountStatus.Code == AccountStatusCodes.Active)
-                    .Select(u => new { u.UserId, Name = u.FirstName + " " + u.LastName })
-                    .FirstOrDefault();
+                var custodianUser = this._users.GetInRoleWithStatus(custodianUserId, RoleCodes.Technician, AccountStatusCodes.Active);
+                var custodian = custodianUser == null ? null : new { custodianUser.UserId, Name = custodianUser.FirstName + " " + custodianUser.LastName };
                 if (custodian == null)
                 {
                     return (false, ErrorMessages.AssignmentInvalid);
@@ -122,9 +119,8 @@ namespace ASI.Basecode.Services.Services
                 switch (scopeType)
                 {
                     case CustodianScopeTypes.Location:
-                        targetName = this.DbContext.Locations.AsNoTracking()
-                            .Where(l => l.LocationId == targetId).Select(l => l.LocationName).FirstOrDefault();
-                        if (this.DbContext.CustodianAssignments.Any(a => a.LocationId == targetId))
+                        targetName = this._equipment.GetLocationName(targetId);
+                        if (this._assignments.LocationHasAssignment(targetId))
                         {
                             return (false, ErrorMessages.AssignmentDuplicate);
                         }
@@ -132,9 +128,8 @@ namespace ASI.Basecode.Services.Services
                         assignment.LocationId = targetId;
                         break;
                     default:
-                        targetName = this.DbContext.EquipmentCategories.AsNoTracking()
-                            .Where(c => c.EquipmentCategoryId == targetId).Select(c => c.CategoryName).FirstOrDefault();
-                        if (this.DbContext.CustodianAssignments.Any(a => a.EquipmentCategoryId == targetId))
+                        targetName = this._equipment.GetCategoryName(targetId);
+                        if (this._assignments.CategoryHasAssignment(targetId))
                         {
                             return (false, ErrorMessages.AssignmentDuplicate);
                         }
@@ -148,7 +143,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.AssignmentInvalid);
                 }
 
-                this.DbContext.CustodianAssignments.Add(assignment);
+                this._assignments.Add(assignment);
                 this._unitOfWork.SaveChanges();
 
                 this.WriteAudit("ASSIGN", assignment.AssignmentId,
@@ -177,20 +172,21 @@ namespace ASI.Basecode.Services.Services
         {
             try
             {
-                var row = this.LoadRows(this.DbContext.CustodianAssignments.AsNoTracking().Where(a => a.AssignmentId == assignmentId)).FirstOrDefault();
-                var entity = this.DbContext.CustodianAssignments.FirstOrDefault(a => a.AssignmentId == assignmentId);
+                var found = this._assignments.GetWithDetailsById(assignmentId);
+                var row = found == null ? null : this.LoadRows(new List<CustodianAssignment> { found }).FirstOrDefault();
+                var entity = this._assignments.GetTrackedById(assignmentId);
                 if (entity == null || row == null)
                 {
                     return (false, ErrorMessages.AssignmentNotFound);
                 }
 
                 if (entity.BorrowerUserId.HasValue
-                    && this.DbContext.Users.Any(u => u.UserId == entity.BorrowerUserId.Value && u.AccountStatus.Code == AccountStatusCodes.Active))
+                    && this._users.HasAccountStatus(entity.BorrowerUserId.Value, AccountStatusCodes.Active))
                 {
                     return (false, ErrorMessages.AssignmentBorrowerRequired);
                 }
 
-                this.DbContext.CustodianAssignments.Remove(entity);
+                this._assignments.Remove(entity);
                 this._unitOfWork.SaveChanges();
 
                 this.WriteAudit("UNASSIGN", assignmentId,
@@ -207,33 +203,21 @@ namespace ASI.Basecode.Services.Services
 
         public long? ResolveCustodian(long borrowerUserId, long equipmentId)
         {
-            var equipment = this.DbContext.Equipment.AsNoTracking()
-                .Where(e => e.EquipmentId == equipmentId)
-                .Select(e => new { e.LocationId, CategoryId = (long?)e.EquipmentCategoryId })
-                .FirstOrDefault();
-            var locationId = equipment?.LocationId;
-            var categoryId = equipment?.CategoryId;
+            var (locationId, categoryId) = this._equipment.GetLocationAndCategory(equipmentId);
 
             // Only active custodians receive routed work; otherwise it falls through to the pool.
-            var candidates = this.DbContext.CustodianAssignments.AsNoTracking()
-                .Where(a => a.CustodianUser.AccountStatus.Code == AccountStatusCodes.Active
-                    && (a.BorrowerUserId == borrowerUserId
-                        || (locationId != null && a.LocationId == locationId)
-                        || (categoryId != null && a.EquipmentCategoryId == categoryId)))
-                .Select(a => new { a.ScopeType, a.CustodianUserId })
-                .ToList();
+            var candidates = this._assignments.GetRoutingCandidates(borrowerUserId, locationId, categoryId, AccountStatusCodes.Active);
 
-            return candidates.FirstOrDefault(c => c.ScopeType == CustodianScopeTypes.Borrower)?.CustodianUserId
-                ?? candidates.FirstOrDefault(c => c.ScopeType == CustodianScopeTypes.Location)?.CustodianUserId
-                ?? candidates.FirstOrDefault(c => c.ScopeType == CustodianScopeTypes.Category)?.CustodianUserId;
+            long? First(string scopeType) => candidates.Where(c => c.ScopeType == scopeType).Select(c => (long?)c.CustodianUserId).FirstOrDefault();
+            return First(CustodianScopeTypes.Borrower)
+                ?? First(CustodianScopeTypes.Location)
+                ?? First(CustodianScopeTypes.Category);
         }
 
         public UserAssignmentSummaryViewModel GetUserSummary(long userId)
         {
-            var user = this.DbContext.Users.AsNoTracking()
-                .Where(u => u.UserId == userId)
-                .Select(u => new { u.Role.RoleCode, u.Role.IsBorrowerRole })
-                .FirstOrDefault();
+            var userEntity = this._users.GetByIdWithDetails(userId);
+            var user = userEntity == null ? null : new { userEntity.Role.RoleCode, userEntity.Role.IsBorrowerRole };
             if (user == null)
             {
                 return new UserAssignmentSummaryViewModel();
@@ -247,16 +231,14 @@ namespace ASI.Basecode.Services.Services
 
             if (summary.IsCustodian)
             {
-                summary.Assignments = this.LoadRows(this.DbContext.CustodianAssignments.AsNoTracking().Where(a => a.CustodianUserId == userId))
+                summary.Assignments = this.LoadRows(this._assignments.GetWithDetailsForCustodian(userId))
                     .OrderBy(r => r.ScopeType).ThenBy(r => r.TargetName).ToList();
             }
 
             if (summary.IsBorrower)
             {
-                var direct = this.DbContext.CustodianAssignments.AsNoTracking()
-                    .Where(a => a.BorrowerUserId == userId)
-                    .Select(a => new { a.CustodianUserId, Name = a.CustodianUser.FirstName + " " + a.CustodianUser.LastName })
-                    .FirstOrDefault();
+                var directEntity = this._assignments.GetForBorrowerWithCustodian(userId);
+                var direct = directEntity == null ? null : new { directEntity.CustodianUserId, Name = directEntity.CustodianUser.FirstName + " " + directEntity.CustodianUser.LastName };
                 summary.AssignedCustodianUserId = direct?.CustodianUserId;
                 summary.AssignedCustodianName = direct?.Name;
             }
@@ -266,8 +248,7 @@ namespace ASI.Basecode.Services.Services
 
         public CustodianWorkloadViewModel GetWorkload()
         {
-            var open = this.DbContext.Reservations.AsNoTracking()
-                .Where(r => OpenStatuses.Contains(r.Status.Code))
+            var open = this._reservations.GetInStatusesWithDetails(OpenStatuses)
                 .Select(r => new OpenReservationRowViewModel
                 {
                     ReservationId = r.ReservationId,
@@ -281,15 +262,10 @@ namespace ASI.Basecode.Services.Services
                 })
                 .ToList();
 
-            var custodians = this.DbContext.Users.AsNoTracking()
-                .Where(u => u.Role.RoleCode == RoleCodes.Technician)
-                .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
-                .Select(u => new { u.UserId, Name = u.FirstName + " " + u.LastName, Active = u.AccountStatus.Code == AccountStatusCodes.Active })
+            var custodians = this._users.GetInRoleByName(RoleCodes.Technician)
+                .Select(u => new { u.UserId, Name = u.FirstName + " " + u.LastName, Active = u.AccountStatus?.Code == AccountStatusCodes.Active })
                 .ToList();
-            var assignmentCounts = this.DbContext.CustodianAssignments.AsNoTracking()
-                .GroupBy(a => a.CustodianUserId)
-                .Select(g => new { g.Key, Count = g.Count() })
-                .ToDictionary(x => x.Key, x => x.Count);
+            var assignmentCounts = this._assignments.CountByCustodian();
 
             return new CustodianWorkloadViewModel
             {
@@ -312,9 +288,7 @@ namespace ASI.Basecode.Services.Services
         {
             try
             {
-                var reservation = this.DbContext.Reservations
-                    .Include(r => r.Status)
-                    .FirstOrDefault(r => r.ReservationId == reservationId);
+                var reservation = this._reservations.GetTrackedWithStatus(reservationId);
                 if (reservation == null)
                 {
                     return (false, ErrorMessages.CustodianReservationNotFound);
@@ -328,10 +302,8 @@ namespace ASI.Basecode.Services.Services
                 string custodianName = null;
                 if (custodianUserId.HasValue)
                 {
-                    custodianName = this.DbContext.Users.AsNoTracking()
-                        .Where(u => u.UserId == custodianUserId.Value && u.Role.RoleCode == RoleCodes.Technician && u.AccountStatus.Code == AccountStatusCodes.Active)
-                        .Select(u => u.FirstName + " " + u.LastName)
-                        .FirstOrDefault();
+                    var custodianUser = this._users.GetInRoleWithStatus(custodianUserId.Value, RoleCodes.Technician, AccountStatusCodes.Active);
+                    custodianName = custodianUser == null ? null : custodianUser.FirstName + " " + custodianUser.LastName;
                     if (custodianName == null)
                     {
                         return (false, ErrorMessages.AssignmentInvalid);
@@ -367,9 +339,7 @@ namespace ASI.Basecode.Services.Services
         /// <summary>Borrower scope from the assignments screen: only for verified borrowers; changes the custodian if one exists.</summary>
         private (bool Success, string Error) AssignBorrower(long borrowerUserId, long custodianUserId)
         {
-            var borrowerActive = this.DbContext.Users.Any(u => u.UserId == borrowerUserId
-                && u.Role.IsBorrowerRole
-                && u.AccountStatus.Code == AccountStatusCodes.Active);
+            var borrowerActive = this._users.IsBorrowerWithStatus(borrowerUserId, AccountStatusCodes.Active);
             if (!borrowerActive)
             {
                 return (false, ErrorMessages.AssignmentBorrowerNotActive);
@@ -395,25 +365,21 @@ namespace ASI.Basecode.Services.Services
         /// <inheritdoc />
         public BorrowerAssignmentStage StageBorrowerAssignment(long borrowerUserId, long custodianUserId)
         {
-            var custodian = this.DbContext.Users.AsNoTracking()
-                .Where(u => u.UserId == custodianUserId && u.Role.RoleCode == RoleCodes.Technician && u.AccountStatus.Code == AccountStatusCodes.Active)
-                .Select(u => new { u.UserId, Name = u.FirstName + " " + u.LastName })
-                .FirstOrDefault();
+            var custodianUser = this._users.GetInRoleWithStatus(custodianUserId, RoleCodes.Technician, AccountStatusCodes.Active);
+            var custodian = custodianUser == null ? null : new { custodianUser.UserId, Name = custodianUser.FirstName + " " + custodianUser.LastName };
             if (custodian == null)
             {
                 return BorrowerAssignmentStage.Fail(ErrorMessages.VerificationCustodianRequired);
             }
 
-            var borrower = this.DbContext.Users.AsNoTracking()
-                .Where(u => u.UserId == borrowerUserId && u.Role.IsBorrowerRole)
-                .Select(u => new { u.UserId, Name = u.FirstName + " " + u.LastName })
-                .FirstOrDefault();
+            var borrowerUser = this._users.GetBorrower(borrowerUserId);
+            var borrower = borrowerUser == null ? null : new { borrowerUser.UserId, Name = borrowerUser.FirstName + " " + borrowerUser.LastName };
             if (borrower == null)
             {
                 return BorrowerAssignmentStage.Fail(ErrorMessages.AssignmentInvalid);
             }
 
-            var assignment = this.DbContext.CustodianAssignments.FirstOrDefault(a => a.BorrowerUserId == borrowerUserId);
+            var assignment = this._assignments.GetTrackedForBorrower(borrowerUserId);
             var previousCustodianId = assignment?.CustodianUserId;
             if (assignment == null)
             {
@@ -422,7 +388,7 @@ namespace ASI.Basecode.Services.Services
                     ScopeType = CustodianScopeTypes.Borrower,
                     BorrowerUserId = borrowerUserId,
                 };
-                this.DbContext.CustodianAssignments.Add(assignment);
+                this._assignments.Add(assignment);
             }
 
             assignment.CustodianUserId = custodian.UserId;
@@ -430,11 +396,7 @@ namespace ASI.Basecode.Services.Services
             assignment.AssignedAtUtc = DateTime.UtcNow;
 
             // Open reservations still sitting in the pool (or with the previous custodian) follow the borrower.
-            var openReservations = this.DbContext.Reservations
-                .Where(r => r.BorrowerUserId == borrowerUserId
-                    && OpenStatuses.Contains(r.Status.Code)
-                    && (r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == previousCustodianId))
-                .ToList();
+            var openReservations = this._reservations.GetTrackedForBorrowerInStatusesUnassignedOrWith(borrowerUserId, OpenStatuses, previousCustodianId);
             foreach (var reservation in openReservations)
             {
                 reservation.AssignedCustodianUserId = custodian.UserId;
@@ -457,29 +419,27 @@ namespace ASI.Basecode.Services.Services
         /// <inheritdoc />
         public List<LookupViewModel> GetCustodianOptions()
         {
-            return this.DbContext.Users.AsNoTracking()
-                .Where(u => u.Role.RoleCode == RoleCodes.Technician && u.AccountStatus.Code == AccountStatusCodes.Active)
-                .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+            return this._users.GetInRoleByName(RoleCodes.Technician, AccountStatusCodes.Active)
                 .Select(u => new LookupViewModel { Id = u.UserId, Text = u.FirstName + " " + u.LastName })
                 .ToList();
         }
 
-        private List<CustodianAssignmentRowViewModel> LoadRows(IQueryable<CustodianAssignment> query)
+        private List<CustodianAssignmentRowViewModel> LoadRows(IEnumerable<CustodianAssignment> assignments)
         {
-            return query
+            return assignments
                 .Select(a => new CustodianAssignmentRowViewModel
                 {
                     AssignmentId = a.AssignmentId,
                     ScopeType = a.ScopeType,
                     CustodianUserId = a.CustodianUserId,
-                    CustodianName = a.CustodianUser.FirstName + " " + a.CustodianUser.LastName,
+                    CustodianName = a.CustodianUser?.FirstName + " " + a.CustodianUser?.LastName,
                     TargetId = a.BorrowerUserId ?? a.LocationId ?? a.EquipmentCategoryId ?? 0,
                     TargetName = a.BorrowerUser != null
                         ? a.BorrowerUser.FirstName + " " + a.BorrowerUser.LastName
-                        : a.Location != null ? a.Location.LocationName : a.EquipmentCategory.CategoryName,
+                        : a.Location != null ? a.Location.LocationName : a.EquipmentCategory?.CategoryName,
                     TargetDetail = a.BorrowerUser != null
                         ? a.BorrowerUser.AccountIdentifier
-                        : a.Location != null ? a.Location.LocationCode : a.EquipmentCategory.CategoryCode,
+                        : a.Location != null ? a.Location.LocationCode : a.EquipmentCategory?.CategoryCode,
                     AssignedAtUtc = a.AssignedAtUtc,
                 })
                 .ToList();

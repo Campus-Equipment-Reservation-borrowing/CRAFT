@@ -161,5 +161,24 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>True when the user exists with the given account status code.</summary>
         bool HasAccountStatus(long userId, string accountStatusCode);
+
+        /// <summary>Ids of users in a borrower role with the account status.</summary>
+        HashSet<long> GetBorrowerIdsWithStatus(string accountStatusCode);
+
+        /// <summary>Users in a borrower role with the account status (untracked), by last then first name.</summary>
+        List<User> GetBorrowersWithStatusByName(string accountStatusCode);
+
+        /// <summary>Users with the role code (untracked, with account status), by last then first name;
+        /// limited to the account status when one is given.</summary>
+        List<User> GetInRoleByName(string roleCode, string accountStatusCode = null);
+
+        /// <summary>The user (untracked) when they have the role code and account status, else null.</summary>
+        User GetInRoleWithStatus(long userId, string roleCode, string accountStatusCode);
+
+        /// <summary>The user (untracked) when they are in a borrower role, else null.</summary>
+        User GetBorrower(long userId);
+
+        /// <summary>True when the user is in a borrower role and has the account status.</summary>
+        bool IsBorrowerWithStatus(long userId, string accountStatusCode);
     }
 }
