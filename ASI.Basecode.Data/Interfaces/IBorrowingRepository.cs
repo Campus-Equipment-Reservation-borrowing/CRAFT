@@ -1,3 +1,4 @@
+using ASI.Basecode.Data.Models;
 using System;
 using System.Collections.Generic;
 
@@ -16,5 +17,15 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Borrowings of the borrower in one of the given statuses and due before the cutoff.</summary>
         int CountForBorrowerInStatusesDueBefore(long borrowerUserId, IReadOnlyCollection<string> statusCodes, DateTime dueBeforeUtc);
+    
+        /// <summary>Borrowings of the borrower not in either excluded status, optionally searched, by due date (untracked, with equipment/status/release condition).</summary>
+        List<Borrowing> GetForBorrowerExcludingStatuses(long borrowerUserId, string firstExcludedStatusCode, string secondExcludedStatusCode, string search);
+
+        /// <summary>One borrowing of the borrower with full detail navigations (untracked), or null.</summary>
+        Borrowing GetDetailsForBorrower(long borrowingId, long borrowerUserId);
+
+        /// <summary>Borrowings of the borrower in either status, optionally searched, latest return first (untracked).</summary>
+        List<Borrowing> GetHistoryForBorrower(long borrowerUserId, string firstStatusCode, string secondStatusCode, string search);
     }
+
 }
