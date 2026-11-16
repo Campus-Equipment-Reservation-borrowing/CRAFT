@@ -736,3 +736,36 @@
 /* Inspection photo thumbnails */
 .cp-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .cp-photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--color-border); display: block; }
+
+/* Customisable dropdowns (Chromium: appearance base-select). The native option list ignores
+   CSS, so a rounded select opened into a square menu; base-select lets the open list match the
+   app. Browsers without support keep their native list. */
+@supports (appearance: base-select) {
+    .cp-select,
+    .cp-select::picker(select) { appearance: base-select; }
+
+    .cp-select { display: flex; align-items: center; gap: 8px; }
+    .cp-select::picker-icon { color: var(--color-text-gray); transition: rotate 0.15s; }
+    .cp-select:open::picker-icon { rotate: 180deg; }
+
+    .cp-select::picker(select) {
+        margin-top: 4px;
+        padding: 4px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: #fff;
+        box-shadow: 0 10px 28px rgba(16, 40, 28, 0.14);
+    }
+
+    .cp-select option {
+        padding: 7px 10px;
+        border-radius: var(--radius-sm);
+        font-size: var(--font-size-base);
+        color: var(--color-text);
+        cursor: pointer;
+    }
+    .cp-select option::checkmark { display: none; }
+    .cp-select option:hover,
+    .cp-select option:focus-visible { background: var(--color-primary-tint); outline: none; }
+    .cp-select option:checked { background: var(--color-primary); color: #fff; font-weight: 600; }
+}
