@@ -140,5 +140,17 @@ namespace ASI.Basecode.Data.Repositories
                 .Where(r => r.Status.Code == statusCode && r.ExpiryWarningSentAtUtc == null)
                 .ToList();
         }
+
+        public List<Reservation> GetInCustodianScope(long? scopeCustodianUserId)
+        {
+            var scope = scopeCustodianUserId;
+            return this.Context.Reservations
+                .AsNoTracking()
+                .Include(r => r.BorrowerUser)
+                .Include(r => r.Equipment)
+                .Include(r => r.Status)
+                .Where(r => scope == null || r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == scope)
+                .ToList();
+        }
     }
 }

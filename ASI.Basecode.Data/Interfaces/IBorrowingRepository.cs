@@ -35,6 +35,9 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Tracked borrowings in one of the statuses, without a due reminder, due within the window, with equipment.</summary>
         List<Borrowing> GetTrackedDueForReminder(IReadOnlyCollection<string> statusCodes, DateTime fromUtc, DateTime toUtc);
+
+        /// <summary>Untracked borrowings with borrower, equipment, status and inspection status, limited to the custodian's routed work plus walk-in/unassigned ones (all when scope is null).</summary>
+        List<Borrowing> GetInCustodianScope(long? scopeCustodianUserId);
     }
 
 }

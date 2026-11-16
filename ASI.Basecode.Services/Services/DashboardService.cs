@@ -1,10 +1,8 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -18,63 +16,53 @@ namespace ASI.Basecode.Services.Services
     /// </summary>
     public class DashboardService : ServiceBase, IDashboardService
     {
-        private readonly IUnitOfWork _unitOfWork;
-
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
+        private readonly IUserRepository _users;
+        private readonly IBorrowingRepository _borrowings;
+        private readonly IReservationRepository _reservations;
+        private readonly INotificationRepository _notificationRepository;
+        private readonly IEquipmentRepository _equipment;
+        private readonly ISettingsRepository _settings;
 
         private readonly ICurrentUserService _currentUser;
 
-        public DashboardService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, ICurrentUserService currentUser)
+        public DashboardService(
+            ILoggerFactory loggerFactory,
+            ICurrentUserService currentUser,
+            IUserRepository users,
+            IBorrowingRepository borrowings,
+            IReservationRepository reservations,
+            INotificationRepository notificationRepository,
+            IEquipmentRepository equipment,
+            ISettingsRepository settings)
             : base(loggerFactory)
         {
-            this._unitOfWork = unitOfWork;
             this._currentUser = currentUser;
+            this._users = users;
+            this._borrowings = borrowings;
+            this._reservations = reservations;
+            this._notificationRepository = notificationRepository;
+            this._equipment = equipment;
+            this._settings = settings;
         }
 
         public BorrowerDashboardViewModel GetBorrowerDashboard(long userId)
         {
             var now = DateTime.UtcNow;
-            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
+            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this._settings, now);
             bool Overdue(Borrowing b) => BorrowingRules.IsOverdue(b.Status?.Code, b.DueAtUtc, cutoff);
             bool DueToday(Borrowing b) => BorrowingRules.IsLocalToday(b.DueAtUtc, now);
 
-            var user = this.DbContext.Users
-                .AsNoTracking()
-                .Include(u => u.AccountStatus)
-                .FirstOrDefault(u => u.UserId == userId);
+            var user = this._users.GetByIdWithDetails(userId);
 
-            var openBorrowings = this.DbContext.Borrowings
-                .AsNoTracking()
-                .Include(b => b.Equipment)
-                .Include(b => b.Status)
-                .Where(b => b.BorrowerUserId == userId
-                    && b.Status.Code != BorrowingStatusCodes.Returned
-                    && b.Status.Code != BorrowingStatusCodes.Lost)
-                .OrderBy(b => b.DueAtUtc)
-                .ToList();
+            var openBorrowings = this._borrowings.GetForBorrowerExcludingStatuses(userId, BorrowingStatusCodes.Returned, BorrowingStatusCodes.Lost, null);
 
-            var reservations = this.DbContext.Reservations
-                .AsNoTracking()
-                .Include(r => r.Equipment)
-                .Include(r => r.Status)
-                .Where(r => r.BorrowerUserId == userId)
-                .OrderByDescending(r => r.SubmittedAtUtc)
-                .ToList();
+            var reservations = this._reservations.GetForBorrower(userId);
 
-            var notifications = this.DbContext.Notifications
-                .AsNoTracking()
-                .Where(n => n.RecipientUserId == userId)
-                .OrderByDescending(n => n.CreatedAtUtc)
-                .Take(5)
-                .ToList();
+            var notifications = this._notificationRepository.GetLatestForRecipient(userId, 5);
 
-            var unreadCount = this.DbContext.Notifications
-                .AsNoTracking()
-                .Count(n => n.RecipientUserId == userId && !n.IsRead);
+            var unreadCount = this._notificationRepository.CountUnread(userId);
 
-            var completedBorrowings = this.DbContext.Borrowings
-                .AsNoTracking()
-                .Count(b => b.BorrowerUserId == userId && b.Status.Code == BorrowingStatusCodes.Returned);
+            var completedBorrowings = this._borrowings.CountForBorrowerWithStatus(userId, BorrowingStatusCodes.Returned);
 
             var overdueRows = openBorrowings
                 .Where(Overdue)
@@ -170,44 +158,18 @@ namespace ASI.Basecode.Services.Services
         public CustodianDashboardViewModel GetCustodianDashboard()
         {
             var now = DateTime.UtcNow;
-            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this.DbContext, now);
+            var cutoff = BorrowingRules.GetOverdueCutoffUtc(this._settings, now);
 
-            var policy = this.DbContext.BorrowingPolicyVersions
-                .AsNoTracking()
-                .Where(p => p.IsCurrent)
-                .OrderByDescending(p => p.EffectiveFromUtc)
-                .FirstOrDefault();
-            var lowStockThreshold = policy?.LowStockThreshold ?? 2;
+            var lowStockThreshold = this._settings.GetCurrentLowStockThreshold() ?? 2;
 
             // Tasks are scoped to the custodian (routed work + shared pool); inventory alerts stay global.
             var scope = this._currentUser.GetCustodianScope();
 
-            var reservations = this.DbContext.Reservations
-                .AsNoTracking()
-                .Include(r => r.BorrowerUser)
-                .Include(r => r.Equipment)
-                .Include(r => r.Status)
-                .Where(r => scope == null || r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == scope)
-                .ToList();
+            var reservations = this._reservations.GetInCustodianScope(scope);
 
-            var borrowings = this.DbContext.Borrowings
-                .AsNoTracking()
-                .Include(b => b.BorrowerUser)
-                .Include(b => b.Equipment)
-                .Include(b => b.Status)
-                .Include(b => b.InspectionStatus)
-                .Where(b => scope == null || b.Reservation == null
-                    || b.Reservation.AssignedCustodianUserId == null
-                    || b.Reservation.AssignedCustodianUserId == scope)
-                .ToList();
+            var borrowings = this._borrowings.GetInCustodianScope(scope);
 
-            var equipment = this.DbContext.Equipment
-                .AsNoTracking()
-                .Include(e => e.EquipmentInventoryBalance)
-                .Include(e => e.OperationalStatus)
-                .Include(e => e.CurrentCondition)
-                .Where(e => e.IsActive)
-                .ToList();
+            var equipment = this._equipment.GetActiveWithStockState();
 
             var pending = reservations.Where(r => r.Status.Code == ReservationStatusCodes.Pending).ToList();
 

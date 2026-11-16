@@ -185,5 +185,16 @@ namespace ASI.Basecode.Data.Repositories
         {
             return this.Context.EquipmentCategories.Count();
         }
+
+        public System.Collections.Generic.List<Equipment> GetActiveWithStockState()
+        {
+            return this.Context.Equipment
+                .AsNoTracking()
+                .Include(e => e.EquipmentInventoryBalance)
+                .Include(e => e.OperationalStatus)
+                .Include(e => e.CurrentCondition)
+                .Where(e => e.IsActive)
+                .ToList();
+        }
     }
 }

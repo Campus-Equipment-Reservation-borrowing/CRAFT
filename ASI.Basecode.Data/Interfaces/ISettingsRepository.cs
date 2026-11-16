@@ -21,5 +21,8 @@ namespace ASI.Basecode.Data.Interfaces
         bool CategoryHasEquipment(long categoryId);
 
         bool LocationHasEquipment(long locationId);
+
+        /// <summary>Low-stock threshold of the newest current policy (by effective date), or null when none is current.</summary>
+        int? GetCurrentLowStockThreshold();
     }
 }

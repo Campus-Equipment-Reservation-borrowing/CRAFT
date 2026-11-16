@@ -134,6 +134,21 @@ namespace ASI.Basecode.Data.Repositories
                     && b.DueAtUtc <= toUtc)
                 .ToList();
         }
+
+        public List<Borrowing> GetInCustodianScope(long? scopeCustodianUserId)
+        {
+            var scope = scopeCustodianUserId;
+            return this.Context.Borrowings
+                .AsNoTracking()
+                .Include(b => b.BorrowerUser)
+                .Include(b => b.Equipment)
+                .Include(b => b.Status)
+                .Include(b => b.InspectionStatus)
+                .Where(b => scope == null || b.Reservation == null
+                    || b.Reservation.AssignedCustodianUserId == null
+                    || b.Reservation.AssignedCustodianUserId == scope)
+                .ToList();
+        }
     }
 
 }

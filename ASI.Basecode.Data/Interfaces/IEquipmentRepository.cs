@@ -52,5 +52,8 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Number of equipment categories.</summary>
         int CountCategories();
+
+        /// <summary>Untracked active equipment with inventory balance, operational status and current condition.</summary>
+        System.Collections.Generic.List<Equipment> GetActiveWithStockState();
     }
 }

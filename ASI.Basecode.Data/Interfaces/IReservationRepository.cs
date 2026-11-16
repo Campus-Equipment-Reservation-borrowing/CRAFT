@@ -51,5 +51,8 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Tracked reservations in the status that have not had an expiry warning, with equipment and borrower.</summary>
         List<Reservation> GetTrackedWithoutExpiryWarning(string statusCode);
+
+        /// <summary>Untracked reservations with borrower, equipment and status, limited to the custodian's routed work plus the unassigned pool (all when scope is null).</summary>
+        List<Reservation> GetInCustodianScope(long? scopeCustodianUserId);
     }
 }

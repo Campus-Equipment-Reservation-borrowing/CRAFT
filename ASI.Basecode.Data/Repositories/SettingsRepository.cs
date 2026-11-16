@@ -58,5 +58,15 @@ namespace ASI.Basecode.Data.Repositories
         {
             return this.Context.Equipment.Any(e => e.LocationId == locationId);
         }
+
+        public int? GetCurrentLowStockThreshold()
+        {
+            return this.Context.BorrowingPolicyVersions
+                .AsNoTracking()
+                .Where(p => p.IsCurrent)
+                .OrderByDescending(p => p.EffectiveFromUtc)
+                .Select(p => (int?)p.LowStockThreshold)
+                .FirstOrDefault();
+        }
     }
 }
