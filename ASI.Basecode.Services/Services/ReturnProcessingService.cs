@@ -22,6 +22,7 @@ namespace ASI.Basecode.Services.Services
     public class ReturnProcessingService : ServiceBase, IReturnProcessingService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly IReturnProcessingRepository _repository;
         private readonly ICurrentUserService _currentUser;
         private readonly INotificationDispatcher _notifications;
@@ -35,9 +36,11 @@ namespace ASI.Basecode.Services.Services
             IReturnProcessingRepository repository,
             ICurrentUserService currentUser,
             INotificationDispatcher notifications,
-            IMapper mapper)
+            IMapper mapper,
+            IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._repository = repository;
             this._currentUser = currentUser;
@@ -600,7 +603,7 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
                 ActionType = actionType,

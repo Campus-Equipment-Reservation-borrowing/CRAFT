@@ -20,6 +20,7 @@ namespace ASI.Basecode.Services.Services
         private static readonly Regex CodePattern = new Regex(@"^[A-Z0-9_-]{2,50}$");
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly ISettingsRepository _repository;
         private readonly ICurrentUserService _currentUser;
 
@@ -29,9 +30,11 @@ namespace ASI.Basecode.Services.Services
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
             ISettingsRepository repository,
-            ICurrentUserService currentUser)
+            ICurrentUserService currentUser,
+            IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._repository = repository;
             this._currentUser = currentUser;
@@ -382,7 +385,7 @@ namespace ASI.Basecode.Services.Services
 
         private void Audit(string action, string entityType, long entityId, string reference, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
                 ActionType = action,

@@ -26,12 +26,14 @@ namespace ASI.Basecode.Services.Services
         private const string LockedOutMessage = "Too many failed attempts. Please try again in 15 minutes.";
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
 
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
-        public AuthService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork)
+        public AuthService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
         }
 
@@ -449,7 +451,7 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteAudit(long? userId, string referenceNumber, string actionType, string entityType, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = userId,
                 ActionType = actionType,

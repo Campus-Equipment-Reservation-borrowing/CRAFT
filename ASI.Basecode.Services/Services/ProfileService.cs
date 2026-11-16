@@ -19,12 +19,14 @@ namespace ASI.Basecode.Services.Services
     public class ProfileService : ServiceBase, IProfileService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
 
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
-        public ProfileService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork)
+        public ProfileService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
         }
 
@@ -128,7 +130,7 @@ namespace ASI.Basecode.Services.Services
                 preference.NotifyAnnouncements = form.NotifyAnnouncements;
                 preference.UpdatedAtUtc = DateTime.UtcNow;
 
-                this.DbContext.AuditLogs.Add(new AuditLog
+                this._auditLogs.Add(new AuditLog
                 {
                     ActorUserId = userId,
                     ActionType = "UPDATE",
@@ -170,7 +172,7 @@ namespace ASI.Basecode.Services.Services
                 var previous = user.ProfileImagePath;
                 user.ProfileImagePath = string.IsNullOrWhiteSpace(imagePath) ? null : imagePath;
 
-                this.DbContext.AuditLogs.Add(new AuditLog
+                this._auditLogs.Add(new AuditLog
                 {
                     ActorUserId = userId,
                     ActionType = "UPDATE",

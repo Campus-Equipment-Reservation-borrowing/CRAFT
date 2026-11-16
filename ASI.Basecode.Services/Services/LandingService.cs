@@ -11,12 +11,14 @@ namespace ASI.Basecode.Services.Services
     public class LandingService : ServiceBase, ILandingService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
 
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
-        public LandingService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork)
+        public LandingService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
         }
 
@@ -47,13 +49,8 @@ namespace ASI.Basecode.Services.Services
             }
 
             var since = DateTime.UtcNow.AddDays(-90);
-            var decisionHours = db.AuditLogs
-                .Where(a => a.EntityType == "Reservation"
-                    && (a.ActionType == "APPROVE" || a.ActionType == "REJECT")
-                    && a.OccurredAtUtc >= since)
-                .Join(db.Reservations, a => a.EntityId, r => (long?)r.ReservationId,
-                    (a, r) => new { a.OccurredAtUtc, r.SubmittedAtUtc })
-                .AsEnumerable()
+            var decisionHours = this._auditLogs
+                .GetReservationDecisionTimes("Reservation", new[] { "APPROVE", "REJECT" }, since)
                 .Select(x => (x.OccurredAtUtc - x.SubmittedAtUtc).TotalHours)
                 .Where(h => h >= 0)
                 .OrderBy(h => h)

@@ -28,6 +28,7 @@ namespace ASI.Basecode.Services.Services
         private const string BorrowingStatusReturned = BorrowingStatusCodes.Returned;
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly IReservationRepository _reservationRepository;
         private readonly ICurrentUserService _currentUser;
         private readonly INotificationDispatcher _notifications;
@@ -46,9 +47,11 @@ namespace ASI.Basecode.Services.Services
             INotificationDispatcher notifications,
             ICustodianAssignmentService assignments,
             Microsoft.Extensions.Options.IOptions<ReservationLifecycleOptions> lifecycle,
-            IMapper mapper)
+            IMapper mapper,
+            IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._reservationRepository = reservationRepository;
             this._currentUser = currentUser;
@@ -769,7 +772,7 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
                 ActionType = actionType,

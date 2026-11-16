@@ -19,6 +19,7 @@ namespace ASI.Basecode.Services.Services
         private static readonly string[] AllRoles = { RoleCodes.Student, RoleCodes.Faculty, RoleCodes.Technician, RoleCodes.Admin };
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly ICurrentUserService _currentUser;
         private readonly INotificationDispatcher _notifications;
 
@@ -28,9 +29,11 @@ namespace ASI.Basecode.Services.Services
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
             ICurrentUserService currentUser,
-            INotificationDispatcher notifications)
+            INotificationDispatcher notifications,
+            IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._currentUser = currentUser;
             this._notifications = notifications;
@@ -418,7 +421,7 @@ namespace ASI.Basecode.Services.Services
             {
                 Pending = counts.TryGetValue(AccountStatusCodes.Unverified, out var p) ? p : 0,
                 Rejected = counts.TryGetValue(AccountStatusCodes.Rejected, out var r) ? r : 0,
-                Approved = this.DbContext.AuditLogs.Count(a => a.ActionType == "VERIFY"),
+                Approved = this._auditLogs.CountByActionType("VERIFY"),
                 MedianHoursToDecision = median,
             };
         }
@@ -499,7 +502,7 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
                 ActionType = actionType,

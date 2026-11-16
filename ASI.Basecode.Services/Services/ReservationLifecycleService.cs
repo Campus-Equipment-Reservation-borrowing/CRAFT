@@ -20,6 +20,7 @@ namespace ASI.Basecode.Services.Services
         private static readonly string[] OpenBorrowingStatuses = { BorrowingStatusCodes.Active, BorrowingStatusCodes.PartiallyReturned };
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly INotificationDispatcher _notifications;
         private readonly ReservationLifecycleOptions _options;
 
@@ -29,9 +30,11 @@ namespace ASI.Basecode.Services.Services
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
             INotificationDispatcher notifications,
-            IOptions<ReservationLifecycleOptions> options)
+            IOptions<ReservationLifecycleOptions> options,
+            IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._notifications = notifications;
             this._options = options?.Value ?? new ReservationLifecycleOptions();
@@ -94,7 +97,7 @@ namespace ASI.Basecode.Services.Services
                 reservation.HeldQuantity = 0;
                 reservation.CompletedAtUtc = now;
 
-                this.DbContext.AuditLogs.Add(new AuditLog
+                this._auditLogs.Add(new AuditLog
                 {
                     ActorUserId = null,
                     ActionType = "EXPIRE",

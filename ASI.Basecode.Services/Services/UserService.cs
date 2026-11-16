@@ -24,6 +24,7 @@ namespace ASI.Basecode.Services.Services
     public class UserService : ServiceBase, IUserService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly IUserRepository _userRepository;
         private readonly ICurrentUserService _currentUser;
         private readonly INotificationDispatcher _notifications;
@@ -40,9 +41,11 @@ namespace ASI.Basecode.Services.Services
             ICurrentUserService currentUser,
             INotificationDispatcher notifications,
             ICustodianAssignmentService assignments,
-            IMapper mapper)
+            IMapper mapper,
+            IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._userRepository = userRepository;
             this._currentUser = currentUser;
@@ -363,10 +366,7 @@ namespace ASI.Basecode.Services.Services
 
                 // A user's own inbox goes with them; audit rows stay, with the actor cleared.
                 this.DbContext.Notifications.RemoveRange(this.DbContext.Notifications.Where(n => n.RecipientUserId == userId));
-                foreach (var log in this.DbContext.AuditLogs.Where(l => l.ActorUserId == userId))
-                {
-                    log.ActorUserId = null;
-                }
+                this._auditLogs.ClearActor(userId);
 
                 this.DbContext.Users.Remove(entity);
                 this._unitOfWork.SaveChanges();
@@ -591,7 +591,7 @@ namespace ASI.Basecode.Services.Services
 
         private void AddAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
                 ActionType = actionType,

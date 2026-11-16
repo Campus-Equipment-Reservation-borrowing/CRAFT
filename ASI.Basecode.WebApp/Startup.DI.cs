@@ -55,6 +55,7 @@ namespace ASI.Basecode.WebApp
 
             // User management
             this._services.AddScoped<IUserRepository, UserRepository>();
+            this._services.AddScoped<IAuditLogRepository, AuditLogRepository>();
             this._services.AddScoped<IUserService, UserService>();
 
             // Borrower reservations

@@ -19,6 +19,7 @@ namespace ASI.Basecode.Services.Services
         private static readonly string[] OpenStatuses = { ReservationStatusCodes.Pending, ReservationStatusCodes.Approved, ReservationStatusCodes.ReadyForRelease, ReservationStatusCodes.PartiallyReleased };
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditLogRepository _auditLogs;
         private readonly ICurrentUserService _currentUser;
         private readonly INotificationDispatcher _notifications;
 
@@ -28,9 +29,11 @@ namespace ASI.Basecode.Services.Services
             ILoggerFactory loggerFactory,
             IUnitOfWork unitOfWork,
             ICurrentUserService currentUser,
-            INotificationDispatcher notifications)
+            INotificationDispatcher notifications,
+            IAuditLogRepository auditLogs)
             : base(loggerFactory)
         {
+            this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._currentUser = currentUser;
             this._notifications = notifications;
@@ -484,7 +487,7 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteAudit(string actionType, long entityId, string details, string entityType = "CustodianAssignment", string referenceNumber = null)
         {
-            this.DbContext.AuditLogs.Add(new AuditLog
+            this._auditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
                 ActionType = actionType,
