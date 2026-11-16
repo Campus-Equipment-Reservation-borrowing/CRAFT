@@ -727,3 +727,8 @@
 .cp-img-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .cp-break-all { word-break: break-all; }
 #inviteLink { overflow-wrap: anywhere; }
+
+/* Text field with its submit button on one row; the button keeps its width and never wraps. */
+.cp-search-row { display: flex; gap: 8px; align-items: stretch; }
+.cp-search-row .cp-input { flex: 1 1 auto; min-width: 0; width: auto; }
+.cp-search-row .cp-btn { flex: 0 0 auto; white-space: nowrap; }
