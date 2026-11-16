@@ -223,5 +223,11 @@ namespace ASI.Basecode.Data.Repositories
                 .OrderBy(l => l.LocationName)
                 .ToList();
         }
+
+        public Equipment FindByAssetCodeUpper(string upperAssetCode)
+        {
+            return this.Context.Equipment.AsNoTracking()
+                .FirstOrDefault(e => e.AssetCode.ToUpper() == upperAssetCode);
+        }
     }
 }

@@ -341,5 +341,10 @@ namespace ASI.Basecode.Data.Repositories
                 .Select(u => u.FirstName + " " + u.LastName)
                 .FirstOrDefault();
         }
+
+        public bool HasAccountStatus(long userId, string accountStatusCode)
+        {
+            return this.Context.Users.Any(u => u.UserId == userId && u.AccountStatus.Code == accountStatusCode);
+        }
     }
 }

@@ -158,5 +158,8 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>"First Last" of the user, or null.</summary>
         string GetFullName(long userId);
+
+        /// <summary>True when the user exists with the given account status code.</summary>
+        bool HasAccountStatus(long userId, string accountStatusCode);
     }
 }
