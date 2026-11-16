@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace ASI.Basecode.Services
+namespace ASI.Basecode.Services.Manager
 {
     /// <summary>
     /// Inspection photos live outside wwwroot so they are never served as public static files;

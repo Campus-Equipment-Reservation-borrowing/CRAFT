@@ -1,4 +1,5 @@
-@using ASI.Basecode.Services
+@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.Manager
 @using Microsoft.Extensions.Options
 @model (string StatusCode, DateTime SubmittedAtUtc, DateTime RequestedStartAtUtc)
 @inject IOptions<ReservationLifecycleOptions> LifecycleOptions

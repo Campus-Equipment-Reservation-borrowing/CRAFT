@@ -4,22 +4,10 @@ using ASI.Basecode.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Data.Repositories
 {
-    public interface IMonitoringRepository
-    {
-        (int totalReservations, int pending, int approved, int rejected, int cancelled, int completed, int expired) GetReservationCounts();
-
-        (int totalBorrowings, int active, int partiallyReturned, int returned, int overdue, int lost) GetBorrowingCounts(DateTime overdueCutoffUtc);
-
-        (int totalEquipment, int totalUnits, int availableUnits) GetEquipmentCounts();
-
-        PagedResult<AuditLog> GetAuditLogsPaged(string search, string entityType, int page, int pageSize);
-
-        PagedResult<InventoryMovement> GetMovementsPaged(string search, int page, int pageSize);
-    }
-
     public class MonitoringRepository : BaseRepository, IMonitoringRepository
     {
         public MonitoringRepository(IUnitOfWork unitOfWork) : base(unitOfWork)

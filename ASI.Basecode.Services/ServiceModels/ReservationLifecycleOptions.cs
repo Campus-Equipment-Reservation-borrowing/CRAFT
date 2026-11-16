@@ -1,4 +1,4 @@
-namespace ASI.Basecode.Services
+namespace ASI.Basecode.Services.ServiceModels
 {
     /// <summary>
     /// Settings for the reservation lifecycle job, bound from the <c>ReservationLifecycle</c>

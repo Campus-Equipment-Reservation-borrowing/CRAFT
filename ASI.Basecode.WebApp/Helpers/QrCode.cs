@@ -1,6 +1,6 @@
 using QRCoder;
 
-namespace ASI.Basecode.WebApp.Mvc
+namespace ASI.Basecode.WebApp.Helpers
 {
     /// <summary>
     /// Renders QR codes as inline SVG (cross-platform, no System.Drawing). The SVG is generated

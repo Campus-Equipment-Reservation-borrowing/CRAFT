@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ASI.Basecode.Services
+namespace ASI.Basecode.Services.Manager
 {
     /// <summary>
     /// Minimal RFC 4180 CSV builder. Every field is quoted, quotes are doubled, and values that a

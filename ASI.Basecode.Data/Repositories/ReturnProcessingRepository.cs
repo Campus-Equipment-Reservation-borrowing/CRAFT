@@ -4,18 +4,10 @@ using ASI.Basecode.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Data.Repositories
 {
-    public interface IReturnProcessingRepository
-    {
-        Borrowing GetBorrowingForReturn(long borrowingId);
-
-        PagedResult<BorrowingReturn> GetReturnsPaged(string search, int page, int pageSize, long? scopeCustodianUserId = null);
-
-        BorrowingReturn GetReturnWithDetails(long returnId);
-    }
-
     public class ReturnProcessingRepository : BaseRepository, IReturnProcessingRepository
     {
         public ReturnProcessingRepository(IUnitOfWork unitOfWork) : base(unitOfWork)

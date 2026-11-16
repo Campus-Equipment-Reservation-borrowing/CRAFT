@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Security.Claims;
 
-namespace ASI.Basecode.WebApp.Mvc
+namespace ASI.Basecode.WebApp.Infrastructure
 {
     /// <summary>
     /// Resolves the acting user for audit logging from the authenticated cookie principal only.

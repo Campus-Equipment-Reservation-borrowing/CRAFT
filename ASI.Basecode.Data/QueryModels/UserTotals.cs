@@ -1,4 +1,4 @@
-namespace ASI.Basecode.Data
+namespace ASI.Basecode.Data.QueryModels
 {
     /// <summary>
     /// Aggregate account counters across all users (User Management KPI cards).

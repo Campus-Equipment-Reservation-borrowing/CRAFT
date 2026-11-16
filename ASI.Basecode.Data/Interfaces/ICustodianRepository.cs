@@ -2,6 +2,7 @@ using ASI.Basecode.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Data.Interfaces
 {

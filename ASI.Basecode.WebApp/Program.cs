@@ -44,7 +44,7 @@ using (var scope = app.Services.CreateScope())
     seeder?.Seed(includeDemoData: app.Environment.IsDevelopment());
 
     // Inspection photos used to be public static files; move any left in wwwroot to private storage.
-    var movedPhotos = ASI.Basecode.Services.InspectionPhotoStore.MigrateFromPublicFolder();
+    var movedPhotos = ASI.Basecode.Services.Manager.InspectionPhotoStore.MigrateFromPublicFolder();
     if (movedPhotos > 0)
     {
         app.Logger.LogInformation("Moved {Count} inspection photo(s) out of wwwroot into private storage.", movedPhotos);

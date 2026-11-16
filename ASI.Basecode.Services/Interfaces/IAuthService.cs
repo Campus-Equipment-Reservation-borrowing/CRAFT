@@ -4,26 +4,6 @@ using System.Collections.Generic;
 namespace ASI.Basecode.Services.Interfaces
 {
     /// <summary>
-    /// Outcome of a sign in attempt, mapped to the error strings in [1.2 Login].
-    /// </summary>
-    public enum SignInResult
-    {
-        Success = 0,
-
-        /// <summary>Username is not a registered user account.</summary>
-        UserNotFound = 1,
-
-        /// <summary>Password is incorrect.</summary>
-        InvalidPassword = 2,
-
-        /// <summary>Account status is Suspended or Inactive.</summary>
-        AccountDisabled = 3,
-
-        /// <summary>Too many consecutive failed attempts; temporarily locked.</summary>
-        LockedOut = 4,
-    }
-
-    /// <summary>
     /// Authentication and account self-service: screens 1.1 - 1.4.
     /// </summary>
     public interface IAuthService

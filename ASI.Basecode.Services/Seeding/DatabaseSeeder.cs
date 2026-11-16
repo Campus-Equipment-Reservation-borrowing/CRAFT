@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ASI.Basecode.Services.Services
+namespace ASI.Basecode.Services.Seeding
 {
     /// <summary>
     /// Idempotent seeding for the empty scaffolded database.

@@ -7,8 +7,9 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using ASI.Basecode.Services.ServiceModels;
 
-namespace ASI.Basecode.WebApp.Mvc
+namespace ASI.Basecode.WebApp.HostedServices
 {
     /// <summary>
     /// Runs <see cref="IReservationLifecycleService.RunOnce"/> on an interval, each pass in its own

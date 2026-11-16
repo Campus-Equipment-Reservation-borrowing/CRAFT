@@ -1,5 +1,6 @@
 using ASI.Basecode.Data.Models;
 using System;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Data.Interfaces
 {

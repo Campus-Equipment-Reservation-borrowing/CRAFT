@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ASI.Basecode.Data
+namespace ASI.Basecode.Data.QueryModels
 {
     /// <summary>
     /// Generic paged query result used by repository query methods.

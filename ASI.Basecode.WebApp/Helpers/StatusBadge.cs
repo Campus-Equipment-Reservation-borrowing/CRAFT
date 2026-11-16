@@ -1,6 +1,6 @@
 using System;
 
-namespace ASI.Basecode.WebApp.Mvc
+namespace ASI.Basecode.WebApp.Helpers
 {
     /// <summary>
     /// One colour per status code so the same state reads the same on borrower and staff pages.

@@ -4,6 +4,26 @@ using System.ComponentModel.DataAnnotations;
 namespace ASI.Basecode.Services.ViewModelClasses
 {
     /// <summary>
+    /// Outcome of a sign in attempt, mapped to the error strings in [1.2 Login].
+    /// </summary>
+    public enum SignInResult
+    {
+        Success = 0,
+
+        /// <summary>Username is not a registered user account.</summary>
+        UserNotFound = 1,
+
+        /// <summary>Password is incorrect.</summary>
+        InvalidPassword = 2,
+
+        /// <summary>Account status is Suspended or Inactive.</summary>
+        AccountDisabled = 3,
+
+        /// <summary>Too many consecutive failed attempts; temporarily locked.</summary>
+        LockedOut = 4,
+    }
+
+    /// <summary>
     /// [1.2 Login] — accepts either the school email or the account identifier.
     /// </summary>
     public class LoginViewModel

@@ -1,6 +1,7 @@
 using ASI.Basecode.Data;
 using ASI.Basecode.Data.Models;
 using System.ComponentModel.DataAnnotations;
+using ASI.Basecode.Data.QueryModels;
 
 namespace ASI.Basecode.Services.ViewModelClasses
 {

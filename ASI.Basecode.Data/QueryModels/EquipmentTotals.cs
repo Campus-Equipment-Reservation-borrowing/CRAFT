@@ -1,4 +1,4 @@
-namespace ASI.Basecode.Data
+namespace ASI.Basecode.Data.QueryModels
 {
     /// <summary>
     /// Aggregate unit counters across all equipment inventory balances.

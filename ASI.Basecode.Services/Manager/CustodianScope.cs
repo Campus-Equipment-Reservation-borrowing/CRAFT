@@ -1,6 +1,6 @@
 using ASI.Basecode.Services.Interfaces;
 
-namespace ASI.Basecode.Services
+namespace ASI.Basecode.Services.Manager
 {
     /// <summary>
     /// Custodian scoping rule shared by the custodian, returns and dashboard services:

@@ -3,7 +3,7 @@ using ASI.Basecode.Data.Models;
 using System;
 using System.Linq;
 
-namespace ASI.Basecode.Services
+namespace ASI.Basecode.Services.Manager
 {
     /// <summary>
     /// Reservation rules shared by the borrower, custodian and lifecycle services so the stock

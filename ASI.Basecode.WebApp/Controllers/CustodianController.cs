@@ -1,3 +1,4 @@
+using ASI.Basecode.Data.QueryModels;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
 using ASI.Basecode.WebApp.Mvc;
@@ -65,7 +66,7 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 this.HandleExceptionLog(ex, "Reservations");
                 this.TempData["ErrorMessage"] = "Unable to load the reservation list.";
-                return this.View(new CustodianReservationsIndexViewModel { Page = new Data.PagedResult<CustodianReservationRowViewModel>() });
+                return this.View(new CustodianReservationsIndexViewModel { Page = new PagedResult<CustodianReservationRowViewModel>() });
             }
         }
 
@@ -255,7 +256,7 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 this.HandleExceptionLog(ex, "Borrowings");
                 this.TempData["ErrorMessage"] = "Unable to load active borrowings.";
-                return this.View(new ActiveBorrowingsIndexViewModel { Page = new Data.PagedResult<ActiveBorrowingRowViewModel>() });
+                return this.View(new ActiveBorrowingsIndexViewModel { Page = new PagedResult<ActiveBorrowingRowViewModel>() });
             }
         }
 

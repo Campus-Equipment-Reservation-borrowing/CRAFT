@@ -9,21 +9,6 @@ using System.Linq;
 
 namespace ASI.Basecode.Data.Repositories
 {
-    public interface ISettingsRepository
-    {
-        BorrowingPolicyVersion GetCurrentPolicy();
-
-        List<BorrowingPolicyVersion> GetPolicyHistory();
-
-        List<EquipmentCategory> GetCategories();
-
-        List<Location> GetLocations();
-
-        bool CategoryHasEquipment(long categoryId);
-
-        bool LocationHasEquipment(long locationId);
-    }
-
     public class SettingsRepository : BaseRepository, ISettingsRepository
     {
         public SettingsRepository(IUnitOfWork unitOfWork) : base(unitOfWork)

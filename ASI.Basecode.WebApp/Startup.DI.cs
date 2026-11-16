@@ -2,12 +2,14 @@
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Seeding;
+using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.Services;
-using ASI.Basecode.Services.ViewModelClasses;
-using ASI.Basecode.WebApp.Models;
-using ASI.Basecode.WebApp.Mvc;
+using ASI.Basecode.WebApp.HostedServices;
+using ASI.Basecode.WebApp.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -60,10 +62,10 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IReservationService, ReservationService>();
 
             // Reservation lifecycle automation (expiry, overdue, due-soon reminders)
-            this._services.Configure<ASI.Basecode.Services.ReservationLifecycleOptions>(
-                this.Configuration.GetSection(ASI.Basecode.Services.ReservationLifecycleOptions.SectionName));
+            this._services.Configure<ReservationLifecycleOptions>(
+                this.Configuration.GetSection(ReservationLifecycleOptions.SectionName));
             this._services.AddScoped<IReservationLifecycleService, ReservationLifecycleService>();
-            this._services.AddHostedService<ASI.Basecode.WebApp.Mvc.ReservationLifecycleWorker>();
+            this._services.AddHostedService<ReservationLifecycleWorker>();
 
             // Announcements, support tickets, verification stats and borrower history
             this._services.AddScoped<ICommunicationService, CommunicationService>();

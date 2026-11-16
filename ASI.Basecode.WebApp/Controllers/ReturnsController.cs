@@ -1,3 +1,4 @@
+using ASI.Basecode.Data.QueryModels;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
 using ASI.Basecode.WebApp.Mvc;
@@ -42,7 +43,7 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 this.HandleExceptionLog(ex, "Index");
                 this.TempData["ErrorMessage"] = "Unable to load returns.";
-                return this.View(new ReturnsIndexViewModel { Page = new Data.PagedResult<ReturnRowViewModel>() });
+                return this.View(new ReturnsIndexViewModel { Page = new PagedResult<ReturnRowViewModel>() });
             }
         }
 
