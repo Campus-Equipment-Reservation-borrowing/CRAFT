@@ -170,5 +170,24 @@ namespace ASI.Basecode.Data.Repositories
                 .ThenBy(u => u.UserId)
                 .ToList();
         }
+
+        public List<NotificationRecipient> GetNotificationRecipients(IReadOnlyCollection<long> userIds)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Include(u => u.Preference)
+                .Where(u => userIds.Contains(u.UserId))
+                .Select(u => new NotificationRecipient { UserId = u.UserId, SchoolEmail = u.SchoolEmail, Preference = u.Preference })
+                .ToList();
+        }
+
+        public List<long> GetUserIdsInRolesWithStatus(IReadOnlyCollection<string> roleCodes, string accountStatusCode)
+        {
+            return this.Context.Users
+                .AsNoTracking()
+                .Where(u => roleCodes.Contains(u.Role.RoleCode) && u.AccountStatus.Code == accountStatusCode)
+                .Select(u => u.UserId)
+                .ToList();
+        }
     }
 }

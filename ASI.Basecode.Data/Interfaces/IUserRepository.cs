@@ -57,5 +57,15 @@ namespace ASI.Basecode.Data.Interfaces
         /// All user accounts (with role) ordered by name — source for the operator switcher.
         /// </summary>
         List<User> GetOperatorOptions();
+
+        /// <summary>
+        /// Id, email and preference row of each of the given users (untracked).
+        /// </summary>
+        List<NotificationRecipient> GetNotificationRecipients(IReadOnlyCollection<long> userIds);
+
+        /// <summary>
+        /// Ids of users holding one of the role codes whose account status has the given code.
+        /// </summary>
+        List<long> GetUserIdsInRolesWithStatus(IReadOnlyCollection<string> roleCodes, string accountStatusCode);
     }
 }

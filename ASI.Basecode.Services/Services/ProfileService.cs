@@ -19,13 +19,15 @@ namespace ASI.Basecode.Services.Services
     public class ProfileService : ServiceBase, IProfileService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IUserPreferenceRepository _preferences;
         private readonly IAuditLogRepository _auditLogs;
 
         private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
 
-        public ProfileService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IAuditLogRepository auditLogs)
+        public ProfileService(ILoggerFactory loggerFactory, IUnitOfWork unitOfWork, IAuditLogRepository auditLogs, IUserPreferenceRepository preferences)
             : base(loggerFactory)
         {
+            this._preferences = preferences;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
         }
@@ -116,11 +118,11 @@ namespace ASI.Basecode.Services.Services
                 user.ContactNumber = contact;
                 user.AlternateContact = form.AlternateContact?.Trim();
 
-                var preference = this.DbContext.UserPreferences.FirstOrDefault(p => p.UserId == userId);
+                var preference = this._preferences.GetTrackedByUserId(userId);
                 if (preference == null)
                 {
                     preference = new UserPreference { UserId = userId };
-                    this.DbContext.UserPreferences.Add(preference);
+                    this._preferences.Add(preference);
                 }
 
                 preference.NotifyReservationUpdates = form.NotifyReservationUpdates;
@@ -197,8 +199,7 @@ namespace ASI.Basecode.Services.Services
 
         public bool HasCompletedTour(long userId)
         {
-            return this.DbContext.UserPreferences.AsNoTracking()
-                .Any(p => p.UserId == userId && p.TourCompletedAtUtc != null);
+            return this._preferences.HasCompletedTour(userId);
         }
 
         public void SetTourCompleted(long userId, bool completed)
@@ -210,7 +211,7 @@ namespace ASI.Basecode.Services.Services
 
         private UserPreference EnsurePreference(long userId)
         {
-            var preference = this.DbContext.UserPreferences.FirstOrDefault(p => p.UserId == userId);
+            var preference = this._preferences.GetTrackedByUserId(userId);
             if (preference != null)
             {
                 return preference;
@@ -227,7 +228,7 @@ namespace ASI.Basecode.Services.Services
                 UpdatedAtUtc = DateTime.UtcNow,
             };
 
-            this.DbContext.UserPreferences.Add(preference);
+            this._preferences.Add(preference);
             this._unitOfWork.SaveChanges();
             return preference;
         }

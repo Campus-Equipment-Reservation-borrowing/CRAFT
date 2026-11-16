@@ -24,6 +24,7 @@ namespace ASI.Basecode.Services.Services
     public class UserService : ServiceBase, IUserService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationRepository _notificationRepository;
         private readonly ILookupRepository _lookups;
         private readonly IAuditLogRepository _auditLogs;
         private readonly IUserRepository _userRepository;
@@ -44,9 +45,11 @@ namespace ASI.Basecode.Services.Services
             ICustodianAssignmentService assignments,
             IMapper mapper,
             IAuditLogRepository auditLogs,
-            ILookupRepository lookups)
+            ILookupRepository lookups,
+            INotificationRepository notificationRepository)
             : base(loggerFactory)
         {
+            this._notificationRepository = notificationRepository;
             this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
@@ -366,7 +369,7 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 // A user's own inbox goes with them; audit rows stay, with the actor cleared.
-                this.DbContext.Notifications.RemoveRange(this.DbContext.Notifications.Where(n => n.RecipientUserId == userId));
+                this._notificationRepository.RemoveAllForRecipient(userId);
                 this._auditLogs.ClearActor(userId);
 
                 this.DbContext.Users.Remove(entity);

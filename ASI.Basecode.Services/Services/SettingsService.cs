@@ -20,6 +20,7 @@ namespace ASI.Basecode.Services.Services
         private static readonly Regex CodePattern = new Regex(@"^[A-Z0-9_-]{2,50}$");
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationRepository _notificationRepository;
         private readonly IAuditLogRepository _auditLogs;
         private readonly ISettingsRepository _repository;
         private readonly ICurrentUserService _currentUser;
@@ -31,9 +32,11 @@ namespace ASI.Basecode.Services.Services
             IUnitOfWork unitOfWork,
             ISettingsRepository repository,
             ICurrentUserService currentUser,
-            IAuditLogRepository auditLogs)
+            IAuditLogRepository auditLogs,
+            INotificationRepository notificationRepository)
             : base(loggerFactory)
         {
+            this._notificationRepository = notificationRepository;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
             this._repository = repository;
@@ -288,11 +291,7 @@ namespace ASI.Basecode.Services.Services
 
         public NotificationsIndexViewModel GetNotifications(long userId)
         {
-            var items = this.DbContext.Notifications
-                .AsNoTracking()
-                .Where(n => n.RecipientUserId == userId)
-                .OrderByDescending(n => n.CreatedAtUtc)
-                .Take(100)
+            var items = this._notificationRepository.GetLatestForRecipient(userId, 100)
                 .Select(n => new NotificationRowViewModel
                 {
                     NotificationId = n.NotificationId,
@@ -315,7 +314,7 @@ namespace ASI.Basecode.Services.Services
         /// <summary>Marks the user's notification read and returns where it should open, or null if it isn't theirs.</summary>
         public string OpenNotification(long notificationId, long userId)
         {
-            var entity = this.DbContext.Notifications.FirstOrDefault(n => n.NotificationId == notificationId && n.RecipientUserId == userId);
+            var entity = this._notificationRepository.GetTrackedForRecipient(notificationId, userId);
             if (entity == null)
             {
                 return null;
@@ -332,7 +331,7 @@ namespace ASI.Basecode.Services.Services
 
         public void MarkNotificationRead(long notificationId, long userId)
         {
-            var entity = this.DbContext.Notifications.FirstOrDefault(n => n.NotificationId == notificationId && n.RecipientUserId == userId);
+            var entity = this._notificationRepository.GetTrackedForRecipient(notificationId, userId);
             if (entity != null)
             {
                 entity.IsRead = true;
@@ -342,7 +341,7 @@ namespace ASI.Basecode.Services.Services
 
         public void MarkAllNotificationsRead(long userId)
         {
-            var unread = this.DbContext.Notifications.Where(n => n.RecipientUserId == userId && !n.IsRead).ToList();
+            var unread = this._notificationRepository.GetTrackedUnreadForRecipient(userId);
             foreach (var n in unread)
             {
                 n.IsRead = true;
