@@ -9,6 +9,9 @@ namespace ASI.Basecode.Services.Mapping
     {
         public MappingProfile()
         {
+            // Transaction monitoring
+            this.CreateMap<ASI.Basecode.Data.QueryModels.TransactionRow, TransactionRowViewModel>();
+
             // Equipment administration
             this.CreateMap<Equipment, EquipmentListViewModel>()
                 .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.EquipmentCategory.CategoryName))
