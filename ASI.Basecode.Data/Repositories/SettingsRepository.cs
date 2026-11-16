@@ -68,5 +68,65 @@ namespace ASI.Basecode.Data.Repositories
                 .Select(p => (int?)p.LowStockThreshold)
                 .FirstOrDefault();
         }
+
+        public void AddPolicy(BorrowingPolicyVersion policy)
+        {
+            this.Context.BorrowingPolicyVersions.Add(policy);
+        }
+
+        public bool CategoryCodeExists(string upperCode)
+        {
+            return this.Context.EquipmentCategories.Any(c => c.CategoryCode.ToUpper() == upperCode);
+        }
+
+        public bool CategoryNameExists(string upperName)
+        {
+            return this.Context.EquipmentCategories.Any(c => c.CategoryName.ToUpper() == upperName);
+        }
+
+        public void AddCategory(EquipmentCategory category)
+        {
+            this.Context.EquipmentCategories.Add(category);
+        }
+
+        public EquipmentCategory GetTrackedCategory(long categoryId)
+        {
+            return this.Context.EquipmentCategories.FirstOrDefault(c => c.EquipmentCategoryId == categoryId);
+        }
+
+        public int CountEquipmentInCategory(long categoryId)
+        {
+            return this.Context.Equipment.Count(e => e.EquipmentCategoryId == categoryId);
+        }
+
+        public void RemoveCategory(EquipmentCategory category)
+        {
+            this.Context.EquipmentCategories.Remove(category);
+        }
+
+        public bool LocationCodeExists(string upperCode)
+        {
+            return this.Context.Locations.Any(l => l.LocationCode.ToUpper() == upperCode);
+        }
+
+        public void AddLocation(Location location)
+        {
+            this.Context.Locations.Add(location);
+        }
+
+        public Location GetTrackedLocation(long locationId)
+        {
+            return this.Context.Locations.FirstOrDefault(l => l.LocationId == locationId);
+        }
+
+        public void RemoveLocation(Location location)
+        {
+            this.Context.Locations.Remove(location);
+        }
+
+        public void MarkUnchanged(object entity)
+        {
+            this.SetEntityState(entity, EntityState.Unchanged);
+        }
     }
 }
