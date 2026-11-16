@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="t">
+  <title id="t">CRAFT</title>
+  <path d="M45.50 15.91 A21.0 21.0 0 1 0 43.13 49.81" fill="none" stroke="#168A5B" stroke-width="5.2" stroke-linecap="round"/>
+  <path d="M50.42 45.25 L44.92 54.94 L39.30 45.95 Z" fill="#168A5B" stroke="#168A5B" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M32.00 21.40 L41.18 26.70 L32.00 32.00 L22.82 26.70 Z" fill="#A9D8C2"/>
+  <path d="M22.82 26.70 L32.00 32.00 L32.00 42.60 L22.82 37.30 Z" fill="#0B5D3E"/>
+  <path d="M32.00 32.00 L41.18 26.70 L41.18 37.30 L32.00 42.60 Z" fill="#168A5B"/>
+  <circle cx="51.18" cy="23.46" r="3.7" fill="#E8C87E"/>
+</svg>

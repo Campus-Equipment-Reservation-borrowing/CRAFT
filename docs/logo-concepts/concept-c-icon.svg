@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="t">
+  <title id="t">CRAFT</title>
+  <defs><linearGradient id="g" x1="6" y1="4" x2="58" y2="62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#168A5B"/><stop offset="1" stop-color="#0B5D3E"/></linearGradient></defs>
+  <rect width="64" height="64" rx="16" fill="url(#g)"/>
+  <rect x="41.00" y="12.00" width="11" height="11" rx="3" fill="#FFFFFF"/>
+  <rect x="26.50" y="12.00" width="11" height="11" rx="3" fill="#EFF7F2"/>
+  <rect x="12.00" y="12.00" width="11" height="11" rx="3" fill="#DEEFE6"/>
+  <rect x="12.00" y="26.50" width="11" height="11" rx="3" fill="#CEE7D9"/>
+  <rect x="12.00" y="41.00" width="11" height="11" rx="3" fill="#C2E2D1"/>
+  <rect x="26.50" y="41.00" width="11" height="11" rx="3" fill="#B5DDCA"/>
+  <rect x="41.00" y="41.00" width="11" height="11" rx="3" fill="#A9D8C2"/>
+  <circle cx="46.50" cy="32.00" r="3.96" fill="#E8C87E"/>
+</svg>

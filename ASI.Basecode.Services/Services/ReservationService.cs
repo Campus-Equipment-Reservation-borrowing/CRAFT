@@ -110,6 +110,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             var row = this.MapToAvailabilityRow(entity);
+            var policy = this.GetActivePolicy();
             var summary = new ReservationEquipmentSummaryViewModel
             {
                 EquipmentId = row.EquipmentId,
@@ -120,7 +121,9 @@ namespace ASI.Basecode.Services.Services
                 ConditionName = row.ConditionName,
                 TotalQuantity = row.TotalQuantity,
                 AvailableUnits = row.AvailableUnits,
-                MaxUnitsPerBorrower = this.GetActivePolicy().MaxUnitsPerBorrower,
+                MaxUnitsPerBorrower = policy.MaxUnitsPerBorrower,
+                ReservationLeadTimeDays = policy.ReservationLeadTimeDays,
+                MaxAdvanceBookingDays = policy.MaxAdvanceBookingDays,
                 BlockedReason = GetReservationBlock(entity),
             };
 
@@ -146,12 +149,13 @@ namespace ASI.Basecode.Services.Services
             var row = this.MapToAvailabilityRow(entity);
             var policy = this.GetActivePolicy();
             var balance = entity.EquipmentInventoryBalance;
-            var available = this.ComputeAvailableUnits(balance);
+            // Blocked items (maintenance, broken, retired, damaged...) have nothing available to borrowers.
+            var block = GetReservationBlock(entity);
+            var available = block != null ? 0 : this.ComputeAvailableUnits(balance);
             var isMaintenance = string.Equals(
                 entity.OperationalStatus?.Code, ConditionCodes.UnderMaintenance, StringComparison.OrdinalIgnoreCase);
 
-            var reason = GetReservationBlock(entity)
-                ?? (available <= 0 ? "Equipment is not available for reservation." : null);
+            var reason = block ?? (available <= 0 ? "Equipment is not available for reservation." : null);
 
             return new EquipmentDetailsViewModel
             {
@@ -713,6 +717,15 @@ namespace ASI.Basecode.Services.Services
                 - (entity.EquipmentInventoryBalance?.AwaitingInspectionQuantity ?? 0)
                 - (entity.EquipmentInventoryBalance?.MaintenanceQuantity ?? 0)
                 - (entity.EquipmentInventoryBalance?.UnreconciledQuantity ?? 0);
+
+            // An item that can't be reserved (maintenance, broken, retired, damaged...) has nothing
+            // available to borrowers, whatever is on the shelf.
+            row.UnavailableReason = GetReservationBlock(entity);
+            if (row.UnavailableReason != null)
+            {
+                row.AvailableUnits = 0;
+            }
+
             return row;
         }
 

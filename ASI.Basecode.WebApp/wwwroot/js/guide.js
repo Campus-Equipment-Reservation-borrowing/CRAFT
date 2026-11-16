@@ -294,12 +294,21 @@
     window.CraftGuide = { start: start, tours: tours };
 
     // ---- Resume a tour in progress, or auto-start the overview once per account ----
+    // A saved tour only resumes on the page its next step lives on (the tour itself navigated there).
+    // If the user went somewhere else, they left the tour: drop it instead of yanking them back,
+    // which used to bounce borrowers off pages like the reservation form.
     var saved = load();
-    if (saved && tourById(saved.tour)) {
+    var savedTour = saved && tourById(saved.tour);
+    var savedStep = savedTour && savedTour.steps[saved.step];
+    if (savedStep && onPage(savedStep)) {
         state = saved;
         show();
-    } else if (body.getAttribute('data-guide-done') === 'false' && window.self === window.top) {
-        var overview = tours.filter(function (t) { return t.overview; })[0];
-        if (overview) setTimeout(function () { start(overview.id, 0); }, 400);
+    } else {
+        if (saved) clearSaved();
+        if (body.getAttribute('data-guide-done') === 'false' && window.self === window.top) {
+            // Auto-start the overview only where its first step lives, never by redirecting.
+            var overview = tours.filter(function (t) { return t.overview; })[0];
+            if (overview && onPage(overview.steps[0])) setTimeout(function () { start(overview.id, 0); }, 400);
+        }
     }
 })();

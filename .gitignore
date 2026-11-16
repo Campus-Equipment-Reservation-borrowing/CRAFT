@@ -199,3 +199,6 @@ node_modules
 */src/*/Scripts/**/*.js.map
 # Private uploads (inspection photos) live outside wwwroot
 **/App_Data/uploads/
+# Claude Code local settings and dev launcher
+.claude/settings.local.json
+.claude/run-craft.sh

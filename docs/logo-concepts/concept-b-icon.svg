@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="t">
+  <title id="t">CRAFT</title>
+  <defs><linearGradient id="g" x1="6" y1="4" x2="58" y2="62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#168A5B"/><stop offset="1" stop-color="#0B5D3E"/></linearGradient></defs>
+  <path d="M22 6 H50 Q58 6 58 14 V50 Q58 58 50 58 H14 Q6 58 6 50 V22 Z" fill="url(#g)" stroke="url(#g)" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="16.5" cy="16.5" r="4.6" fill="#FFFFFF"/><circle cx="16.5" cy="16.5" r="2.1" fill="#0B5D3E"/>
+  <path d="M45.78 27.30 A14.5 14.5 0 1 0 45.78 46.70" fill="none" stroke="#FFFFFF" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M29.2 37.6 L33.6 42 L42 31.6" fill="none" stroke="#E8C87E" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

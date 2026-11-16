@@ -236,7 +236,8 @@ html, body {
 .craft-header .icon-btn { position: relative; }
 .craft-header .uinfo.end { align-items: flex-end; }
 .craft-header .avatar.accent { background: #FDECE2; color: #99441A; }
-.craft-header .brand-mark { width: 38px; height: 38px; }
+.craft-header .brand-mark { width: 38px; height: 38px; background: none; border-radius: 9.5px; }
+.brand-mark img { display: block; width: 100%; height: 100%; }
 
 .craft-logout { margin: 0; }
 .craft-logout .nav-item {
