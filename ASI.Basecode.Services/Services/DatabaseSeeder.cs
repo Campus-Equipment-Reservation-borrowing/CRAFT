@@ -31,45 +31,120 @@ namespace ASI.Basecode.Services.Services
             this._unitOfWork = unitOfWork;
         }
 
-        public void Seed()
+        public void Seed(bool includeDemoData)
         {
-            try
-            {
-                this.EnsureAuthSchema();
-            }
-            catch (Exception ex)
-            {
-                this._logger.LogError(ex, "Database seeding failed while ensuring the auth schema.");
-            }
-
-            // Each feature schema step is isolated so one failure doesn't block the others.
-            this.RunSchemaStep("account lifecycle", this.EnsureAccountLifecycleSchema);
-            this.RunSchemaStep("custodian assignments", this.EnsureCustodianAssignmentSchema);
-            this.RunSchemaStep("reservation lifecycle", this.EnsureLifecycleSchema);
-            this.RunSchemaStep("announcements and support", this.EnsureCommunicationSchema);
-
-            try
+            // Schema and codebooks are required: every step runs and logs, then startup stops if
+            // any failed, rather than serving requests that would fail later on missing columns.
+            var failures = 0;
+            failures += this.RunSchemaStep("auth", this.EnsureAuthSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("account lifecycle", this.EnsureAccountLifecycleSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("custodian assignments", this.EnsureCustodianAssignmentSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("reservation lifecycle", this.EnsureLifecycleSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("announcements and support", this.EnsureCommunicationSchema) ? 0 : 1;
+            failures += this.RunSchemaStep("codebooks", () =>
             {
                 this.SeedCodebooks();
                 this.EnsureCodebookEntries();
-                this.SeedDemoData();
+            }) ? 0 : 1;
+            if (failures > 0)
+            {
+                throw new InvalidOperationException($"{failures} database setup step(s) failed; see the log above.");
+            }
+
+            try
+            {
+                if (includeDemoData)
+                {
+                    this.SeedDemoData();
+                }
+
+                // Every account gets a default (all-on) notification preference row.
+                this.DbContext.Database.ExecuteSqlRaw(@"
+INSERT INTO dbo.user_preferences (user_id)
+SELECT u.user_id FROM dbo.users u
+WHERE NOT EXISTS (SELECT 1 FROM dbo.user_preferences p WHERE p.user_id = u.user_id);");
             }
             catch (Exception ex)
             {
                 // Never take the app down on seeding failure — surface it in the log instead.
                 this._logger.LogError(ex, "Database seeding failed.");
             }
+
+            this.RunSchemaStep("reserved stock reconciliation", this.ReconcileReservedQuantities);
+            this.RunSchemaStep("borrower custodian check", this.WarnBorrowersWithoutCustodian);
         }
 
-        private void RunSchemaStep(string name, Action step)
+        /// <summary>
+        /// Recomputes every balance's reserved quantity from the units its open reservations still
+        /// hold, so a hold with no reservation behind it can't keep stock locked forever.
+        /// </summary>
+        private void ReconcileReservedQuantities()
+        {
+            var open = this.DbContext.Reservations.AsNoTracking()
+                .Where(r => ReservationRules.HoldingStatuses.Contains(r.Status.Code))
+                .Select(r => new
+                {
+                    Reservation = r,
+                    StatusCode = r.Status.Code,
+                    Released = this.DbContext.Borrowings.Where(b => b.ReservationId == r.ReservationId).Sum(b => (int?)b.ReleasedQuantity) ?? 0,
+                })
+                .ToList();
+            var expected = open
+                .GroupBy(x => x.Reservation.EquipmentId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => ReservationRules.RemainingHold(x.Reservation, x.StatusCode, x.Released)));
+
+            var balances = this.DbContext.EquipmentInventoryBalances.ToList();
+            var corrected = 0;
+            foreach (var balance in balances)
+            {
+                var target = expected.TryGetValue(balance.EquipmentId, out var held) ? held : 0;
+                if (balance.ReservedQuantity != target)
+                {
+                    this._logger.LogWarning(
+                        "Reserved quantity for equipment {EquipmentId} corrected from {Old} to {New} to match open reservations.",
+                        balance.EquipmentId, balance.ReservedQuantity, target);
+                    balance.ReservedQuantity = target;
+                    corrected++;
+                }
+            }
+
+            if (corrected > 0)
+            {
+                this._unitOfWork.SaveChanges();
+            }
+        }
+
+        /// <summary>Flags active borrowers verified before custodian assignment became mandatory.</summary>
+        private void WarnBorrowersWithoutCustodian()
+        {
+            var missing = this.DbContext.Users.AsNoTracking()
+                .Where(u => u.Role.IsBorrowerRole
+                    && u.AccountStatus.Code == AccountStatusCodes.Active
+                    && !this.DbContext.CustodianAssignments.Any(a => a.BorrowerUserId == u.UserId))
+                .Select(u => u.AccountIdentifier)
+                .ToList();
+            if (missing.Count > 0)
+            {
+                this._logger.LogWarning(
+                    "{Count} active borrower(s) have no custodian and cannot reserve until one is assigned in Custodian Assignments: {Accounts}",
+                    missing.Count, string.Join(", ", missing));
+            }
+        }
+
+        private bool RunSchemaStep(string name, Action step)
         {
             try
             {
                 step();
+                return true;
             }
             catch (Exception ex)
             {
                 this._logger.LogError(ex, "Database schema step '{Step}' failed.", name);
+
+                // Don't let entities from the failed step be retried by every later SaveChanges.
+                this.DbContext.ChangeTracker.Clear();
+                return false;
             }
         }
 
@@ -231,7 +306,10 @@ BEGIN
     ALTER TABLE dbo.reservations ADD CONSTRAINT FK_reservations_assigned_custodian
         FOREIGN KEY (assigned_custodian_user_id) REFERENCES dbo.users(user_id);
     CREATE INDEX IX_reservations_assigned_custodian ON dbo.reservations(assigned_custodian_user_id);
-END;");
+END;
+
+IF COL_LENGTH('dbo.reservations', 'expiry_warning_sent_at_utc') IS NULL
+    ALTER TABLE dbo.reservations ADD expiry_warning_sent_at_utc datetime2 NULL;");
         }
 
         /// <summary>
@@ -627,7 +705,7 @@ END;");
                 }
 
                 AddEquipment("LP-001", "Dell Latitude 5440", "14-inch business laptop, 16GB RAM, 512GB SSD.", "LAPTOP", "PO-MAIN", 10);
-                AddEquipment("LP-002", "MacBook Air M2", "13-inch laptop for creative work and presentations.", "LAPTOP", "PO-MAIN", 5, reserved: 1);
+                AddEquipment("LP-002", "MacBook Air M2", "13-inch laptop for creative work and presentations.", "LAPTOP", "PO-MAIN", 5);
                 AddEquipment("PRJ-101", "Epson EB-X06 Projector", "3600 lumens XGA projector with HDMI input.", "PROJECTOR", "PO-ANNEX", 6);
                 AddEquipment("CAM-201", "Canon EOS 250D", "Entry-level DSLR with 18-55mm kit lens.", "CAMERA", "LIB", 3, condition: "MINOR_DAMAGE");
                 AddEquipment("AUD-301", "Shure SM58 Microphone Set", "Dynamic vocal microphone with XLR cable and stand.", "AUDIO", "GYM", 8);
@@ -639,12 +717,6 @@ END;");
             }
 
             this.SeedDemoCustodianAssignments();
-
-            // Every account gets a default (all-on) notification preference row.
-            this.DbContext.Database.ExecuteSqlRaw(@"
-INSERT INTO dbo.user_preferences (user_id)
-SELECT u.user_id FROM dbo.users u
-WHERE NOT EXISTS (SELECT 1 FROM dbo.user_preferences p WHERE p.user_id = u.user_id);");
 
             if (!db.Notifications.Any())
             {

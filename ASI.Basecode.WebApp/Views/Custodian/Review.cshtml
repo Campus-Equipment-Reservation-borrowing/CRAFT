@@ -27,7 +27,7 @@
             <div class="cp-card-header">Reservation Details</div>
             <dl class="cp-kv">
                 <dt>Reservation #</dt><dd class="cp-mono">@Model.ReservationNumber</dd>
-                <dt>Status</dt><dd><span class="@StatusBadge.Css(Model.StatusCode)">@Model.StatusDescription</span></dd>
+                <dt>Status</dt><dd><span class="@StatusBadge.Css(Model.StatusCode)">@Model.StatusDescription</span> <partial name="_ExpiryBadge" model="@((Model.StatusCode, Model.SubmittedAtUtc, Model.RequestedStartAtUtc))" /></dd>
                 <dt>Custodian</dt>
                 <dd>
                     @if (Model.AssignedCustodianName == null)
@@ -90,9 +90,10 @@
                     }
                     else if (!string.IsNullOrEmpty(Model.ApproveBlockedReason))
                     {
-                        <div class="banner err" role="alert">
+                        <div class="banner err" role="alert" id="approveBlocked">
                             <div class="banner-b"><div class="banner-t">Can't be approved</div><div>@Model.ApproveBlockedReason</div></div>
                         </div>
+                        <button type="button" class="cp-btn cp-btn-success" disabled aria-describedby="approveBlocked">Approve Reservation</button>
                     }
                     <form asp-action="Reject" asp-route-id="@Model.ReservationId" method="post">
                         @Html.AntiForgeryToken()

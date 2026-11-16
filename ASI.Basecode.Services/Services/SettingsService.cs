@@ -71,6 +71,14 @@ namespace ASI.Basecode.Services.Services
                 return (false, ErrorMessages.ServerError);
             }
 
+            if (form.MaxBorrowDurationDays < 1 || form.MaxBorrowDurationDays > 365
+                || form.MaxActiveBorrowingUnits < 1 || form.MaxActiveBorrowingUnits > 100
+                || form.OverdueGracePeriodMinutes < 0 || form.OverdueGracePeriodMinutes > 1440
+                || form.LowStockThreshold < 0 || form.LowStockThreshold > 100)
+            {
+                return (false, ErrorMessages.SettingsValueOutOfRange);
+            }
+
             try
             {
                 if (form.FacultyMaxBorrowDays < form.MaxBorrowDurationDays)

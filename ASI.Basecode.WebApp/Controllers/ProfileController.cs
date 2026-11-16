@@ -6,6 +6,7 @@ using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ViewModelClasses;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -95,8 +96,13 @@ namespace ASI.Basecode.WebApp.Controllers
             if (!this.ModelState.IsValid)
             {
                 var model = this._profileService.GetProfile(userId.Value);
+                if (model == null)
+                {
+                    return this.RedirectToAction("Login", "Account");
+                }
+
                 this.TempData["ErrorMessage"] = "Please correct the highlighted fields.";
-                return this.View(this.ResolveView(model?.RoleCode), model);
+                return this.View(this.ResolveView(model.RoleCode), model);
             }
 
             var (success, error) = this._profileService.SaveContact(userId.Value, form);
@@ -109,7 +115,7 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ChangePassword(ProfilePasswordFormViewModel form)
+        public async System.Threading.Tasks.Task<IActionResult> ChangePassword(ProfilePasswordFormViewModel form)
         {
             var userId = this._currentUser.GetActorUserId();
             if (!userId.HasValue)
@@ -126,6 +132,20 @@ namespace ASI.Basecode.WebApp.Controllers
             }
 
             var (success, error) = this._authService.ChangePassword(userId.Value, form.CurrentPassword, form.NewPassword);
+            if (success)
+            {
+                // The password stamp changed; re-issue this session's cookie so only other sessions end.
+                var refreshed = this._authService.GetAuthenticatedUser(userId.Value);
+                if (refreshed != null)
+                {
+                    var persistent = (await this.HttpContext.AuthenticateAsync()).Properties?.IsPersistent ?? false;
+                    await this.HttpContext.SignInAsync(
+                        Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme,
+                        AuthCookie.BuildPrincipal(refreshed),
+                        new AuthenticationProperties { IsPersistent = persistent });
+                }
+            }
+
             this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success
                 ? "Your password has been updated."
                 : error;

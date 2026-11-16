@@ -26,6 +26,16 @@ namespace ASI.Basecode.WebApp.Controllers
             this._landingService = landingService;
         }
 
+        /// <summary>Production exception handler target (UseExceptionHandler).</summary>
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return this.View(new ASI.Basecode.WebApp.Models.ErrorViewModel
+            {
+                RequestId = System.Diagnostics.Activity.Current?.Id ?? this.HttpContext.TraceIdentifier,
+            });
+        }
+
         /// <summary>
         /// [1.0 Landing] — public when signed out; otherwise routes to the role dashboard.
         /// </summary>

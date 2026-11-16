@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ASI.Basecode.Data;
 using System.ComponentModel.DataAnnotations;
 
@@ -50,6 +51,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public int PendingCount { get; set; }
 
         public int RejectedCount { get; set; }
+
+        /// <summary>Active custodians an approver must choose from.</summary>
+        public List<LookupViewModel> CustodianOptions { get; set; } = new();
+
+        /// <summary>Existing borrower → custodian assignments, used to preselect the picker.</summary>
+        public Dictionary<long, long> CurrentCustodianByUser { get; set; } = new();
     }
 
     /// <summary>

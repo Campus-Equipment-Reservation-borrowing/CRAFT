@@ -80,7 +80,8 @@
             }
             else
             {
-                <div class="banner err">
+                <button type="button" class="cp-btn cp-btn-primary cp-btn-lg" disabled aria-describedby="reserveBlocked">Reserve Equipment</button>
+                <div class="banner err" id="reserveBlocked" style="margin-top:10px">
                     <div class="banner-b"><div class="banner-t">Not available to reserve</div><div>@Model.UnavailableReason</div></div>
                 </div>
             }

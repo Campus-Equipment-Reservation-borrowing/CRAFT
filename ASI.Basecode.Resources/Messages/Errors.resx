@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -275,6 +275,84 @@
   </data>
   <data name="TicketClosed" xml:space="preserve">
     <value>This ticket is resolved. Open a new ticket if you need more help.</value>
+  </data>
+  <data name="VerificationCustodianRequired" xml:space="preserve">
+    <value>Choose an active custodian before approving this account.</value>
+  </data>
+  <data name="VerificationBorrowerOnly" xml:space="preserve">
+    <value>Only student and faculty accounts go through verification.</value>
+  </data>
+  <data name="UserActivateNeedsCustodian" xml:space="preserve">
+    <value>Borrower accounts are activated through the verification queue so a custodian can be assigned.</value>
+  </data>
+  <data name="CustodianDeactivateBlocked" xml:space="preserve">
+    <value>This custodian still has assigned borrowers or open reservations. Reassign them first.</value>
+  </data>
+  <data name="AssignmentBorrowerRequired" xml:space="preserve">
+    <value>An active borrower must always have a custodian. Pick a different custodian instead of removing this one.</value>
+  </data>
+  <data name="AssignmentBorrowerNotActive" xml:space="preserve">
+    <value>Only verified borrowers can be assigned here. Approve the account in the verification queue instead.</value>
+  </data>
+  <data name="ReservationAccountNotActive" xml:space="preserve">
+    <value>Your account isn't active, so you can't reserve equipment. Check your dashboard for details.</value>
+  </data>
+  <data name="ReservationNoCustodian" xml:space="preserve">
+    <value>No custodian is assigned to your account yet. Contact the admin office.</value>
+  </data>
+  <data name="ReservationReturnBeforeStart" xml:space="preserve">
+    <value>The return date must be after the pickup date.</value>
+  </data>
+  <data name="ReservationEquipmentUnavailable" xml:space="preserve">
+    <value>This item is under maintenance and can't be reserved right now.</value>
+  </data>
+  <data name="ReservationPolicyMissing" xml:space="preserve">
+    <value>The borrowing policy isn't configured yet. Contact the admin office.</value>
+  </data>
+  <data name="ReservationStockTaken" xml:space="preserve">
+    <value>That item was just reserved by someone else. Check availability and try again.</value>
+  </data>
+  <data name="CustodianBorrowerNotActive" xml:space="preserve">
+    <value>The borrower's account is no longer active.</value>
+  </data>
+  <data name="CustodianPickupPassed" xml:space="preserve">
+    <value>The pickup date for this reservation has passed. Cancel it and ask the borrower to submit a new request.</value>
+  </data>
+  <data name="CustodianReturnDatePassed" xml:space="preserve">
+    <value>This reservation's return date has already passed. Cancel it and ask the borrower to submit a new request.</value>
+  </data>
+  <data name="InspectionReturnMismatch" xml:space="preserve">
+    <value>That return record doesn't belong to this borrowing.</value>
+  </data>
+  <data name="InspectionConditionInvalid" xml:space="preserve">
+    <value>Choose a valid condition.</value>
+  </data>
+  <data name="SettingsValueOutOfRange" xml:space="preserve">
+    <value>One or more policy values are out of range. Check the limits shown next to each field.</value>
+  </data>
+  <data name="CustodianActorRequired" xml:space="preserve">
+    <value>Your session has no signed-in user. Sign in again and retry.</value>
+  </data>
+  <data name="ReturnNotFound" xml:space="preserve">
+    <value>That borrowing record doesn't exist or isn't yours to process.</value>
+  </data>
+  <data name="ReturnQuantityInvalid" xml:space="preserve">
+    <value>Enter a return quantity between 1 and the units still out.</value>
+  </data>
+  <data name="ReturnAlreadyComplete" xml:space="preserve">
+    <value>Every unit under this transaction has already been returned.</value>
+  </data>
+  <data name="SettingsCategoryInUse" xml:space="preserve">
+    <value>This category can't be deleted while equipment uses it.</value>
+  </data>
+  <data name="SettingsLocationInUse" xml:space="preserve">
+    <value>This location can't be deleted while equipment is stored there.</value>
+  </data>
+  <data name="EquipmentHasOpenReservations" xml:space="preserve">
+    <value>This item has {0} open reservation(s). Cancel or complete them before deactivating it or putting it under maintenance.</value>
+  </data>
+  <data name="EquipmentAdjustInvalid" xml:space="preserve">
+    <value>Enter a quantity between 1 and the units currently in that state.</value>
   </data>
   <data name="EquipmentInvalidOperationalStatus" xml:space="preserve">
     <value>Select a valid availability status (Available, Under Maintenance, Broken / Out of Service or Retired).</value>

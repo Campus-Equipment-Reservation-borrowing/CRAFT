@@ -22,6 +22,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string AssetCode { get; set; }
         public int ReleasedQuantity { get; set; }
         public int AlreadyReturned { get; set; }
+
+        /// <summary>Units still with the borrower.</summary>
+        public int OutstandingQuantity => System.Math.Max(0, this.ReleasedQuantity - this.AlreadyReturned);
+
+        /// <summary>Returned units not yet covered by a completed inspection.</summary>
+        public int InspectableQuantity { get; set; }
         /// <summary>Units already covered by a completed inspection.</summary>
         public int AlreadyInspected { get; set; }
         /// <summary>Returned units still waiting for a completed inspection.</summary>
@@ -73,6 +79,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public decimal? RepairCost { get; set; }
         public decimal? PenaltyAmount { get; set; }
         public string PenaltyNote { get; set; }
+
+        /// <summary>Set by the service when some photos were not stored (shown after saving).</summary>
+        public string PhotoWarning { get; set; }
     }
 
     public class InspectionFormContextViewModel

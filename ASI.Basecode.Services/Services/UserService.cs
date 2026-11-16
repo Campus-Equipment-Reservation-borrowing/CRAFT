@@ -26,6 +26,7 @@ namespace ASI.Basecode.Services.Services
         private readonly IUserRepository _userRepository;
         private readonly ICurrentUserService _currentUser;
         private readonly INotificationDispatcher _notifications;
+        private readonly ICustodianAssignmentService _assignments;
         private readonly IMapper _mapper;
 
         /// <summary>Direct EF access for the small writes this service owns.</summary>
@@ -37,6 +38,7 @@ namespace ASI.Basecode.Services.Services
             IUserRepository userRepository,
             ICurrentUserService currentUser,
             INotificationDispatcher notifications,
+            ICustodianAssignmentService assignments,
             IMapper mapper)
             : base(loggerFactory)
         {
@@ -44,6 +46,7 @@ namespace ASI.Basecode.Services.Services
             this._userRepository = userRepository;
             this._currentUser = currentUser;
             this._notifications = notifications;
+            this._assignments = assignments;
             this._mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -63,8 +66,16 @@ namespace ASI.Basecode.Services.Services
                 ? this.DbContext.Users.Count(u => u.AccountStatusId == id)
                 : 0;
 
+            var userIds = result.Items.Select(u => u.UserId).ToList();
+            var currentCustodians = this.DbContext.CustodianAssignments.AsNoTracking()
+                .Where(a => a.BorrowerUserId != null && userIds.Contains(a.BorrowerUserId.Value))
+                .Select(a => new { BorrowerId = a.BorrowerUserId.Value, a.CustodianUserId })
+                .ToDictionary(a => a.BorrowerId, a => a.CustodianUserId);
+
             return new VerificationQueueViewModel
             {
+                CustodianOptions = this._assignments.GetCustodianOptions(),
+                CurrentCustodianByUser = currentCustodians,
                 Page = new PagedResult<UserListViewModel>
                 {
                     Items = result.Items.Select(entity => this._mapper.Map<UserListViewModel>(entity)).ToList(),
@@ -79,16 +90,27 @@ namespace ASI.Basecode.Services.Services
             };
         }
 
-        public (bool Success, string Error) Verify(long userId)
+        public (bool Success, string Error) Verify(long userId, long custodianUserId)
         {
             try
             {
+                if (custodianUserId <= 0)
+                {
+                    return (false, ErrorMessages.VerificationCustodianRequired);
+                }
+
                 var entity = this.DbContext.Users
                     .Include(u => u.AccountStatus)
+                    .Include(u => u.Role)
                     .FirstOrDefault(u => u.UserId == userId);
                 if (entity == null)
                 {
                     return (false, ErrorMessages.UserNotFound);
+                }
+
+                if (entity.Role?.IsBorrowerRole != true)
+                {
+                    return (false, ErrorMessages.VerificationBorrowerOnly);
                 }
 
                 var code = entity.AccountStatus?.Code;
@@ -98,19 +120,36 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 var active = this.DbContext.AccountStatuses.First(s => s.Code == AccountStatusCodes.Active);
+                var now = DateTime.UtcNow;
+                var actorId = this._currentUser.GetActorUserId();
+
+                // Activation and custodian assignment succeed or fail together.
+                using var transaction = this.DbContext.Database.BeginTransaction();
+                var staged = this._assignments.StageBorrowerAssignment(entity.UserId, custodianUserId);
+                if (!staged.Success)
+                {
+                    return (false, staged.Error);
+                }
+
                 entity.AccountStatusId = active.AccountStatusId;
                 entity.VerificationNote = null;
-                entity.VerifiedAtUtc = DateTime.UtcNow;
-                entity.VerifiedByUserId = this._currentUser.GetActorUserId();
+                entity.VerifiedAtUtc = now;
+                entity.VerifiedByUserId = actorId;
                 this._unitOfWork.SaveChanges();
 
-                this.WriteAudit("VERIFY", "User", entity.UserId, entity.AccountIdentifier,
-                    $"Verified account '{entity.FirstName} {entity.LastName}' ({entity.AccountIdentifier}).");
+                this.AddAudit("VERIFY", "User", entity.UserId, entity.AccountIdentifier,
+                    $"Verified account '{entity.FirstName} {entity.LastName}' ({entity.AccountIdentifier}) and assigned custodian {staged.CustodianName}.");
+                this.AddAudit("ASSIGN", "CustodianAssignment", staged.Assignment.AssignmentId, entity.AccountIdentifier, staged.Details);
+                this._unitOfWork.SaveChanges();
+                transaction.Commit();
 
                 this._notifications.Notify(entity.UserId, NotificationTypes.Account,
                     "Account verified",
-                    "Your account has been verified. You can now submit equipment reservations.",
+                    $"Your account has been verified. {staged.CustodianName} is your custodian; your reservations will be reviewed by them.",
                     "/Reservations/Available");
+                this._notifications.Notify(custodianUserId, NotificationTypes.Account,
+                    "New borrower assigned",
+                    $"{entity.FirstName} {entity.LastName} ({entity.AccountIdentifier}) was verified and assigned to you. Their reservations will be routed to you.");
 
                 return (true, null);
             }
@@ -124,6 +163,9 @@ namespace ASI.Basecode.Services.Services
                 return (false, ErrorMessages.ServerError);
             }
         }
+
+        /// <inheritdoc />
+        public List<LookupViewModel> GetCustodianOptions() => this._assignments.GetCustodianOptions();
 
         public (bool Success, string Error) RejectVerification(long userId, string reason)
         {
@@ -253,6 +295,12 @@ namespace ASI.Basecode.Services.Services
                 if (this._userRepository.SchoolEmailExists(form.SchoolEmail, form.UserId))
                 {
                     return (false, ErrorMessages.UserEmailDuplicate, form.UserId);
+                }
+
+                var lifecycleError = this.ValidateLifecycleChange(form);
+                if (lifecycleError != null)
+                {
+                    return (false, lifecycleError, form.UserId);
                 }
 
                 return form.UserId > 0
@@ -474,6 +522,53 @@ namespace ASI.Basecode.Services.Services
             return (true, null, entity.UserId);
         }
 
+        /// <summary>
+        /// Guards the admin user form against the two ways around the custodian rule: activating a
+        /// borrower who has no custodian, and taking a custodian out of service while work is still
+        /// routed to them.
+        /// </summary>
+        private string ValidateLifecycleChange(UserFormViewModel form)
+        {
+            var newRoleId = form.RoleId ?? 0;
+            var newStatusId = form.AccountStatusId ?? 0;
+            var newRole = this.DbContext.Roles.AsNoTracking().FirstOrDefault(r => r.RoleId == newRoleId);
+            var newStatusCode = this.DbContext.AccountStatuses.AsNoTracking()
+                .Where(st => st.AccountStatusId == newStatusId).Select(st => st.Code).FirstOrDefault();
+            var current = form.UserId > 0
+                ? this.DbContext.Users.AsNoTracking()
+                    .Where(u => u.UserId == form.UserId)
+                    .Select(u => new { u.Role.RoleCode, StatusCode = u.AccountStatus.Code })
+                    .FirstOrDefault()
+                : null;
+
+            var becomesActiveBorrower = newRole?.IsBorrowerRole == true
+                && newStatusCode == AccountStatusCodes.Active
+                && (current == null || current.StatusCode != AccountStatusCodes.Active || !this.IsBorrowerCode(current.RoleCode));
+            if (becomesActiveBorrower
+                && (form.UserId <= 0 || !this.DbContext.CustodianAssignments.Any(a => a.BorrowerUserId == form.UserId)))
+            {
+                return ErrorMessages.UserActivateNeedsCustodian;
+            }
+
+            var leavesCustodianService = current != null
+                && current.RoleCode == RoleCodes.Technician
+                && current.StatusCode == AccountStatusCodes.Active
+                && (newRole?.RoleCode != RoleCodes.Technician || newStatusCode != AccountStatusCodes.Active);
+            if (leavesCustodianService
+                && (this.DbContext.CustodianAssignments.Any(a => a.CustodianUserId == form.UserId)
+                    || this.DbContext.Reservations.Any(r => r.AssignedCustodianUserId == form.UserId
+                        && OpenReservationStatuses.Contains(r.Status.Code))))
+            {
+                return ErrorMessages.CustodianDeactivateBlocked;
+            }
+
+            return null;
+        }
+
+        private static readonly string[] OpenReservationStatuses = { "PENDING", "APPROVED", "READY_FOR_RELEASE", "PARTIALLY_RELEASED" };
+
+        private bool IsBorrowerCode(string roleCode) => roleCode == RoleCodes.Student || roleCode == RoleCodes.Faculty;
+
         private bool IsActiveAdmin(long roleId, long accountStatusId)
         {
             return this.DbContext.Roles.Any(r => r.RoleId == roleId && r.RoleCode == RoleCodes.Admin)
@@ -489,6 +584,12 @@ namespace ASI.Basecode.Services.Services
 
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
         {
+            this.AddAudit(actionType, entityType, entityId, referenceNumber, details);
+            this._unitOfWork.SaveChanges();
+        }
+
+        private void AddAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
+        {
             this.DbContext.AuditLogs.Add(new AuditLog
             {
                 ActorUserId = this._currentUser.GetActorUserId(),
@@ -496,10 +597,9 @@ namespace ASI.Basecode.Services.Services
                 EntityType = entityType,
                 EntityId = entityId,
                 ReferenceNumber = referenceNumber,
-                Details = details,
+                Details = details != null && details.Length > 1000 ? details.Substring(0, 1000) : details,
                 OccurredAtUtc = DateTime.UtcNow,
             });
-            this._unitOfWork.SaveChanges();
         }
     }
 }

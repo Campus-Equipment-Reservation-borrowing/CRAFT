@@ -68,9 +68,12 @@ namespace ASI.Basecode.Services.Interfaces
         VerificationQueueViewModel GetVerificationQueue(string tab, string search, int page, int pageSize);
 
         /// <summary>
-        /// Approves an UNVERIFIED or REJECTED account (status ACTIVE), audits VERIFY and notifies the borrower.
+        /// Approves an UNVERIFIED or REJECTED borrower (status ACTIVE) and assigns their custodian in the same transaction.
         /// </summary>
-        (bool Success, string Error) Verify(long userId);
+        (bool Success, string Error) Verify(long userId, long custodianUserId);
+
+        /// <summary>Active custodians for the verification approve picker.</summary>
+        List<LookupViewModel> GetCustodianOptions();
 
         /// <summary>
         /// Rejects an UNVERIFIED account with a required reason, audits REJECT and notifies the borrower.

@@ -6,9 +6,11 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -24,16 +26,19 @@ namespace ASI.Basecode.WebApp.Controllers
     public class AccountController : ControllerBase<AccountController>
     {
         private readonly IAuthService _authService;
+        private readonly IWebHostEnvironment _environment;
 
         public AccountController(
             IHttpContextAccessor httpContextAccessor,
             ILoggerFactory loggerFactory,
             IConfiguration configuration,
             IMapper mapper,
-            IAuthService authService)
+            IAuthService authService,
+            IWebHostEnvironment environment)
             : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
             this._authService = authService;
+            this._environment = environment;
         }
 
         [HttpGet]
@@ -143,10 +148,21 @@ namespace ASI.Basecode.WebApp.Controllers
             }
 
             model.LinkSent = true;
-            model.GeneratedResetUrl = token == null ? null : this.Url.Action(
-                nameof(ResetPassword), "Account",
-                new { token },
-                this.Request.Scheme);
+            if (token != null)
+            {
+                var resetUrl = this.Url.Action(nameof(ResetPassword), "Account", new { token }, this.Request.Scheme);
+
+                // No mail transport is configured. Only a development build shows the link on screen;
+                // anywhere else the link would let anyone reset any account, so it goes to the log.
+                if (this._environment.IsDevelopment())
+                {
+                    model.GeneratedResetUrl = resetUrl;
+                }
+                else
+                {
+                    this._logger.LogInformation("Password reset requested; reset link: {ResetUrl}", resetUrl);
+                }
+            }
 
             return this.View(model);
         }
@@ -254,29 +270,9 @@ namespace ASI.Basecode.WebApp.Controllers
 
         private async Task SignInAsync(AuthenticatedUserViewModel user, bool persistent)
         {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                new Claim(ClaimTypes.Name, user.FullName ?? user.SchoolEmail),
-                new Claim(ClaimTypes.Email, user.SchoolEmail ?? string.Empty),
-                new Claim(ClaimTypes.Role, user.RoleCode ?? string.Empty),
-                new Claim(CampusPulseClaims.AccountStatus, user.AccountStatusCode ?? string.Empty),
-                new Claim(CampusPulseClaims.AccountIdentifier, user.AccountIdentifier ?? string.Empty),
-                new Claim(CampusPulseClaims.IsBorrower, (user.IsBorrowerRole ? "1" : "0")),
-                new Claim(CampusPulseClaims.Department, user.DepartmentName ?? string.Empty),
-            };
-
-            if (user.MustChangePassword)
-            {
-                claims.Add(new Claim(CampusPulseClaims.MustChangePassword, "1"));
-            }
-
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var principal = new ClaimsPrincipal(identity);
-
             await this.HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                principal,
+                AuthCookie.BuildPrincipal(user),
                 new AuthenticationProperties
                 {
                     IsPersistent = persistent,
@@ -285,6 +281,5 @@ namespace ASI.Basecode.WebApp.Controllers
                         : DateTimeOffset.UtcNow.AddMinutes(30),
                 });
         }
-
     }
 }

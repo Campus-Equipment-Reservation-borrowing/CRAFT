@@ -1,4 +1,5 @@
 using ASI.Basecode.Data;
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.Interfaces;
@@ -290,6 +291,22 @@ namespace ASI.Basecode.Services.Services
                 return (false, ErrorMessages.EquipmentQuantityBelowCommitted, form.EquipmentId);
             }
 
+            // Taking an item out of service (inactive or under maintenance) would strand open
+            // reservations that borrowers are waiting on.
+            var maintenanceStatusId = this.DbContext.Conditions.AsNoTracking()
+                .Where(c => c.Code == "UNDER_MAINTENANCE").Select(c => (long?)c.ConditionId).FirstOrDefault();
+            var goingOutOfService = (entity.IsActive && !form.IsActive)
+                || (maintenanceStatusId.HasValue && form.OperationalStatusId == maintenanceStatusId && entity.OperationalStatusId != maintenanceStatusId);
+            if (goingOutOfService)
+            {
+                var openReservations = this.DbContext.Reservations.Count(r => r.EquipmentId == entity.EquipmentId
+                    && ReservationRules.HoldingStatuses.Contains(r.Status.Code));
+                if (openReservations > 0)
+                {
+                    return (false, string.Format(ErrorMessages.EquipmentHasOpenReservations, openReservations), form.EquipmentId);
+                }
+            }
+
             var delta = form.TotalQuantity - balance.TotalQuantity;
 
             this._mapper.Map(form, entity);
@@ -332,6 +349,83 @@ namespace ASI.Basecode.Services.Services
             return item;
         }
 
+        /// <inheritdoc />
+        public (bool Success, string Error) AdjustStock(long equipmentId, string action, int quantity, string note)
+        {
+            try
+            {
+                if (quantity < 1)
+                {
+                    return (false, ErrorMessages.EquipmentAdjustInvalid);
+                }
+
+                var entity = this._equipmentRepository.GetTrackedById(equipmentId);
+                var balance = entity == null
+                    ? null
+                    : entity.EquipmentInventoryBalance ?? this.DbContext.EquipmentInventoryBalances.FirstOrDefault(b => b.EquipmentId == equipmentId);
+                if (entity == null || balance == null)
+                {
+                    return (false, ErrorMessages.EquipmentNotFound);
+                }
+
+                string fromState, toState, summary;
+                switch (action)
+                {
+                    case StockAdjustments.Repaired:
+                        if (quantity > balance.MaintenanceQuantity) return (false, ErrorMessages.EquipmentAdjustInvalid);
+                        balance.MaintenanceQuantity -= quantity;
+                        (fromState, toState, summary) = ("MAINTENANCE", "AVAILABLE", "returned from maintenance");
+                        break;
+                    case StockAdjustments.WriteOffDamaged:
+                        if (quantity > balance.MaintenanceQuantity) return (false, ErrorMessages.EquipmentAdjustInvalid);
+                        balance.MaintenanceQuantity -= quantity;
+                        balance.TotalQuantity -= quantity;
+                        (fromState, toState, summary) = ("MAINTENANCE", "WRITTEN_OFF", "written off as beyond repair");
+                        break;
+                    case StockAdjustments.Found:
+                        if (quantity > balance.UnreconciledQuantity) return (false, ErrorMessages.EquipmentAdjustInvalid);
+                        balance.UnreconciledQuantity -= quantity;
+                        (fromState, toState, summary) = ("UNRECONCILED", "AVAILABLE", "recovered after being reported lost");
+                        break;
+                    case StockAdjustments.WriteOffLost:
+                        if (quantity > balance.UnreconciledQuantity) return (false, ErrorMessages.EquipmentAdjustInvalid);
+                        balance.UnreconciledQuantity -= quantity;
+                        balance.TotalQuantity -= quantity;
+                        (fromState, toState, summary) = ("UNRECONCILED", "WRITTEN_OFF", "written off as lost");
+                        break;
+                    default:
+                        return (false, ErrorMessages.EquipmentAdjustInvalid);
+                }
+
+                this.DbContext.InventoryMovements.Add(new InventoryMovement
+                {
+                    EquipmentId = equipmentId,
+                    MovementType = "STOCK_ADJUSTMENT",
+                    FromState = fromState,
+                    ToState = toState,
+                    Quantity = quantity,
+                    ReferenceNumber = entity.AssetCode,
+                    PerformedByUserId = this._currentUser.GetActorUserId(),
+                });
+
+                using var transaction = this.DbContext.Database.BeginTransaction();
+                this._unitOfWork.SaveChanges();
+                this.WriteAudit("STOCK_ADJUST", "Equipment", entity.EquipmentId, entity.AssetCode,
+                    $"{quantity} unit(s) of '{entity.EquipmentName}' {summary}." + (string.IsNullOrWhiteSpace(note) ? string.Empty : " Note: " + note.Trim()));
+                transaction.Commit();
+                return (true, null);
+            }
+            catch (DbUpdateException)
+            {
+                return (false, ErrorMessages.EquipmentUpdateConflict);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogError(ex, "Failed to adjust stock for equipment {EquipmentId}.", equipmentId);
+                return (false, ErrorMessages.ServerError);
+            }
+        }
+
         private void WriteAudit(string actionType, string entityType, long entityId, string referenceNumber, string details)
         {
             this.DbContext.AuditLogs.Add(new AuditLog
@@ -341,7 +435,7 @@ namespace ASI.Basecode.Services.Services
                 EntityType = entityType,
                 EntityId = entityId,
                 ReferenceNumber = referenceNumber,
-                Details = details,
+                Details = details != null && details.Length > 1000 ? details.Substring(0, 1000) : details,
                 OccurredAtUtc = DateTime.UtcNow,
             });
             this._unitOfWork.SaveChanges();

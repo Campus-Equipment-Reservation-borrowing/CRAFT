@@ -88,23 +88,30 @@ namespace ASI.Basecode.Services.Services
 
             var row = this.MapToAvailabilityRow(entity);
             var policy = this.GetActivePolicy();
+            var summary = new ReservationEquipmentSummaryViewModel
+            {
+                EquipmentId = row.EquipmentId,
+                EquipmentName = row.EquipmentName,
+                AssetCode = row.AssetCode,
+                CategoryName = row.CategoryName,
+                LocationName = row.LocationName,
+                ConditionName = row.ConditionName,
+                TotalQuantity = row.TotalQuantity,
+                AvailableUnits = row.AvailableUnits,
+                MaxUnitsPerBorrower = policy.MaxUnitsPerBorrower,
+                ReservationLeadTimeDays = policy.ReservationLeadTimeDays,
+                MaxAdvanceBookingDays = policy.MaxAdvanceBookingDays,
+                BlockedReason = GetReservationBlock(entity),
+            };
+
             return new ReservationFormContextViewModel
             {
-                Form = new ReservationFormViewModel { EquipmentId = entity.EquipmentId },
-                Equipment = new ReservationEquipmentSummaryViewModel
+                Form = new ReservationFormViewModel
                 {
-                    EquipmentId = row.EquipmentId,
-                    EquipmentName = row.EquipmentName,
-                    AssetCode = row.AssetCode,
-                    CategoryName = row.CategoryName,
-                    LocationName = row.LocationName,
-                    ConditionName = row.ConditionName,
-                    TotalQuantity = row.TotalQuantity,
-                    AvailableUnits = row.AvailableUnits,
-                    MaxUnitsPerBorrower = policy.MaxUnitsPerBorrower,
-                    ReservationLeadTimeDays = policy.ReservationLeadTimeDays,
-                    MaxAdvanceBookingDays = policy.MaxAdvanceBookingDays,
+                    EquipmentId = entity.EquipmentId,
+                    Quantity = summary.MaxSelectable >= 1 ? 1 : null,
                 },
+                Equipment = summary,
             };
         }
 
@@ -150,6 +157,44 @@ namespace ASI.Basecode.Services.Services
                 MaxUnitsPerBorrower = policy.MaxUnitsPerBorrower,
                 ReservationLeadTimeDays = policy.ReservationLeadTimeDays,
             };
+        }
+
+        /// <inheritdoc />
+        public string GetReserveBlockReason(long? equipmentId = null)
+        {
+            var actorUserId = this._currentUser.GetActorUserId();
+            if (!actorUserId.HasValue)
+            {
+                return ErrorMessages.ReservationOperatorNotSet;
+            }
+
+            var statusCode = this.DbContext.Users.AsNoTracking()
+                .Where(u => u.UserId == actorUserId.Value)
+                .Select(u => u.AccountStatus.Code)
+                .FirstOrDefault();
+            switch (statusCode)
+            {
+                case AccountStatusCodes.Active:
+                    break;
+                case AccountStatusCodes.Unverified:
+                    return "Your account is still pending verification. You can reserve equipment once an administrator approves it.";
+                case AccountStatusCodes.Rejected:
+                    return "Your account verification was rejected. Submit an appeal from your dashboard.";
+                default:
+                    return ErrorMessages.ReservationAccountNotActive;
+            }
+
+            if (equipmentId.HasValue)
+            {
+                return this._assignments.ResolveCustodian(actorUserId.Value, equipmentId.Value).HasValue
+                    ? null
+                    : ErrorMessages.ReservationNoCustodian;
+            }
+
+            return this.DbContext.CustodianAssignments.Any(a => a.BorrowerUserId == actorUserId.Value
+                    && a.CustodianUser.AccountStatus.Code == AccountStatusCodes.Active)
+                ? null
+                : ErrorMessages.ReservationNoCustodian;
         }
 
         /// <summary>
@@ -207,6 +252,10 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 var policy = this.GetActivePolicy();
+                if (!policy.PolicyVersionId.HasValue)
+                {
+                    return (false, ErrorMessages.ReservationPolicyMissing, form.EquipmentId);
+                }
 
                 // Rule a) quantity bounds.
                 if (form.Quantity is null || form.Quantity < 1)
@@ -240,6 +289,11 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ReservationPastDate, form.EquipmentId);
                 }
 
+                if (expectedReturn <= requestedStart)
+                {
+                    return (false, ErrorMessages.ReservationReturnBeforeStart, form.EquipmentId);
+                }
+
                 if (requestedStart < now.AddDays(policy.ReservationLeadTimeDays))
                 {
                     return (false, ErrorMessages.ReservationLeadTimeTooShort, form.EquipmentId);
@@ -257,15 +311,16 @@ namespace ASI.Basecode.Services.Services
                     .Include(u => u.AccountStatus)
                     .First(u => u.UserId == actorUserId.Value);
 
-                // Unverified accounts may sign in but cannot submit a reservation ([1.1] special scenario).
-                if (string.Equals(borrower.AccountStatus?.Code, "UNVERIFIED", StringComparison.OrdinalIgnoreCase))
+                // Signed-in accounts that are not ACTIVE (unverified, rejected, suspended...) cannot reserve.
+                if (borrower.AccountStatus?.Code != AccountStatusCodes.Active)
                 {
-                    return (false, "Your account is still pending verification.", form.EquipmentId);
-                }
-
-                if (string.Equals(borrower.AccountStatus?.Code, "REJECTED", StringComparison.OrdinalIgnoreCase))
-                {
-                    return (false, "Your account verification was rejected. Submit an appeal from your dashboard.", form.EquipmentId);
+                    var message = borrower.AccountStatus?.Code switch
+                    {
+                        AccountStatusCodes.Unverified => "Your account is still pending verification.",
+                        AccountStatusCodes.Rejected => "Your account verification was rejected. Submit an appeal from your dashboard.",
+                        _ => ErrorMessages.ReservationAccountNotActive,
+                    };
+                    return (false, message, form.EquipmentId);
                 }
 
                 var isFaculty = string.Equals(borrower.Role?.RoleCode, "FACULTY", StringComparison.OrdinalIgnoreCase);
@@ -313,36 +368,52 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ReservationPickupLocationInvalid, form.EquipmentId);
                 }
 
-                // Persist: hold the requested units, insert the PENDING reservation, audit.
-                var pendingStatusId = statusIds["PENDING"];
+                // Every reservation must have an owner before any stock is held.
+                var custodianId = this._assignments.ResolveCustodian(actorUserId.Value, equipment.EquipmentId);
+                if (!custodianId.HasValue)
+                {
+                    return (false, ErrorMessages.ReservationNoCustodian, form.EquipmentId);
+                }
+
+                var quantity = form.Quantity.Value;
                 var submittedAt = DateTime.UtcNow;
+                using var transaction = this.DbContext.Database.BeginTransaction();
+
+                // Atomic hold: only succeeds while enough units are still free, so two borrowers
+                // racing for the last unit cannot both get it.
+                var held = this.DbContext.EquipmentInventoryBalances
+                    .Where(b => b.EquipmentId == equipment.EquipmentId
+                        && b.TotalQuantity - b.ReservedQuantity - b.ReleasedQuantity - b.AwaitingInspectionQuantity
+                            - b.MaintenanceQuantity - b.UnreconciledQuantity >= quantity)
+                    .ExecuteUpdate(u => u.SetProperty(b => b.ReservedQuantity, b => b.ReservedQuantity + quantity));
+                if (held == 0)
+                {
+                    return (false, ErrorMessages.ReservationStockTaken, form.EquipmentId);
+                }
+
                 var reservation = new Reservation
                 {
                     ReservationNumber = this.GenerateReservationNumber(submittedAt),
                     BorrowerUserId = actorUserId.Value,
                     EquipmentId = equipment.EquipmentId,
                     PickupLocationId = form.PickupLocationId.Value,
-                    RequestedQuantity = form.Quantity.Value,
+                    RequestedQuantity = quantity,
                     ApprovedQuantity = 0,
-                    HeldQuantity = form.Quantity.Value, // held on the balance below
+                    HeldQuantity = quantity,
                     RequestedStartAtUtc = requestedStart,
                     ExpectedReturnAtUtc = expectedReturn,
                     Purpose = form.Purpose?.Trim(),
                     BorrowingPolicyVersionId = policy.PolicyVersionId.Value,
-                    StatusId = pendingStatusId,
+                    StatusId = statusIds["PENDING"],
                     SubmittedAtUtc = submittedAt,
                     CompletedAtUtc = null,
-                    AssignedCustodianUserId = this._assignments.ResolveCustodian(actorUserId.Value, equipment.EquipmentId),
+                    AssignedCustodianUserId = custodianId,
                 };
 
                 this.DbContext.Reservations.Add(reservation);
 
-                // Hold the units on the balance row (tracked) so no one else can promise them.
-                var balanceToUpdate = this.DbContext.EquipmentInventoryBalances
-                    .First(b => b.EquipmentId == equipment.EquipmentId);
-                balanceToUpdate.ReservedQuantity += form.Quantity.Value;
-
                 // Two borrowers submitting at once can draw the same number; retry with a fresh one.
+                // The stock hold above already happened atomically, so only the number is retried.
                 for (var attempt = 1; ; attempt++)
                 {
                     try
@@ -361,7 +432,8 @@ namespace ASI.Basecode.Services.Services
                     : $" Notes: {form.AdditionalNotes.Trim()}";
                 this.WriteAudit("CREATE", "Reservation", reservation.ReservationId, reservation.ReservationNumber,
                     $"Submitted reservation {reservation.ReservationNumber} for '{equipment.EquipmentName}' " +
-                    $"({form.Quantity} unit(s), start {requestedStart:yyyy-MM-dd HH:mm} UTC) as PENDING.{notesSuffix}");
+                    $"({quantity} unit(s), start {requestedStart:yyyy-MM-dd HH:mm} UTC) as PENDING.{notesSuffix}");
+                transaction.Commit();
 
                 this.NotifyStaffOfSubmission(reservation, equipment.EquipmentName);
 
@@ -370,6 +442,12 @@ namespace ASI.Basecode.Services.Services
             catch (DbUpdateConcurrencyException)
             {
                 this._logger.LogWarning("Concurrency conflict while creating a reservation for equipment {EquipmentId}.", form?.EquipmentId);
+                return (false, ErrorMessages.ReservationCreateConflict, form?.EquipmentId ?? 0);
+            }
+            catch (DbUpdateException ex)
+            {
+                // Typically two submissions racing for the same reservation number; nothing was committed.
+                this._logger.LogWarning(ex, "Reservation insert rejected by the database for equipment {EquipmentId}.", form?.EquipmentId);
                 return (false, ErrorMessages.ReservationCreateConflict, form?.EquipmentId ?? 0);
             }
             catch (Exception ex)
@@ -457,18 +535,20 @@ namespace ASI.Basecode.Services.Services
                     return (false, ErrorMessages.ReservationNotCancellable);
                 }
 
+                // Give back exactly what this reservation still holds (request while PENDING,
+                // approved-minus-released once APPROVED).
+                var hold = ReservationRules.RemainingHold(entity, statusCode, ReservationRules.ReleasedSoFar(this.DbContext, entity.ReservationId));
+
                 var cancelledStatusId = this.GetReservationStatusIds()["CANCELLED"];
                 entity.StatusId = cancelledStatusId;
+                entity.HeldQuantity = 0;
                 entity.CompletedAtUtc = DateTime.UtcNow;
 
-                // Give the units back for both cancellable stages: PENDING requests held them
-                // at submission and APPROVED ones held them for pickup. Without this the
-                // balance would leak reserved units for every cancelled request.
                 var balance = this.DbContext.EquipmentInventoryBalances
                     .FirstOrDefault(b => b.EquipmentId == entity.EquipmentId);
                 if (balance != null)
                 {
-                    balance.ReservedQuantity = Math.Max(0, balance.ReservedQuantity - entity.RequestedQuantity);
+                    balance.ReservedQuantity = Math.Max(0, balance.ReservedQuantity - hold);
                 }
 
                 this._unitOfWork.SaveChanges();
@@ -705,7 +785,7 @@ namespace ASI.Basecode.Services.Services
                 EntityType = entityType,
                 EntityId = entityId,
                 ReferenceNumber = referenceNumber,
-                Details = details,
+                Details = details != null && details.Length > 1000 ? details.Substring(0, 1000) : details,
                 OccurredAtUtc = DateTime.UtcNow,
             });
             this._unitOfWork.SaveChanges();

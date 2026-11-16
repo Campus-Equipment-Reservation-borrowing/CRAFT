@@ -49,11 +49,11 @@ namespace ASI.Basecode.WebApp.Mvc
                     using var scope = this._scopeFactory.CreateScope();
                     var service = scope.ServiceProvider.GetRequiredService<IReservationLifecycleService>();
                     var result = service.RunOnce();
-                    if (result.Expired + result.MarkedOverdue + result.DueReminders > 0)
+                    if (result.Expired + result.MarkedOverdue + result.DueReminders + result.ExpiryWarnings > 0)
                     {
                         this._logger.LogInformation(
-                            "Lifecycle pass: {Expired} expired, {Overdue} marked overdue, {Reminders} due reminders.",
-                            result.Expired, result.MarkedOverdue, result.DueReminders);
+                            "Lifecycle pass: {Expired} expired, {Warnings} expiry warnings, {Overdue} marked overdue, {Reminders} due reminders.",
+                            result.Expired, result.ExpiryWarnings, result.MarkedOverdue, result.DueReminders);
                     }
                 }
                 catch (Exception ex)

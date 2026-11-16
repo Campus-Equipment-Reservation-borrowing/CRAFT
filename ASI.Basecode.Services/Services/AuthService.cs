@@ -230,8 +230,10 @@ namespace ASI.Basecode.Services.Services
             }
 
             var key = email.Trim().ToLowerInvariant();
-            var user = this.DbContext.Users.FirstOrDefault(u => u.SchoolEmail.ToLower() == key);
-            if (user == null)
+            var user = this.DbContext.Users
+                .Include(u => u.AccountStatus)
+                .FirstOrDefault(u => u.SchoolEmail.ToLower() == key);
+            if (user == null || !CanResetPassword(user.AccountStatus?.Code))
             {
                 // Report success without a token so the page reads the same for unknown emails.
                 return (true, null, null);
@@ -307,8 +309,10 @@ namespace ASI.Basecode.Services.Services
                     return (false, "This reset link is no longer valid. Please request a new one.");
                 }
 
-                var user = this.DbContext.Users.FirstOrDefault(u => u.UserId == reset.UserId);
-                if (user == null)
+                var user = this.DbContext.Users
+                    .Include(u => u.AccountStatus)
+                    .FirstOrDefault(u => u.UserId == reset.UserId);
+                if (user == null || !CanResetPassword(user.AccountStatus?.Code))
                 {
                     return (false, "This reset link is no longer valid. Please request a new one.");
                 }
@@ -406,6 +410,14 @@ namespace ASI.Basecode.Services.Services
             return user == null ? null : this.MapUser(user);
         }
 
+        /// <summary>Suspended, deactivated and admin-locked accounts can't reset their way back in.</summary>
+        private static bool CanResetPassword(string statusCode)
+        {
+            return statusCode != AccountStatusCodes.Suspended
+                && statusCode != AccountStatusCodes.Inactive
+                && statusCode != AccountStatusCodes.Locked;
+        }
+
         private AuthenticatedUserViewModel MapUser(User user)
         {
             return new AuthenticatedUserViewModel
@@ -420,7 +432,19 @@ namespace ASI.Basecode.Services.Services
                 DepartmentName = user.Department?.DepartmentName,
                 AccountStatusCode = user.AccountStatus?.Code,
                 MustChangePassword = user.MustChangePassword,
+                PasswordStamp = PasswordStampOf(user.PasswordHash),
             };
+        }
+
+        private static string PasswordStampOf(string passwordHash)
+        {
+            if (string.IsNullOrEmpty(passwordHash))
+            {
+                return string.Empty;
+            }
+
+            var digest = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(passwordHash));
+            return Convert.ToHexString(digest, 0, 8);
         }
 
         private void WriteAudit(long? userId, string referenceNumber, string actionType, string entityType, string details)

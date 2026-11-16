@@ -207,6 +207,12 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         /// <summary>Policy: how many days ahead a pickup may be booked (drives the date picker's maximum).</summary>
         public int MaxAdvanceBookingDays { get; set; }
+
+        /// <summary>Why the item itself can't be reserved (maintenance, out of service, damaged); null when it can.</summary>
+        public string BlockedReason { get; set; }
+
+        /// <summary>The most units this borrower can request right now (policy cap and stock).</summary>
+        public int MaxSelectable => this.BlockedReason != null ? 0 : System.Math.Max(0, System.Math.Min(this.MaxUnitsPerBorrower, this.AvailableUnits));
     }
 
     /// <summary>
