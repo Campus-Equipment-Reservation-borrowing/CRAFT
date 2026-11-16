@@ -51,6 +51,7 @@ namespace ASI.Basecode.WebApp
 
             // Equipment administration
             this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+            this._services.AddScoped<IInventoryRepository, InventoryRepository>();
             this._services.AddScoped<IEquipmentService, EquipmentService>();
 
             // User management

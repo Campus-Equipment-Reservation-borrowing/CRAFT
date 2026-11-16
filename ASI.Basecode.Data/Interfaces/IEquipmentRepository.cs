@@ -55,5 +55,17 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Untracked active equipment with inventory balance, operational status and current condition.</summary>
         System.Collections.Generic.List<Equipment> GetActiveWithStockState();
+
+        /// <summary>Adds equipment (saved by the caller).</summary>
+        void Add(Equipment equipment);
+
+        /// <summary>Removes equipment (saved by the caller).</summary>
+        void Remove(Equipment equipment);
+
+        /// <summary>All categories (untracked) by name.</summary>
+        System.Collections.Generic.List<EquipmentCategory> GetCategoriesByName();
+
+        /// <summary>Active locations (untracked) by name.</summary>
+        System.Collections.Generic.List<Location> GetActiveLocationsByName();
     }
 }

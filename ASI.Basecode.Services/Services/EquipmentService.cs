@@ -1,4 +1,3 @@
-using ASI.Basecode.Data;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
@@ -29,8 +28,8 @@ namespace ASI.Basecode.Services.Services
         private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
 
-        /// <summary>Direct EF access for the small codebook/ledger writes this service owns.</summary>
-        private AllianceDbContext DbContext => (AllianceDbContext)_unitOfWork.Database;
+        private readonly IInventoryRepository _inventory;
+        private readonly IReservationRepository _reservations;
 
         public EquipmentService(
             ILoggerFactory loggerFactory,
@@ -39,9 +38,13 @@ namespace ASI.Basecode.Services.Services
             ICurrentUserService currentUser,
             IMapper mapper,
             IAuditLogRepository auditLogs,
-            ILookupRepository lookups)
+            ILookupRepository lookups,
+            IInventoryRepository inventory,
+            IReservationRepository reservations)
             : base(loggerFactory)
         {
+            this._inventory = inventory;
+            this._reservations = reservations;
             this._lookups = lookups;
             this._auditLogs = auditLogs;
             this._unitOfWork = unitOfWork;
@@ -161,16 +164,15 @@ namespace ASI.Basecode.Services.Services
 
                 // Remove the balance row and movement ledger explicitly so the
                 // reverse-engineered ClientSetNull FK behaviour never bites us.
-                var movements = this.DbContext.InventoryMovements.Where(m => m.EquipmentId == equipmentId).ToList();
-                this.DbContext.InventoryMovements.RemoveRange(movements);
+                this._inventory.RemoveMovementsForEquipment(equipmentId);
 
-                var balance = this.DbContext.EquipmentInventoryBalances.FirstOrDefault(b => b.EquipmentId == equipmentId);
+                var balance = this._inventory.GetTrackedBalance(equipmentId);
                 if (balance != null)
                 {
-                    this.DbContext.EquipmentInventoryBalances.Remove(balance);
+                    this._inventory.RemoveBalance(balance);
                 }
 
-                this.DbContext.Equipment.Remove(entity);
+                this._equipmentRepository.Remove(entity);
                 this._unitOfWork.SaveChanges();
 
                 this.WriteAudit("DELETE", "Equipment", entity.EquipmentId, entity.AssetCode,
@@ -192,19 +194,14 @@ namespace ASI.Basecode.Services.Services
 
         public List<LookupViewModel> GetCategoryOptions()
         {
-            return this.DbContext.EquipmentCategories
-                .AsNoTracking()
-                .OrderBy(c => c.CategoryName)
+            return this._equipmentRepository.GetCategoriesByName()
                 .Select(c => new LookupViewModel { Id = c.EquipmentCategoryId, Text = c.CategoryName })
                 .ToList();
         }
 
         public List<LookupViewModel> GetLocationOptions()
         {
-            return this.DbContext.Locations
-                .AsNoTracking()
-                .Where(l => l.IsActive)
-                .OrderBy(l => l.LocationName)
+            return this._equipmentRepository.GetActiveLocationsByName()
                 .Select(l => new LookupViewModel { Id = l.LocationId, Text = l.LocationName })
                 .ToList();
         }
@@ -233,9 +230,9 @@ namespace ASI.Basecode.Services.Services
             entity.EquipmentId = 0; // ignore any posted id on create
             entity.CreatedAtUtc = default; // let the DB default (sysutcdatetime) fill it
 
-            this.DbContext.Equipment.Add(entity);
+            this._equipmentRepository.Add(entity);
 
-            this.DbContext.EquipmentInventoryBalances.Add(new EquipmentInventoryBalance
+            this._inventory.AddBalance(new EquipmentInventoryBalance
             {
                 Equipment = entity,
                 TotalQuantity = form.TotalQuantity,
@@ -246,7 +243,7 @@ namespace ASI.Basecode.Services.Services
                 UnreconciledQuantity = 0,
             });
 
-            this.DbContext.InventoryMovements.Add(new InventoryMovement
+            this._inventory.AddMovement(new InventoryMovement
             {
                 Equipment = entity,
                 MovementType = "INITIAL_STOCK",
@@ -273,12 +270,12 @@ namespace ASI.Basecode.Services.Services
             }
 
             var balance = entity.EquipmentInventoryBalance
-                ?? this.DbContext.EquipmentInventoryBalances.FirstOrDefault(b => b.EquipmentId == entity.EquipmentId);
+                ?? this._inventory.GetTrackedBalance(entity.EquipmentId);
 
             if (balance == null)
             {
                 balance = new EquipmentInventoryBalance { EquipmentId = entity.EquipmentId };
-                this.DbContext.EquipmentInventoryBalances.Add(balance);
+                this._inventory.AddBalance(balance);
             }
 
             // Every unit not on the shelf counts: held, out, awaiting inspection, in maintenance, or damaged/lost.
@@ -296,8 +293,7 @@ namespace ASI.Basecode.Services.Services
                 || (maintenanceStatusId.HasValue && form.OperationalStatusId == maintenanceStatusId && entity.OperationalStatusId != maintenanceStatusId);
             if (goingOutOfService)
             {
-                var openReservations = this.DbContext.Reservations.Count(r => r.EquipmentId == entity.EquipmentId
-                    && ReservationRules.HoldingStatuses.Contains(r.Status.Code));
+                var openReservations = this._reservations.CountForEquipmentInStatuses(entity.EquipmentId, ReservationRules.HoldingStatuses);
                 if (openReservations > 0)
                 {
                     return (false, string.Format(ErrorMessages.EquipmentHasOpenReservations, openReservations), form.EquipmentId);
@@ -312,7 +308,7 @@ namespace ASI.Basecode.Services.Services
             if (delta != 0)
             {
                 balance.TotalQuantity = form.TotalQuantity;
-                this.DbContext.InventoryMovements.Add(new InventoryMovement
+                this._inventory.AddMovement(new InventoryMovement
                 {
                     EquipmentId = entity.EquipmentId,
                     MovementType = delta > 0 ? "RESTOCK" : "STOCK_ADJUSTMENT",
@@ -359,7 +355,7 @@ namespace ASI.Basecode.Services.Services
                 var entity = this._equipmentRepository.GetTrackedById(equipmentId);
                 var balance = entity == null
                     ? null
-                    : entity.EquipmentInventoryBalance ?? this.DbContext.EquipmentInventoryBalances.FirstOrDefault(b => b.EquipmentId == equipmentId);
+                    : entity.EquipmentInventoryBalance ?? this._inventory.GetTrackedBalance(equipmentId);
                 if (entity == null || balance == null)
                 {
                     return (false, ErrorMessages.EquipmentNotFound);
@@ -394,7 +390,7 @@ namespace ASI.Basecode.Services.Services
                         return (false, ErrorMessages.EquipmentAdjustInvalid);
                 }
 
-                this.DbContext.InventoryMovements.Add(new InventoryMovement
+                this._inventory.AddMovement(new InventoryMovement
                 {
                     EquipmentId = equipmentId,
                     MovementType = "STOCK_ADJUSTMENT",

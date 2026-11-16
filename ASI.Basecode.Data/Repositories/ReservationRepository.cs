@@ -152,5 +152,11 @@ namespace ASI.Basecode.Data.Repositories
                 .Where(r => scope == null || r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == scope)
                 .ToList();
         }
+
+        public int CountForEquipmentInStatuses(long equipmentId, IReadOnlyCollection<string> statusCodes)
+        {
+            return this.Context.Reservations.Count(r => r.EquipmentId == equipmentId
+                && statusCodes.Contains(r.Status.Code));
+        }
     }
 }

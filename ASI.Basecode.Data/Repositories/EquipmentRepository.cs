@@ -196,5 +196,32 @@ namespace ASI.Basecode.Data.Repositories
                 .Where(e => e.IsActive)
                 .ToList();
         }
+
+        public void Add(Equipment equipment)
+        {
+            this.Context.Equipment.Add(equipment);
+        }
+
+        public void Remove(Equipment equipment)
+        {
+            this.Context.Equipment.Remove(equipment);
+        }
+
+        public System.Collections.Generic.List<EquipmentCategory> GetCategoriesByName()
+        {
+            return this.Context.EquipmentCategories
+                .AsNoTracking()
+                .OrderBy(c => c.CategoryName)
+                .ToList();
+        }
+
+        public System.Collections.Generic.List<Location> GetActiveLocationsByName()
+        {
+            return this.Context.Locations
+                .AsNoTracking()
+                .Where(l => l.IsActive)
+                .OrderBy(l => l.LocationName)
+                .ToList();
+        }
     }
 }

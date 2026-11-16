@@ -54,5 +54,8 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Untracked reservations with borrower, equipment and status, limited to the custodian's routed work plus the unassigned pool (all when scope is null).</summary>
         List<Reservation> GetInCustodianScope(long? scopeCustodianUserId);
+
+        /// <summary>Reservations of the equipment in one of the given statuses.</summary>
+        int CountForEquipmentInStatuses(long equipmentId, IReadOnlyCollection<string> statusCodes);
     }
 }
