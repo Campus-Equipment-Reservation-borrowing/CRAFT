@@ -44,7 +44,6 @@ namespace ASI.Basecode.Services.ViewModelClasses
     public class ProfileContactFormViewModel
     {
         [Display(Name = "Contact Number")]
-        [Required(ErrorMessage = "Please complete all required fields.")]
         [RegularExpression(@"^[0-9+\-\s()]{7,50}$", ErrorMessage = "Please enter a valid contact number.")]
         public string ContactNumber { get; set; }
 
