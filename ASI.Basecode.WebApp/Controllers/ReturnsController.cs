@@ -20,22 +20,28 @@ namespace ASI.Basecode.WebApp.Controllers
     public class ReturnsController : ControllerBase<ReturnsController>
     {
         private readonly IReturnProcessingService _service;
+        private readonly ICustodianService _custodianService;
 
         public ReturnsController(
             IHttpContextAccessor httpContextAccessor,
             ILoggerFactory loggerFactory,
             IConfiguration configuration,
             IMapper mapper,
-            IReturnProcessingService service)
+            IReturnProcessingService service,
+            ICustodianService custodianService)
             : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
             this._service = service;
+            this._custodianService = custodianService;
         }
 
         public IActionResult Index(string search, int page = 1, int pageSize = 10)
         {
             try
             {
+                // Open loans scoped to the assigned custodian, so a return can start without a code/QR.
+                // ponytail: first 50 open loans; add separate paging if a custodian ever has more
+                this.ViewBag.Borrowed = this._custodianService.GetActiveBorrowings(search, 1, 50);
                 var model = this._service.GetReturnsIndex(search, page, pageSize);
                 return this.View(model);
             }
@@ -43,6 +49,7 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 this.HandleExceptionLog(ex, "Index");
                 this.TempData["ErrorMessage"] = "Unable to load returns.";
+                this.ViewBag.Borrowed = new ActiveBorrowingsIndexViewModel { Page = new PagedResult<ActiveBorrowingRowViewModel>() };
                 return this.View(new ReturnsIndexViewModel { Page = new PagedResult<ReturnRowViewModel>() });
             }
         }
