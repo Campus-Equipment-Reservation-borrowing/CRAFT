@@ -13,6 +13,9 @@ namespace ASI.Basecode.Services.Interfaces
 
         List<LookupViewModel> GetInspectionStatusOptions();
 
+        /// <summary>Damage levels offered when an inspection outcome is Damaged.</summary>
+        List<LookupViewModel> GetDamageLevelOptions();
+
         (bool Success, string Error, long ReturnId) CreateReturn(ReturnFormViewModel form);
 
         /// <summary>Photos attached to a borrowing's inspections, when the actor may act on it.</summary>

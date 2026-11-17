@@ -769,3 +769,49 @@
     .cp-select option:focus-visible { background: var(--color-primary-tint); outline: none; }
     .cp-select option:checked { background: var(--color-primary); color: #fff; font-weight: 600; }
 }
+
+/* Condition inspection: one-tap outcome form (Returns/Inspect) */
+.cp-insp-head { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--color-bg-light); border-bottom: 1px solid var(--color-border); }
+.cp-insp-icon { width: 40px; height: 40px; flex: none; border-radius: var(--radius-md); background: var(--color-primary-tint); color: var(--color-primary-dark); display: grid; place-items: center; font-weight: 600; font-size: 11px; }
+.cp-insp-body { padding: 20px; }
+.cp-insp-fieldset { border: 0; margin: 0 0 16px; padding: 0; min-width: 0; }
+.cp-insp-q { font-size: var(--font-size-lg); font-weight: 600; color: var(--color-text); padding: 0; margin-bottom: 2px; }
+.cp-insp-qty { max-width: 140px; }
+.cp-outcomes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.cp-outcome { position: relative; display: flex; flex-direction: column; gap: 2px; min-height: 96px; padding: 14px; border: 1.5px solid var(--color-border-input); border-radius: var(--radius-lg); background: var(--color-bg); cursor: pointer; transition: border-color 160ms ease, background-color 160ms ease; }
+.cp-outcome:hover { border-color: var(--color-border-hover); }
+.cp-outcome input { position: absolute; opacity: 0; pointer-events: none; }
+.cp-outcome:has(input:focus-visible) { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.cp-outcome-mark { width: 28px; height: 28px; margin-bottom: 6px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; }
+.cp-outcome-title { font-size: var(--font-size-lg); font-weight: 600; color: var(--color-text); }
+.cp-outcome-sub { font-size: 12px; }
+.cp-outcome::after { content: ""; position: absolute; top: 12px; right: 12px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--color-border-hover); background: var(--color-bg); box-sizing: border-box; }
+.cp-outcome.is-good { color: var(--color-primary); } .cp-outcome.is-good .cp-outcome-mark { background: var(--color-primary-tint); }
+.cp-outcome.is-damaged { color: var(--color-warning); } .cp-outcome.is-damaged .cp-outcome-mark { background: var(--color-warning-bg); }
+.cp-outcome.is-lost { color: var(--color-danger); } .cp-outcome.is-lost .cp-outcome-mark { background: var(--color-error-bg); }
+.cp-outcome:has(input:checked)::after { border: 5px solid currentColor; }
+.cp-outcome.is-good:has(input:checked) { border-color: var(--color-primary); background: var(--color-primary-tint); }
+.cp-outcome.is-damaged:has(input:checked) { border-color: var(--color-warning); background: var(--color-warning-bg); }
+.cp-outcome.is-lost:has(input:checked) { border-color: var(--color-danger); background: var(--color-error-bg); }
+.cp-insp-damage, .cp-insp-costs { display: none; }
+.cp-insp-form:has(input[name=Outcome][value=DAMAGED]:checked) .cp-insp-damage,
+.cp-insp-form:has(input[name=Outcome][value=DAMAGED]:checked) .cp-insp-costs,
+.cp-insp-form:has(input[name=Outcome][value=LOST]:checked) .cp-insp-costs { display: block; }
+.cp-seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--color-border-input); border-radius: var(--radius-md); overflow: hidden; background: var(--color-bg); }
+.cp-seg label { position: relative; display: flex; align-items: center; min-height: 40px; padding: 8px 14px; border-left: 1px solid var(--color-border-input); color: var(--color-text-soft); font-weight: 500; cursor: pointer; }
+.cp-seg label:first-child { border-left: 0; }
+.cp-seg input { position: absolute; opacity: 0; }
+.cp-seg label:has(input:checked) { background: var(--color-warning-bg); color: var(--color-warning); }
+.cp-seg label:has(input:focus-visible) { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.cp-insp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.cp-money { position: relative; }
+.cp-money > span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-gray); pointer-events: none; }
+.cp-money > .cp-input { padding-left: 26px; }
+.cp-insp-earlier summary { cursor: pointer; font-weight: 600; color: var(--color-primary-dark); margin-bottom: 8px; }
+.cp-insp-foot { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--color-border); background: var(--color-bg-light); }
+.cp-insp-foot > :first-child { margin-right: auto; }
+.cp-insp-foot .cp-btn { min-height: 44px; }
+.cp-insp-form:has(input[name=Outcome][value=DAMAGED]:checked) .cp-insp-submit { background: var(--color-warning); border-color: var(--color-warning); }
+.cp-insp-form:has(input[name=Outcome][value=LOST]:checked) .cp-insp-submit { background: var(--color-danger); border-color: var(--color-danger); }
+@media (max-width: 640px) { .cp-outcomes, .cp-insp-grid { grid-template-columns: 1fr; } .cp-outcome { min-height: 0; } }
+@media (prefers-reduced-motion: reduce) { .cp-outcome { transition: none; } }

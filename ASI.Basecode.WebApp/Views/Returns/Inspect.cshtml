@@ -7,129 +7,163 @@
     var ctx = ViewBag.Context as ReturnFormContextViewModel;
     var inspectable = ctx?.InspectableQuantity ?? 0;
     var photos = ViewBag.Photos as List<InspectionPhotoViewModel> ?? new List<InspectionPhotoViewModel>();
+    var damageOptions = ViewBag.DamageOptions as List<LookupViewModel> ?? new List<LookupViewModel>();
+    var outcome = string.IsNullOrEmpty(Model.Outcome) ? ConditionCodes.Good : Model.Outcome;
+    var damageSelected = damageOptions.Any(d => d.Id == Model.CurrentConditionId) ? Model.CurrentConditionId : damageOptions.FirstOrDefault()?.Id ?? 0;
+    var units = inspectable == 1 ? "it" : "they";
 }
 
 <div class="cp-page-header">
     <div>
         <partial name="_Breadcrumb" model='new[] { ("Returns", "/Returns") }' />
         <h1 class="cp-page-title">Condition Inspection</h1>
-        <p class="cp-page-subtitle">Record the condition of returned equipment.</p>
+        <p class="cp-page-subtitle">Tell us how the equipment came back. We'll update its condition and stock for you.</p>
     </div>
 </div>
 
 <div class="cp-stack">
-    @if (photos.Count > 0)
-    {
-        <div class="cp-card">
-            <div class="cp-card-header">Photos from earlier inspections</div>
-            <div class="cp-photo-grid">
-                @foreach (var ph in photos)
-                {
-                    var url = Url.Action("Photo", "Returns", new { id = ph.InspectionId, file = ph.FileName });
-                    <a href="@url" target="_blank" rel="noopener"><img src="@url" alt="Inspection @ph.InspectionId photo @ph.FileName" loading="lazy" /></a>
-                }
+    <div class="cp-card cp-card-flush">
+        @if (ctx != null)
+        {
+            <div class="cp-insp-head">
+                <div class="cp-insp-icon cp-mono" aria-hidden="true">@(ctx.AssetCode?.Split('-')[0])</div>
+                <div>
+                    <div class="cp-cell-name">@ctx.EquipmentName</div>
+                    <div class="cp-cell-sub"><span class="cp-mono">@ctx.AssetCode</span> · @ctx.TransactionNumber · @ctx.BorrowerName · @ctx.AlreadyReturned of @ctx.ReleasedQuantity returned</div>
+                </div>
             </div>
-        </div>
-    }
-    @if (ctx != null)
-    {
-        <div class="cp-card">
-            <div class="cp-card-header">Borrowing Summary</div>
-            <dl class="cp-kv">
-                <dt>Transaction #</dt><dd class="cp-mono">@ctx.TransactionNumber</dd>
-                <dt>Borrower</dt><dd>@ctx.BorrowerName</dd>
-                <dt>Equipment</dt><dd>@ctx.EquipmentName</dd>
-                <dt>Asset Code</dt><dd class="cp-mono">@ctx.AssetCode</dd>
-                <dt>Released</dt><dd class="cp-mono">@ctx.ReleasedQuantity</dd>
-                <dt>Returned</dt><dd class="cp-mono">@ctx.AlreadyReturned</dd>
-                <dt>Already Inspected</dt><dd class="cp-mono">@ctx.AlreadyInspected</dd>
-                <dt>Awaiting Inspection</dt><dd class="cp-mono">@ctx.AwaitingInspection</dd>
-            </dl>
-            @if (ViewBag.InfoMessage is string info)
-            {
-                <p class="cp-form-hint">@info</p>
-            }
-        </div>
-    }
+        }
 
-    <div class="cp-card">
-        <form asp-action="Inspect" method="post" enctype="multipart/form-data">
+        <form asp-action="Inspect" method="post" enctype="multipart/form-data" class="cp-insp-form">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="BorrowingId" />
-            <div asp-validation-summary="ModelOnly" class="cp-validation-summary"></div>
+            <div class="cp-insp-body">
+                <div asp-validation-summary="ModelOnly" class="cp-validation-summary" role="alert"></div>
 
-            <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:0 16px">
-                <div class="cp-form-group">
-                    @if (inspectable <= 1)
+                @if (inspectable == 0)
+                {
+                    <div class="cp-empty-state compact">
+                        <div class="cp-empty-state-text">No returned units are waiting for inspection.</div>
+                        <a asp-action="Create" asp-route-id="@Model.BorrowingId" class="cp-btn cp-btn-secondary cp-btn-sm">Record a return</a>
+                    </div>
+                }
+                else
+                {
+                    @if (inspectable == 1)
                     {
-                        <span class="cp-form-label" id="insQtyLabel">Inspected Quantity</span>
-                        <div class="cp-input cp-input-static" aria-labelledby="insQtyLabel" aria-describedby="insQtyHint">@(inspectable == 1 ? "1 unit" : "None waiting")</div>
-                        <input type="hidden" name="InspectedQuantity" value="@inspectable" />
-                        <div class="cp-form-hint" id="insQtyHint">@(inspectable == 1 ? "Only 1 returned unit is waiting for inspection." : "No returned units are waiting for inspection.")</div>
+                        <input type="hidden" name="InspectedQuantity" value="1" />
                     }
                     else
                     {
-                        <label asp-for="InspectedQuantity" class="cp-form-label">Inspected Quantity <span class="required">*</span></label>
-                        <input asp-for="InspectedQuantity" type="number" min="1" max="@inspectable" class="cp-input" aria-describedby="insQtyHint" />
-                        <div class="cp-form-hint" id="insQtyHint">Up to @inspectable returned units.</div>
+                        <div class="cp-form-group">
+                            <label asp-for="InspectedQuantity" class="cp-form-label">Units in this inspection</label>
+                            <input asp-for="InspectedQuantity" type="number" min="1" max="@inspectable" step="1" class="cp-input cp-insp-qty" aria-describedby="insQtyHint" />
+                            <div class="cp-form-hint" id="insQtyHint">@inspectable units are waiting. If they came back differently, inspect them in batches, e.g. the good ones now and the damaged one next.</div>
+                        </div>
                     }
-                </div>
-                <div class="cp-form-group">
-                    <label asp-for="CurrentConditionId" class="cp-form-label">Current Condition <span class="required">*</span></label>
-                    <select asp-for="CurrentConditionId" class="cp-select" asp-items="@(ViewBag.ConditionOptions as SelectList)"></select>
-                </div>
-                <div class="cp-form-group">
-                    <label asp-for="InspectionStatusId" class="cp-form-label">Inspection Status</label>
-                    <select asp-for="InspectionStatusId" class="cp-select" asp-items="@(ViewBag.InspectionStatusOptions as SelectList)"></select>
-                </div>
+
+                    <fieldset class="cp-insp-fieldset">
+                        <legend class="cp-insp-q">How did @units come back?</legend>
+                        <p class="cp-form-hint">This sets the condition and where the unit goes next.</p>
+                        <div class="cp-outcomes">
+                            <label class="cp-outcome is-good">
+                                <input type="radio" name="Outcome" value="@ConditionCodes.Good" checked="@(outcome == ConditionCodes.Good)" />
+                                <span class="cp-outcome-mark" aria-hidden="true">✓</span>
+                                <span class="cp-outcome-title">Good</span>
+                                <span class="cp-outcome-sub">Back on the shelf</span>
+                            </label>
+                            <label class="cp-outcome is-damaged">
+                                <input type="radio" name="Outcome" value="@ConditionCodes.Damaged" checked="@(outcome == ConditionCodes.Damaged)" />
+                                <span class="cp-outcome-mark" aria-hidden="true">!</span>
+                                <span class="cp-outcome-title">Damaged</span>
+                                <span class="cp-outcome-sub">Goes to maintenance</span>
+                            </label>
+                            <label class="cp-outcome is-lost">
+                                <input type="radio" name="Outcome" value="@ConditionCodes.Lost" checked="@(outcome == ConditionCodes.Lost)" />
+                                <span class="cp-outcome-mark" aria-hidden="true">?</span>
+                                <span class="cp-outcome-title">Lost</span>
+                                <span class="cp-outcome-sub">Flagged as unreconciled</span>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="cp-insp-fieldset cp-insp-damage">
+                        <legend class="cp-form-label">What's wrong?</legend>
+                        <div class="cp-seg">
+                            @foreach (var d in damageOptions)
+                            {
+                                <label><input type="radio" name="CurrentConditionId" value="@d.Id" checked="@(d.Id == damageSelected)" />@d.Text</label>
+                            }
+                        </div>
+                    </fieldset>
+
+                    <div class="cp-insp-costs">
+                        <div class="cp-insp-grid">
+                            <div class="cp-form-group">
+                                <label asp-for="RepairCost" class="cp-form-label">Repair or replacement cost <span class="cp-cell-sub">(optional)</span></label>
+                                <div class="cp-money"><span aria-hidden="true">₱</span><input asp-for="RepairCost" type="number" min="0" step="0.01" inputmode="decimal" class="cp-input" placeholder="1500.00" /></div>
+                            </div>
+                            <div class="cp-form-group">
+                                <label asp-for="PenaltyAmount" class="cp-form-label">Charge the borrower <span class="cp-cell-sub">(optional)</span></label>
+                                <div class="cp-money"><span aria-hidden="true">₱</span><input asp-for="PenaltyAmount" type="number" min="0" step="0.01" inputmode="decimal" class="cp-input" placeholder="500.00" /></div>
+                            </div>
+                        </div>
+                        <div class="cp-form-group">
+                            <label asp-for="PenaltyNote" class="cp-form-label">Reason for the charge <span class="cp-cell-sub">(optional, sent to the borrower)</span></label>
+                            <input asp-for="PenaltyNote" maxlength="500" class="cp-input" placeholder="Cracked lens hood, replacement charged" />
+                        </div>
+                    </div>
+
+                    <div class="cp-form-group">
+                        <label asp-for="InspectionNotes" class="cp-form-label">Notes <span class="cp-cell-sub">(optional)</span></label>
+                        <textarea asp-for="InspectionNotes" class="cp-textarea" rows="3" placeholder="Cracked grille on mic 2; cable OK"></textarea>
+                    </div>
+
+                    <div class="cp-form-group">
+                        <label for="insPhotos" class="cp-form-label">Photos <span class="cp-cell-sub">(optional, up to 6, 5 MB each)</span></label>
+                        <input id="insPhotos" type="file" name="photos" multiple accept="image/*" class="cp-input" />
+                    </div>
+
+                    @if (photos.Count > 0)
+                    {
+                        <details class="cp-insp-earlier">
+                            <summary>Photos from earlier inspections (@photos.Count)</summary>
+                            <div class="cp-photo-grid">
+                                @foreach (var ph in photos)
+                                {
+                                    var url = Url.Action("Photo", "Returns", new { id = ph.InspectionId, file = ph.FileName });
+                                    <a href="@url" target="_blank" rel="noopener"><img src="@url" alt="Inspection @ph.InspectionId photo @ph.FileName" loading="lazy" /></a>
+                                }
+                            </div>
+                        </details>
+                    }
+                }
             </div>
 
-            <fieldset class="cp-card cp-form-group">
-                <legend class="cp-form-label">Close-out outcome <span class="cp-cell-sub">(applied when status is Inspection Completed)</span></legend>
-                <p class="cp-form-hint">Split the inspected units. Good units become available again, damaged units go to maintenance, and lost units are recorded as unreconciled.</p>
-                <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:0 16px">
-                    <div class="cp-form-group">
-                        <label asp-for="GoodQuantity" class="cp-form-label">Good</label>
-                        <input asp-for="GoodQuantity" type="number" min="0" max="@(ctx?.AwaitingInspection ?? 1000)" step="1" class="cp-input" />
-                    </div>
-                    <div class="cp-form-group">
-                        <label asp-for="DamagedQuantity" class="cp-form-label">Damaged</label>
-                        <input asp-for="DamagedQuantity" type="number" min="0" max="@(ctx?.AwaitingInspection ?? 1000)" step="1" class="cp-input" />
-                    </div>
-                    <div class="cp-form-group">
-                        <label asp-for="LostQuantity" class="cp-form-label">Lost</label>
-                        <input asp-for="LostQuantity" type="number" min="0" max="@(ctx?.AwaitingInspection ?? 1000)" step="1" class="cp-input" />
-                    </div>
-                    <div class="cp-form-group">
-                        <label asp-for="RepairCost" class="cp-form-label">Repair cost (₱)</label>
-                        <input asp-for="RepairCost" type="number" min="0" step="0.01" class="cp-input" />
-                    </div>
-                    <div class="cp-form-group">
-                        <label asp-for="PenaltyAmount" class="cp-form-label">Penalty (₱)</label>
-                        <input asp-for="PenaltyAmount" type="number" min="0" step="0.01" class="cp-input" />
-                    </div>
-                    <div class="cp-form-group">
-                        <label asp-for="PenaltyNote" class="cp-form-label">Penalty note</label>
-                        <input asp-for="PenaltyNote" maxlength="500" class="cp-input" placeholder="e.g. Cracked lens hood; replacement charged" />
-                    </div>
-                </div>
-            </fieldset>
-
-            <div class="cp-form-group">
-                <label asp-for="InspectionNotes" class="cp-form-label">Inspection Notes</label>
-                <textarea asp-for="InspectionNotes" class="cp-textarea" rows="3"></textarea>
-            </div>
-
-            <div class="cp-form-group">
-                <label class="cp-form-label">Condition Photos (up to 6, max 5 MB each)</label>
-                <input type="file" name="photos" multiple accept="image/*" class="cp-input" />
-            </div>
-
-            <div class="cp-page-actions">
+            <div class="cp-insp-foot">
                 <a asp-action="Index" class="cp-btn cp-btn-secondary">Cancel</a>
-                <button type="submit" class="cp-btn cp-btn-success" disabled="@(inspectable == 0)"
-                        aria-describedby="@(inspectable == 0 ? "insQtyHint" : null)">Record Inspection</button>
+                @if (inspectable > 0)
+                {
+                    <button type="submit" name="SaveAsDraft" value="true" class="cp-btn cp-btn-secondary">Save draft</button>
+                    <button type="submit" class="cp-btn cp-btn-success cp-insp-submit">Complete inspection</button>
+                }
             </div>
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.querySelector('.cp-insp-form'), btn = form && form.querySelector('.cp-insp-submit');
+            if (!btn) return;
+            var labels = { '@ConditionCodes.Good': 'Return to stock', '@ConditionCodes.Damaged': 'Send to maintenance', '@ConditionCodes.Lost': 'Mark as lost' };
+            function sync() {
+                var picked = form.querySelector('input[name=Outcome]:checked');
+                if (picked) btn.textContent = labels[picked.value];
+            }
+            form.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+}
