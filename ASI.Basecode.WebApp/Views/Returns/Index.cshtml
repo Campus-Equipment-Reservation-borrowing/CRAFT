@@ -7,7 +7,7 @@
 <div class="cp-page-header">
     <div>
         <h1 class="cp-page-title">Return Processing</h1>
-        <p class="cp-page-subtitle">Record equipment returns and condition inspections.</p>
+        <p class="cp-page-subtitle">Pick a borrowed item below to record its return, then inspect its condition. No code or QR needed.</p>
     </div>
 </div>
 
@@ -18,6 +18,74 @@
         <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
 </div>
+
+@{
+    var borrowed = ViewBag.Borrowed as ActiveBorrowingsIndexViewModel;
+    var borrowedItems = borrowed?.Page?.Items ?? new List<ActiveBorrowingRowViewModel>();
+}
+<div class="cp-card cp-card-flush">
+    <div class="cp-card-header">
+        Borrowed items awaiting return
+        @if (borrowed?.Page != null && borrowed.Page.TotalCount > borrowedItems.Count)
+        {
+            <span class="cp-cell-sub">Showing @borrowedItems.Count of @borrowed.Page.TotalCount. Search to narrow down.</span>
+        }
+    </div>
+    @if (!borrowedItems.Any())
+    {
+        <div class="cp-empty-state compact">
+            <div class="cp-empty-state-text">No borrowed items awaiting return.</div>
+        </div>
+    }
+    else
+    {
+        <div class="cp-table-wrap">
+            <table class="cp-table">
+                <thead>
+                    <tr>
+                        <th>Transaction #</th>
+                        <th>Borrower</th>
+                        <th>Equipment</th>
+                        <th class="text-center">Qty</th>
+                        <th>Due</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in borrowedItems)
+                    {
+                        <tr>
+                            <td class="cp-mono">@b.TransactionNumber</td>
+                            <td>@b.BorrowerName</td>
+                            <td>
+                                <div class="cp-cell-name">@b.EquipmentName</div>
+                                <div class="cp-cell-sub cp-mono">@b.AssetCode</div>
+                            </td>
+                            <td class="text-center cp-mono">@b.ReleasedQuantity</td>
+                            <td>@b.DueAtUtc.ToLocalTime().ToString("dd MMM yyyy")</td>
+                            <td>
+                                @if (b.IsOverdue)
+                                {
+                                    <span class="@StatusBadge.Css("OVERDUE")">Overdue @b.DaysOverdue d</span>
+                                }
+                                else
+                                {
+                                    <span class="@StatusBadge.Css(b.StatusCode)">@b.StatusDescription</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="Create" asp-route-id="@b.BorrowingId" class="cp-btn cp-btn-primary cp-btn-sm">Record return</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<h2 class="cp-section-title">Return history</h2>
 
 @if (!Model.Page.Items.Any())
 {
