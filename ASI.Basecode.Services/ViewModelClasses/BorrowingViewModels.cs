@@ -49,6 +49,8 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string ReceivedBy { get; set; }
         public string FinalConditionName { get; set; }
         public string InspectionNotes { get; set; }
+        public decimal? PenaltyAmount { get; set; }
+        public string PenaltyNote { get; set; }
     }
 
     public class BorrowingHistoryRowViewModel

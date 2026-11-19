@@ -81,6 +81,14 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public decimal? PenaltyAmount { get; set; }
         public string PenaltyNote { get; set; }
 
+        /// <summary>
+        /// One outcome for every inspected unit (ConditionCodes.Good / Damaged / Lost). When set, the service
+        /// derives the Good/Damaged/Lost split, the condition (damage level comes from CurrentConditionId)
+        /// and the status (SaveAsDraft = pending, otherwise completed).
+        /// </summary>
+        public string Outcome { get; set; }
+        public bool SaveAsDraft { get; set; }
+
         /// <summary>Set by the service when some photos were not stored (shown after saving).</summary>
         public string PhotoWarning { get; set; }
     }

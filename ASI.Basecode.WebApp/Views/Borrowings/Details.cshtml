@@ -83,6 +83,12 @@
                 {
                     <dt>Inspection Notes</dt><dd>@Model.InspectionNotes</dd>
                 }
+                @if (Model.PenaltyAmount > 0)
+                {
+                    <dt>Charge</dt>
+                    <dd><strong>₱@Model.PenaltyAmount.Value.ToString("N2")</strong>@(string.IsNullOrWhiteSpace(Model.PenaltyNote) ? "" : " · " + Model.PenaltyNote)
+                        <div class="cp-cell-sub">Settle this with the Property Office.</div></dd>
+                }
             </dl>
         }
         else

@@ -192,9 +192,10 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.TempData["ErrorMessage"] = ASI.Basecode.Resources.Messages.Errors.CustodianReleaseNotApproved;
                 return this.RedirectToAction(nameof(this.Reservations));
             }
-            this.ViewBag.ConditionOptions = this.ToSelectList(context.ConditionOptions, null, "-- Select condition --");
+            this.ViewBag.ConditionOptions = this.ToSelectList(context.ConditionOptions, context.ConditionOptions.FirstOrDefault()?.Id, "-- Select condition --");
             this.ViewBag.Context = context;
-            return this.View(new ReleaseFormViewModel { ReservationId = id, ReleasedQuantity = context.ApprovedQuantity });
+            // Options are ordered Good first, so a normal release needs no extra pick.
+            return this.View(new ReleaseFormViewModel { ReservationId = id, ReleasedQuantity = context.ApprovedQuantity, ReleaseConditionId = context.ConditionOptions.FirstOrDefault()?.Id });
         }
 
         [HttpPost]

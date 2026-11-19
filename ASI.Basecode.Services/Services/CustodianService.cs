@@ -304,14 +304,14 @@ namespace ASI.Basecode.Services.Services
                 ExpectedReturnAtUtc = entity.ExpectedReturnAtUtc,
                 CanRelease = (entity.Status.Code == ReservationStatusCodes.Approved || entity.Status.Code == ReservationStatusCodes.PartiallyReleased) &&
                              this.RemainingHold(entity) > 0,
-                ConditionOptions = this._lookups.GetConditionOptionsExcludingCodes(NonReleasableConditions, orderByCode: true)
+                ConditionOptions = this._lookups.GetConditionOptionsWithCodes(ReleasableConditions)
                     .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList(),
                 ActiveBorrowingExists = this._repository.CountActiveBorrowingsForReservation(reservationId) > 0,
             };
         }
 
-        /// <summary>Conditions that mean the item can't go out to a borrower.</summary>
-        private static readonly string[] NonReleasableConditions = { ConditionCodes.Damaged, ConditionCodes.Lost, ConditionCodes.UnderMaintenance };
+        /// <summary>Physical conditions an item may go out in (stock states like AVAILABLE aren't conditions).</summary>
+        private static readonly string[] ReleasableConditions = { ConditionCodes.Good, ConditionCodes.MinorDamage, ConditionCodes.MissingParts };
 
         public (bool Success, string Error, long BorrowingId) Release(ReleaseFormViewModel form)
         {
@@ -321,9 +321,9 @@ namespace ASI.Basecode.Services.Services
             }
 
             var conditionCode = this._lookups.GetConditionCodeById(form.ReleaseConditionId.Value);
-            if (conditionCode == null || NonReleasableConditions.Contains(conditionCode))
+            if (conditionCode == null || !ReleasableConditions.Contains(conditionCode))
             {
-                return (false, "Choose the condition the equipment is released in (damaged, lost or under-maintenance items can't be released).", 0);
+                return (false, "Choose the condition the equipment is released in (only good, minor-damage or missing-parts items can be released).", 0);
             }
 
             try

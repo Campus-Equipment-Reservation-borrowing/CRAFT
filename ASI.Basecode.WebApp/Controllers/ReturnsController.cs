@@ -118,6 +118,7 @@ namespace ASI.Basecode.WebApp.Controllers
                 this.ViewBag.InfoMessage = "No returned units are waiting for inspection. Record a return first.";
             }
             this.ViewBag.ConditionOptions = this.ToSelectList(this._service.GetConditionOptions(), null, "-- Select condition --");
+            this.ViewBag.DamageOptions = this._service.GetDamageLevelOptions();
             this.ViewBag.InspectionStatusOptions = this.ToSelectList(this._service.GetInspectionStatusOptions(), ctx.PendingInspectionStatusId, "-- Select status --");
             return this.View(form);
         }
@@ -137,7 +138,8 @@ namespace ASI.Basecode.WebApp.Controllers
                 var ctx = this._service.GetReturnFormContext(form.BorrowingId);
                 this.ViewBag.Context = ctx;
                 this.ViewBag.ConditionOptions = this.ToSelectList(this._service.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-                this.ViewBag.InspectionStatusOptions = this.ToSelectList(this._service.GetInspectionStatusOptions(), form.InspectionStatusId, "-- Select status --");
+                this.ViewBag.DamageOptions = this._service.GetDamageLevelOptions();
+            this.ViewBag.InspectionStatusOptions = this.ToSelectList(this._service.GetInspectionStatusOptions(), form.InspectionStatusId, "-- Select status --");
                 return this.View(form);
             }
 
@@ -148,7 +150,8 @@ namespace ASI.Basecode.WebApp.Controllers
                 var ctx = this._service.GetReturnFormContext(form.BorrowingId);
                 this.ViewBag.Context = ctx;
                 this.ViewBag.ConditionOptions = this.ToSelectList(this._service.GetConditionOptions(), form.CurrentConditionId, "-- Select condition --");
-                this.ViewBag.InspectionStatusOptions = this.ToSelectList(this._service.GetInspectionStatusOptions(), form.InspectionStatusId, "-- Select status --");
+                this.ViewBag.DamageOptions = this._service.GetDamageLevelOptions();
+            this.ViewBag.InspectionStatusOptions = this.ToSelectList(this._service.GetInspectionStatusOptions(), form.InspectionStatusId, "-- Select status --");
                 return this.View(form);
             }
 

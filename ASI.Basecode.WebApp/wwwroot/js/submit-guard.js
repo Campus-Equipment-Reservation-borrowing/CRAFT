@@ -3,6 +3,12 @@
 document.addEventListener('submit', function (e) {
     var form = e.target;
     if (e.defaultPrevented || form.hasAttribute('data-no-guard') || (form.method || '').toLowerCase() !== 'post') return;
+    // A disabled submitter isn't posted, so keep its name/value (e.g. "Save draft") as a hidden field.
+    if (e.submitter && e.submitter.name) {
+        var keep = document.createElement('input');
+        keep.type = 'hidden'; keep.name = e.submitter.name; keep.value = e.submitter.value;
+        form.appendChild(keep);
+    }
     form.querySelectorAll('button[type=submit], input[type=submit], button:not([type])').forEach(function (btn) {
         btn.disabled = true;
         if (btn.tagName === 'BUTTON' && !btn.querySelector('i')) btn.textContent = 'Working…';
