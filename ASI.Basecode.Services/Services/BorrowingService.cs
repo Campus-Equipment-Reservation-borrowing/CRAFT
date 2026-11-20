@@ -1,4 +1,5 @@
 using ASI.Basecode.Data.Interfaces;
+using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ViewModelClasses;
@@ -75,6 +76,10 @@ namespace ASI.Basecode.Services.Services
             var lastReturn = b.BorrowingReturns?.OrderByDescending(r => r.ReturnedAtUtc).FirstOrDefault();
             var totalReturned = b.BorrowingReturns?.Sum(r => r.ReturnedQuantity) ?? 0;
             var lastInspection = b.ConditionInspections?.OrderByDescending(i => i.CreatedAtUtc).FirstOrDefault();
+            // Charges from finished inspections only; a mixed return can be inspected in several batches.
+            var charged = b.ConditionInspections?
+                .Where(i => i.InspectionStatus?.Code == InspectionStatusCodes.Completed && i.PenaltyAmount > 0)
+                .OrderBy(i => i.CreatedAtUtc).ToList() ?? new List<ConditionInspection>();
 
             return new BorrowingDetailsViewModel
             {
@@ -100,6 +105,8 @@ namespace ASI.Basecode.Services.Services
                 ReceivedBy = lastReturn?.ReceivedByUser == null ? null : $"{lastReturn.ReceivedByUser.FirstName} {lastReturn.ReceivedByUser.LastName}".Trim(),
                 FinalConditionName = lastInspection?.CurrentCondition?.Description,
                 InspectionNotes = lastInspection?.InspectionNotes,
+                PenaltyAmount = charged.Count == 0 ? null : charged.Sum(i => i.PenaltyAmount),
+                PenaltyNote = string.Join(" ", charged.Select(i => i.PenaltyNote).Where(n => !string.IsNullOrWhiteSpace(n))),
             };
         }
 

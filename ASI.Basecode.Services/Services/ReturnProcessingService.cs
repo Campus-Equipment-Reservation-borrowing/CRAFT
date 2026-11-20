@@ -140,6 +140,50 @@ namespace ASI.Basecode.Services.Services
             return this._repository.SumInspectedQuantity(borrowingId, InspectionStatusCodes.Completed, excludeInspectionId);
         }
 
+        private static readonly string[] DamageLevelCodes = { ConditionCodes.MinorDamage, ConditionCodes.MissingParts, ConditionCodes.Damaged };
+
+        public List<LookupViewModel> GetDamageLevelOptions()
+        {
+            return this._lookups.GetConditionOptionsWithCodes(DamageLevelCodes)
+                .Select(o => new LookupViewModel { Id = o.Id, Text = o.Text }).ToList();
+        }
+
+        /// <summary>
+        /// Turns the one-tap outcome into the split, condition and status the rest of CreateInspection checks.
+        /// Returns false for an unknown outcome.
+        /// </summary>
+        private bool ApplyOutcomeChoice(InspectionFormViewModel form)
+        {
+            var qty = form.InspectedQuantity;
+            form.GoodQuantity = form.DamagedQuantity = form.LostQuantity = 0;
+            switch (form.Outcome)
+            {
+                case ConditionCodes.Good:
+                    form.GoodQuantity = qty;
+                    form.CurrentConditionId = this._lookups.GetConditionIdByCode(ConditionCodes.Good) ?? 0;
+                    form.RepairCost = form.PenaltyAmount = null;
+                    form.PenaltyNote = null;
+                    break;
+                case ConditionCodes.Lost:
+                    form.LostQuantity = qty;
+                    form.CurrentConditionId = this._lookups.GetConditionIdByCode(ConditionCodes.Lost) ?? 0;
+                    break;
+                case ConditionCodes.Damaged:
+                    form.DamagedQuantity = qty;
+                    if (!DamageLevelCodes.Contains(this._lookups.GetConditionCodeById(form.CurrentConditionId)))
+                    {
+                        form.CurrentConditionId = this._lookups.GetConditionIdByCode(ConditionCodes.Damaged) ?? 0;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+
+            form.InspectionStatusId = this._lookups.GetInspectionStatusIdByCode(
+                form.SaveAsDraft ? InspectionStatusCodes.Pending : InspectionStatusCodes.Completed);
+            return true;
+        }
+
         public List<LookupViewModel> GetInspectionStatusOptions()
         {
             return this._lookups.GetInspectionStatusOptions()
@@ -274,6 +318,11 @@ namespace ASI.Basecode.Services.Services
             if (form == null || form.InspectedQuantity < 1)
             {
                 return (false, ErrorMessages.InspectionQuantityInvalid, 0);
+            }
+
+            if (!string.IsNullOrEmpty(form.Outcome) && !this.ApplyOutcomeChoice(form))
+            {
+                return (false, ErrorMessages.InspectionOutcomeMismatch, 0);
             }
 
             try

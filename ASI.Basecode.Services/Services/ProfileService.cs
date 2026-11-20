@@ -98,13 +98,9 @@ namespace ASI.Basecode.Services.Services
                     return (false, "User Account does not exist.");
                 }
 
+                // Optional: a missing number must not block saving notification preferences.
                 var contact = form.ContactNumber?.Trim();
-                if (string.IsNullOrWhiteSpace(contact))
-                {
-                    return (false, "Please complete all required fields.");
-                }
-
-                user.ContactNumber = contact;
+                user.ContactNumber = string.IsNullOrWhiteSpace(contact) ? null : contact;
                 user.AlternateContact = form.AlternateContact?.Trim();
 
                 var preference = this._preferences.GetTrackedByUserId(userId);

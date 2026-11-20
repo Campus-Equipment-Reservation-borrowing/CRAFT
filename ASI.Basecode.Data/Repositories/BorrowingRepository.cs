@@ -78,6 +78,7 @@ namespace ASI.Basecode.Data.Repositories
                 .Include(x => x.ReleasedByUser)
                 .Include(x => x.BorrowingReturns).ThenInclude(r => r.ReceivedByUser)
                 .Include(x => x.ConditionInspections).ThenInclude(i => i.CurrentCondition)
+                .Include(x => x.ConditionInspections).ThenInclude(i => i.InspectionStatus)
                 .FirstOrDefault(x => x.BorrowingId == borrowingId && x.BorrowerUserId == borrowerUserId);
         }
 
