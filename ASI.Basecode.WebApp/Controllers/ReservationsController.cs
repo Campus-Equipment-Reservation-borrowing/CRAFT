@@ -225,8 +225,8 @@ namespace ASI.Basecode.WebApp.Controllers
         }
 
         /// <summary>
-        /// Printable pickup slip with a QR of the reservation number; the custodian scans it to
-        /// open the release form. Same visibility rules as Details.
+        /// Printable pickup slip showing the reservation number for the custodian.
+        /// Same visibility rules as Details.
         /// </summary>
         public IActionResult Slip(long id)
         {
@@ -237,8 +237,6 @@ namespace ASI.Basecode.WebApp.Controllers
                 return this.RedirectToAction(nameof(this.Mine));
             }
 
-            var scanUrl = this.Url.Action("Scan", "Custodian", new { code = model.ReservationNumber }, this.Request.Scheme);
-            this.ViewBag.QrSvg = QrCode.ToSvg(scanUrl);
             return this.View(model);
         }
 

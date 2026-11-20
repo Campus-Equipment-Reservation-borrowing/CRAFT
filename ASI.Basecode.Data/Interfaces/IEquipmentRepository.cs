@@ -75,9 +75,6 @@ namespace ASI.Basecode.Data.Interfaces
         /// <summary>Active locations (untracked) by name.</summary>
         System.Collections.Generic.List<Location> GetActiveLocationsByName();
 
-        /// <summary>Equipment (untracked) whose asset code matches case-insensitively (pass it upper-cased), or null.</summary>
-        Equipment FindByAssetCodeUpper(string upperAssetCode);
-
         /// <summary>Name of the location, or null.</summary>
         string GetLocationName(long locationId);
 

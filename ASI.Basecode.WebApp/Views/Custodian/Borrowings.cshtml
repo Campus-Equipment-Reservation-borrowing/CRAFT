@@ -17,19 +17,6 @@
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Borrowings" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
-    <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="scanOpen" title="Scan a QR code" aria-label="Scan a QR code">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
-        Scan QR
-    </button>
-</div>
-
-<div id="scanPanel" class="cp-card" style="display:none;">
-    <div class="cp-card-header">Scan QR code</div>
-    <div class="cp-stack">
-        <video id="scanVideo" playsinline muted style="width:100%;max-width:480px;max-height:340px;border-radius:10px;background:#0E1A14;"></video>
-        <p class="cp-cell-sub" id="scanStatus" role="status">Point the camera at an equipment label or a pickup slip.</p>
-        <div><button type="button" class="cp-btn cp-btn-secondary cp-btn-sm" id="scanStop">Close camera</button></div>
-    </div>
 </div>
 
 <div class="cp-card cp-card-flush">
@@ -159,55 +146,4 @@ else
             </li>
         </ul>
     </div>
-}
-@section Scripts {
-    <script>
-        (function () {
-            var openBtn = document.getElementById('scanOpen');
-            var panel = document.getElementById('scanPanel');
-            var video = document.getElementById('scanVideo');
-            var status = document.getElementById('scanStatus');
-            var stream = null, timer = null;
-
-            function codeFrom(raw) {
-                try { return new URL(raw).searchParams.get('code') || raw; } catch (e) { return raw; }
-            }
-
-            function stop() {
-                if (timer) { clearInterval(timer); timer = null; }
-                if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
-                panel.style.display = 'none';
-            }
-
-            openBtn.addEventListener('click', function () {
-                panel.style.display = 'block';
-                if (!('BarcodeDetector' in window) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    video.style.display = 'none';
-                    status.textContent = "This browser can't read QR codes from the camera. Use Chrome or Edge, or type the code in the search box.";
-                    return;
-                }
-                var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (s) {
-                    stream = s;
-                    video.srcObject = s;
-                    video.play();
-                    timer = setInterval(function () {
-                        detector.detect(video).then(function (codes) {
-                            if (!codes.length) return;
-                            var code = codeFrom(codes[0].rawValue).trim();
-                            if (!code) return;
-                            status.textContent = 'Found ' + code + '. Opening…';
-                            stop();
-                            window.location.href = '/Custodian/Scan?code=' + encodeURIComponent(code);
-                        }).catch(function () { });
-                    }, 400);
-                }).catch(function () {
-                    status.textContent = 'Camera access was blocked. Allow it in the browser, or type the code instead.';
-                });
-            });
-
-            document.getElementById('scanStop').addEventListener('click', stop);
-            window.addEventListener('pagehide', stop);
-        })();
-    </script>
 }

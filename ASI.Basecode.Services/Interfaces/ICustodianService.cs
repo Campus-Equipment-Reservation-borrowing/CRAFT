@@ -17,12 +17,6 @@ namespace ASI.Basecode.Services.Interfaces
         /// <summary>Marks a no-show or lapsed reservation EXPIRED and releases its held units.</summary>
         (bool Success, string Error) Expire(long reservationId, string reason);
 
-        /// <summary>
-        /// Resolves a scanned code: a reservation number, or an equipment asset code (listing in-scope
-        /// releases and returns for that item).
-        /// </summary>
-        ScanResultViewModel ResolveScan(string code);
-
 
         (bool Success, string Error) Approve(long reservationId, string notes);
 

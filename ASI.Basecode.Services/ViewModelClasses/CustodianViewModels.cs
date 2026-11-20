@@ -85,25 +85,6 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public List<LookupViewModel> ConditionOptions { get; set; } = new();
     }
 
-    /// <summary>One actionable hit for a scanned code.</summary>
-    public class ScanMatchViewModel
-    {
-        /// <summary>RELEASE (open release form), REVIEW (reservation review) or RETURN (record return).</summary>
-        public string Kind { get; set; }
-        public long Id { get; set; }
-        public string Title { get; set; }
-        public string Subtitle { get; set; }
-    }
-
-    /// <summary>Custodian scan page: what a scanned asset code / reservation number resolves to.</summary>
-    public class ScanResultViewModel
-    {
-        public string Code { get; set; }
-        public bool Searched { get; set; }
-        public string EquipmentName { get; set; }
-        public List<ScanMatchViewModel> Matches { get; set; } = new();
-    }
-
     public class ReleaseFormViewModel
     {
         public long ReservationId { get; set; }

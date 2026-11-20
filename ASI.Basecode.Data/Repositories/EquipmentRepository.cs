@@ -231,12 +231,6 @@ namespace ASI.Basecode.Data.Repositories
                 .ToList();
         }
 
-        public Equipment FindByAssetCodeUpper(string upperAssetCode)
-        {
-            return this.Context.Equipment.AsNoTracking()
-                .FirstOrDefault(e => e.AssetCode.ToUpper() == upperAssetCode);
-        }
-
         public string GetLocationName(long locationId)
         {
             return this.Context.Locations.AsNoTracking()
