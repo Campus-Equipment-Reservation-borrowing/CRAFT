@@ -3,92 +3,148 @@
     ViewData["Title"] = "Administrator Dashboard";
 }
 
-<div class="cp-page-header">
-    <div>
-        <h1 class="cp-page-title">Administrator Dashboard</h1>
-        <p class="cp-page-subtitle">System-wide totals for users, equipment and transactions.</p>
-    </div>
-</div>
+@{
+    var vs = ViewBag.VerificationStats as ASI.Basecode.Services.ViewModelClasses.VerificationStatsViewModel;
+    var pendingAccounts = vs?.Pending ?? 0;
+    var attention = new List<(string Tone, string Title, string Detail, string Href, string Cta)>();
+    if (pendingAccounts > 0)
+        attention.Add(("warn", $"{pendingAccounts} account{(pendingAccounts == 1 ? "" : "s")} awaiting verification", "Borrowers can't reserve until they're approved.", "/Users/Verifications", "Review accounts"));
+    if (Model.ReservationPending > 0)
+        attention.Add(("warn", $"{Model.ReservationPending} reservation{(Model.ReservationPending == 1 ? "" : "s")} waiting for approval", "Custodians or admins need to approve or reject.", "/Monitoring/Transactions?tab=Reservations", "Open queue"));
+    if (Model.BorrowingOverdue > 0)
+        attention.Add(("error", $"{Model.BorrowingOverdue} overdue transaction{(Model.BorrowingOverdue == 1 ? "" : "s")}", "Equipment is past its return time.", "/Monitoring/Transactions?tab=Overdue", "View overdue"));
+    if (Model.DamagedLostUnits > 0)
+        attention.Add(("error", $"{Model.DamagedLostUnits} damaged or lost unit{(Model.DamagedLostUnits == 1 ? "" : "s")}", "Follow up on the inspection records.", "/Monitoring/AuditLogs", "View records"));
 
-<div class="cp-hero">
-    <div>
-        <div class="cp-hero-title">CRAFT overview</div>
-        <div class="cp-hero-sub">
-            Each tile below opens the list behind it: users, equipment, transactions or the audit log.
+    var allClear = new List<string>();
+    if (pendingAccounts == 0) allClear.Add("No accounts awaiting verification");
+    if (Model.ReservationPending == 0) allClear.Add("No reservations waiting for approval");
+    if (Model.BorrowingOverdue == 0) allClear.Add("Nothing overdue");
+    if (Model.DamagedLostUnits == 0) allClear.Add("No damaged or lost units");
+
+    var hour = DateTime.Now.Hour;
+    var greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    var headline = attention.Count == 0 ? "Everything is in order." : $"{attention.Count} item{(attention.Count == 1 ? " needs" : "s need")} you.";
+
+    var unitsTotal = Model.AvailableUnits + Model.ReservedUnits + Model.BorrowedUnits + Model.DamagedLostUnits;
+    string Pct(int n, int total) => total > 0 ? (n * 100.0 / total).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%" : "0%";
+
+    var openReservations = Model.ReservationPending + Model.ReservationApproved + Model.ReservationReadyForRelease;
+    var otherReservations = Math.Max(0, Model.ReservationTotal - openReservations - Model.ReservationCompleted - Model.ReservationRejected - Model.ReservationCancelled);
+    var resRows = new List<(string Label, int Count, string Tone)>
+    {
+        ("Open", openReservations, "info"),
+        ("Completed", Model.ReservationCompleted, "success"),
+        ("Rejected", Model.ReservationRejected, "error"),
+        ("Cancelled", Model.ReservationCancelled, "neutral"),
+    };
+    if (otherReservations > 0) resRows.Add(("Other", otherReservations, "faint"));
+}
+
+<div class="cp-ov">
+    <div class="cp-ov-head">
+        <div>
+            <p class="cp-ov-date">@DateTime.Now.ToString("dddd, d MMMM yyyy")</p>
+            <h1 class="cp-ov-title">@greeting. @headline</h1>
+        </div>
+        <div class="cp-ov-actions">
+            <a class="cp-btn cp-btn-outline" href="/Monitoring/Reports">Reports</a>
+            <a class="cp-btn cp-btn-primary" href="/Equipment">Manage equipment</a>
         </div>
     </div>
+
+    @await Component.InvokeAsync("AnnouncementBanner")
+
+    <section class="cp-ov-attention" aria-labelledby="ov-attention">
+        <h2 id="ov-attention" class="cp-ov-attention-title">Needs attention</h2>
+        @foreach (var item in attention)
+        {
+            <div class="cp-ov-alert">
+                <span class="cp-ov-alert-icon @item.Tone" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6M12 16.5h.01"></path></svg>
+                </span>
+                <div class="cp-ov-alert-text">
+                    <span class="cp-ov-alert-title">@item.Title</span>
+                    <span class="cp-ov-alert-detail">@item.Detail</span>
+                </div>
+                <a class="cp-btn cp-btn-primary" href="@item.Href">@item.Cta</a>
+            </div>
+        }
+        @if (allClear.Any())
+        {
+            <ul class="cp-ov-clear">
+                @foreach (var c in allClear)
+                {
+                    <li>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L19 7"></path></svg>
+                        @c
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <div class="cp-ov-grid">
+        <section class="cp-ov-card" aria-labelledby="ov-inv">
+            <div class="cp-ov-card-head">
+                <h2 id="ov-inv">Inventory</h2>
+                <a href="/Equipment">View catalogue</a>
+            </div>
+            <div class="cp-ov-hero"><span class="cp-ov-num">@Model.AvailableUnits</span><span class="cp-ov-unit">units available · @Model.EquipmentRecords equipment records</span></div>
+            <div class="cp-ov-stack" role="img" aria-label="@Model.AvailableUnits available, @Model.ReservedUnits reserved, @Model.BorrowedUnits borrowed, @Model.DamagedLostUnits damaged or lost">
+                <span class="success" style="width:@Pct(Model.AvailableUnits, unitsTotal)"></span>
+                <span class="reserved" style="width:@Pct(Model.ReservedUnits, unitsTotal)"></span>
+                <span class="info" style="width:@Pct(Model.BorrowedUnits, unitsTotal)"></span>
+                <span class="error" style="width:@Pct(Model.DamagedLostUnits, unitsTotal)"></span>
+            </div>
+            <dl class="cp-ov-legend">
+                <div><dt><i class="success"></i>Available</dt><dd>@Model.AvailableUnits</dd></div>
+                <div><dt><i class="reserved"></i>Reserved</dt><dd>@Model.ReservedUnits</dd></div>
+                <div><dt><i class="info"></i>Borrowed</dt><dd>@Model.BorrowedUnits</dd></div>
+                <div><dt><i class="error"></i>Damaged / lost</dt><dd>@Model.DamagedLostUnits</dd></div>
+            </dl>
+        </section>
+
+        <section class="cp-ov-card" aria-labelledby="ov-res">
+            <div class="cp-ov-card-head">
+                <h2 id="ov-res">Reservations</h2>
+                <a href="/Monitoring/Transactions?tab=Reservations">All reservations</a>
+            </div>
+            <div class="cp-ov-hero"><span class="cp-ov-num">@Model.ReservationTotal</span><span class="cp-ov-unit">total · @openReservations open right now</span></div>
+            <div class="cp-ov-bars">
+                @foreach (var r in resRows)
+                {
+                    <div class="cp-ov-bar-row">
+                        <span class="cp-ov-bar-label">@r.Label</span>
+                        <span class="cp-ov-bar-track"><span class="@r.Tone" style="width:@Pct(r.Count, Model.ReservationTotal)"></span></span>
+                        <span class="cp-ov-bar-count">@r.Count</span>
+                    </div>
+                }
+            </div>
+            @if (openReservations > 0)
+            {
+                <p class="cp-ov-foot">@Model.ReservationPending pending · @Model.ReservationApproved approved · @Model.ReservationReadyForRelease ready for release</p>
+            }
+        </section>
+
+        <section class="cp-ov-card" aria-labelledby="ov-acc">
+            <div class="cp-ov-card-head">
+                <h2 id="ov-acc">Accounts</h2>
+                <a href="/Users">Manage users</a>
+            </div>
+            <div class="cp-ov-hero"><span class="cp-ov-num">@Model.TotalUsers</span><span class="cp-ov-unit">users</span></div>
+            @if (vs != null)
+            {
+                <div class="cp-ov-tiles">
+                    <a class="cp-ov-tile @(vs.Pending > 0 ? "warn" : "")" href="/Users/Verifications"><span>Pending</span><strong>@vs.Pending</strong></a>
+                    <div class="cp-ov-tile"><span>Approved</span><strong>@vs.Approved</strong></div>
+                    <a class="cp-ov-tile" href="/Users/Verifications?tab=rejected"><span>Rejected</span><strong>@vs.Rejected</strong></a>
+                </div>
+                <p class="cp-ov-foot">Median time to decision: <strong>@(vs.MedianHoursToDecision.HasValue ? (vs.MedianHoursToDecision.Value < 48 ? $"{vs.MedianHoursToDecision.Value:0.#} h" : $"{vs.MedianHoursToDecision.Value / 24:0.#} d") : "—")</strong></p>
+            }
+        </section>
+    </div>
 </div>
-
-@await Component.InvokeAsync("AnnouncementBanner")
-
-<div class="cp-section-title">At a glance</div>
-<div class="cp-kpi-grid">
-    <a class="cp-kpi" href="/Users">
-        <div class="cp-kpi-label">Total Users</div>
-        <div class="cp-kpi-value">@Model.TotalUsers</div>
-    </a>
-    <a class="cp-kpi" href="/Equipment">
-        <div class="cp-kpi-label">Equipment Records</div>
-        <div class="cp-kpi-value">@Model.EquipmentRecords</div>
-    </a>
-    <a class="cp-kpi" href="/Equipment">
-        <div class="cp-kpi-label">Available Units</div>
-        <div class="cp-kpi-value">@Model.AvailableUnits</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Reserved Units</div>
-        <div class="cp-kpi-value muted">@Model.ReservedUnits</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Borrowed Units</div>
-        <div class="cp-kpi-value muted">@Model.BorrowedUnits</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Overdue Transactions</div>
-        <div class="cp-kpi-value @(Model.BorrowingOverdue > 0 ? "error" : "muted")">@Model.BorrowingOverdue</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/AuditLogs">
-        <div class="cp-kpi-label">Damaged / Lost</div>
-        <div class="cp-kpi-value @(Model.DamagedLostUnits > 0 ? "warn" : "muted")">@Model.DamagedLostUnits</div>
-    </a>
-</div>
-
-<div class="cp-section-title">Reservation statistics</div>
-<div class="cp-kpi-grid">
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Total</div>
-        <div class="cp-kpi-value">@Model.ReservationTotal</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Pending</div>
-        <div class="cp-kpi-value warn">@Model.ReservationPending</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Approved</div>
-        <div class="cp-kpi-value">@Model.ReservationApproved</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Ready for Release</div>
-        <div class="cp-kpi-value">@Model.ReservationReadyForRelease</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Completed</div>
-        <div class="cp-kpi-value muted">@Model.ReservationCompleted</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Rejected</div>
-        <div class="cp-kpi-value error">@Model.ReservationRejected</div>
-    </a>
-    <a class="cp-kpi" href="/Monitoring/Transactions">
-        <div class="cp-kpi-label">Cancelled</div>
-        <div class="cp-kpi-value muted">@Model.ReservationCancelled</div>
-    </a>
-</div>
-
-@if (ViewBag.VerificationStats is ASI.Basecode.Services.ViewModelClasses.VerificationStatsViewModel verificationStats)
-{
-    <partial name="_VerificationStats" model="verificationStats" />
-}
 
 @if (ViewBag.Workload is ASI.Basecode.Services.ViewModelClasses.CustodianWorkloadViewModel workload)
 {
