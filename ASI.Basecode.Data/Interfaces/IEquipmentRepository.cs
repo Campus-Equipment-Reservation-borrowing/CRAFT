@@ -30,14 +30,7 @@ namespace ASI.Basecode.Data.Interfaces
             long? operationalStatusId,
             bool? isActive,
             int page,
-            int pageSize,
-            bool urgentOnly = false);
-
-        /// <summary>
-        /// Counts equipment needing attention: damaged, missing parts or lost condition, or units in
-        /// maintenance / unreconciled after inspection (same rule as the admin dashboard).
-        /// </summary>
-        int CountUrgent();
+            int pageSize);
 
         /// <summary>
         /// Checks whether an asset code is already used (excluding a record being edited).

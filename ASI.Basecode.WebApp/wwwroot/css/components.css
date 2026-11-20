@@ -878,7 +878,3 @@ a.cp-ov-tile:hover { outline: 1px solid var(--color-border-hover); }
 .cp-insp-form:has(input[name=Outcome][value=LOST]:checked) .cp-insp-submit { background: var(--color-danger); border-color: var(--color-danger); }
 @media (max-width: 640px) { .cp-outcomes, .cp-insp-grid { grid-template-columns: 1fr; } .cp-outcome { min-height: 0; } }
 @media (prefers-reduced-motion: reduce) { .cp-outcome { transition: none; } }
-
-.cp-urgent-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--color-error, #D93025); box-shadow: 0 0 0 2px rgba(217, 48, 37, 0.18); vertical-align: middle; margin-left: 6px; flex-shrink: 0; }
-.cp-nav-ic { position: relative; display: inline-flex; flex-shrink: 0; }
-.cp-urgent-dot.cp-urgent-dot-corner { position: absolute; top: -3px; right: -4px; margin: 0; box-shadow: 0 0 0 2px #fff; }

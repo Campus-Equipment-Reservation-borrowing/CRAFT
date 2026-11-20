@@ -2,7 +2,6 @@
 @using System.Security.Claims
 @inject IHttpContextAccessor HttpContextAccessor
 @inject ASI.Basecode.Services.Interfaces.IProfileService ProfileService
-@inject ASI.Basecode.Services.Interfaces.IEquipmentService EquipmentService
 @{
     var role = User.FindFirst(ClaimTypes.Role)?.Value;
     var isAdmin = string.Equals(role, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase);
@@ -20,7 +19,6 @@
     // Walkthrough: the overview auto-starts once per account (see wwwroot/js/guide.js).
     var signedInId = long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : (long?)null;
     var tourDone = signedInId == null || ProfileService.HasCompletedTour(signedInId.Value);
-    var urgentEquipment = isAdmin ? EquipmentService.CountUrgent() : 0;
     var profilePhoto = signedInId == null ? null : ProfileService.GetProfileImagePath(signedInId.Value);
 }
 <!DOCTYPE html>
@@ -164,13 +162,7 @@
                     <div>Custodian Assignments</div>
                 </a>
                 <a class="nav-item @(controller == "Equipment" ? "active" : "")" href="/Equipment">
-                    <span class="cp-nav-ic">
-                        <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
-                        @if (urgentEquipment > 0)
-                        {
-                            <span class="cp-urgent-dot cp-urgent-dot-corner" title="@urgentEquipment item(s) need attention" role="img" aria-label="@urgentEquipment item(s) need attention"></span>
-                        }
-                    </span>
+                    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
                     <div>Equipment Administration</div>
                 </a>
                 <a class="nav-item @(controller == "Monitoring" && action == "Transactions" ? "active" : "")" href="/Monitoring/Transactions">

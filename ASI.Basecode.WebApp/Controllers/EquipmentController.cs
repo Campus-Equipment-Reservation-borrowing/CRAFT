@@ -54,14 +54,13 @@ namespace ASI.Basecode.WebApp.Controllers
             long? location,
             long? condition,
             long? operationalStatus,
-            bool urgent = false,
             int page = 1,
             int pageSize = 10)
         {
             try
             {
                 var model = this._equipmentService.GetIndexViewModel(
-                    search, category, location, condition, operationalStatus, page, pageSize, urgent);
+                    search, category, location, condition, operationalStatus, page, pageSize);
 
                 this.ViewBag.CategoryOptions = this.ToSelectList(
                     this._equipmentService.GetCategoryOptions(), model.CategoryId, "All Categories");
