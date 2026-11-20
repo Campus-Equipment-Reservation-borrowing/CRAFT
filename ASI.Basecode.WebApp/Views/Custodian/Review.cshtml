@@ -46,6 +46,11 @@
                 <dt>Start</dt><dd>@Model.RequestedStartAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
                 <dt>Expected Return</dt><dd>@Model.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
                 <dt>Purpose</dt><dd>@(Model.Purpose ?? "—")</dd>
+                <dt>Borrower notes</dt><dd style="white-space:pre-line">@(string.IsNullOrWhiteSpace(Model.AdditionalNotes) ? "—" : Model.AdditionalNotes)</dd>
+                @if (!string.IsNullOrWhiteSpace(Model.CustodianNotes))
+                {
+                    <dt>Your approval notes</dt><dd style="white-space:pre-line">@Model.CustodianNotes</dd>
+                }
             </dl>
         </div>
 

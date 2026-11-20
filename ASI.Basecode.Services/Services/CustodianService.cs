@@ -131,6 +131,8 @@ namespace ASI.Basecode.Services.Services
                 RequestedStartAtUtc = entity.RequestedStartAtUtc,
                 ExpectedReturnAtUtc = entity.ExpectedReturnAtUtc,
                 Purpose = entity.Purpose,
+                AdditionalNotes = entity.AdditionalNotes,
+                CustodianNotes = entity.CustodianNotes,
                 SubmittedAtUtc = entity.SubmittedAtUtc,
                 CanApprove = entity.Status.Code == ReservationStatusCodes.Pending && approveBlocked == null,
                 CanReject = entity.Status.Code == ReservationStatusCodes.Pending,
@@ -202,6 +204,7 @@ namespace ASI.Basecode.Services.Services
                 entity.StatusId = approvedStatus.StatusId;
                 entity.ApprovedQuantity = entity.RequestedQuantity;
                 entity.HeldQuantity = entity.RequestedQuantity;
+                entity.CustodianNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
 
                 // The units were held on the balance at submit time (ReservationService.Create).
 
@@ -212,7 +215,8 @@ namespace ASI.Basecode.Services.Services
                     (string.IsNullOrWhiteSpace(notes) ? string.Empty : " Notes: " + notes.Trim()));
 
                 this.WriteNotification(entity.BorrowerUserId, "Reservation approved",
-                    $"Your reservation {entity.ReservationNumber} for {entity.Equipment.EquipmentName} has been approved. Please pick up at {entity.PickupLocation?.LocationName ?? "the designated location"}.");
+                    $"Your reservation {entity.ReservationNumber} for {entity.Equipment.EquipmentName} has been approved. Please pick up at {entity.PickupLocation?.LocationName ?? "the designated location"}." +
+                    (entity.CustodianNotes == null ? string.Empty : " Custodian notes: " + entity.CustodianNotes));
 
                 return (true, null);
             }

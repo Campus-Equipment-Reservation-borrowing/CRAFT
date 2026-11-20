@@ -85,7 +85,11 @@
                 <dt>Purpose</dt><dd>@Model.Purpose</dd>
                 @if (!string.IsNullOrWhiteSpace(Model.AdditionalNotes))
                 {
-                    <dt>Additional notes</dt><dd>@Model.AdditionalNotes</dd>
+                    <dt>Your notes</dt><dd style="white-space:pre-line">@Model.AdditionalNotes</dd>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.CustodianNotes))
+                {
+                    <dt>Custodian notes</dt><dd style="white-space:pre-line">@Model.CustodianNotes</dd>
                 }
                 <dt>Acknowledgements</dt><dd>Borrowing rules and overdue/accountability terms acknowledged at submission.</dd>
             </dl>

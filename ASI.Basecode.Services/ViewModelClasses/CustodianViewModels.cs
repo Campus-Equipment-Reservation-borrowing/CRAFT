@@ -56,6 +56,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public DateTime ExpectedReturnAtUtc { get; set; }
         public string Purpose { get; set; }
         public string AdditionalNotes { get; set; }
+        public string CustodianNotes { get; set; }
         public DateTime SubmittedAtUtc { get; set; }
         public bool CanApprove { get; set; }
 
