@@ -164,12 +164,14 @@
                     <div>Custodian Assignments</div>
                 </a>
                 <a class="nav-item @(controller == "Equipment" ? "active" : "")" href="/Equipment">
-                    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
+                    <span class="cp-nav-ic">
+                        <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
+                        @if (urgentEquipment > 0)
+                        {
+                            <span class="cp-urgent-dot cp-urgent-dot-corner" title="@urgentEquipment item(s) need attention" role="img" aria-label="@urgentEquipment item(s) need attention"></span>
+                        }
+                    </span>
                     <div>Equipment Administration</div>
-                    @if (urgentEquipment > 0)
-                    {
-                        <span class="cp-urgent-dot" title="@urgentEquipment item(s) need attention" role="img" aria-label="@urgentEquipment item(s) need attention"></span>
-                    }
                 </a>
                 <a class="nav-item @(controller == "Monitoring" && action == "Transactions" ? "active" : "")" href="/Monitoring/Transactions">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M20 17H9l3 3"/><path d="M4 7v10a2 2 0 002 2h1M20 17V7a2 2 0 00-2-2h-1"/></svg>

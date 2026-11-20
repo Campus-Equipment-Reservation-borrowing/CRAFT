@@ -99,9 +99,14 @@
                         <td><span class="cp-mono">@eq.AvailableUnits / @eq.TotalQuantity</span></td>
                         <td>
                             @(eq.ConditionName ?? "-")
-                            @if (eq.IsUrgent)
+                            @{
+                                var extraIssues = eq.IsUrgent
+                                    ? string.Join(", ", eq.UrgentReason.Split(", ").Where(r => !string.Equals(r, eq.ConditionName, StringComparison.OrdinalIgnoreCase)))
+                                    : null;
+                            }
+                            @if (!string.IsNullOrEmpty(extraIssues))
                             {
-                                <div class="cp-cell-sub" style="color:var(--color-error, #C0392B);">@eq.UrgentReason</div>
+                                <div class="cp-cell-sub" style="color:var(--color-error, #C0392B);">@extraIssues</div>
                             }
                         </td>
                         <td>
