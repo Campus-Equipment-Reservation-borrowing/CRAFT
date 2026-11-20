@@ -209,6 +209,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
         /// <summary>Policy: how many days ahead a pickup may be booked (drives the date picker's maximum).</summary>
         public int MaxAdvanceBookingDays { get; set; }
 
+        /// <summary>Policy: longest loan for the signed-in borrower (faculty get their own limit).</summary>
+        public int MaxBorrowDays { get; set; }
+
         /// <summary>Why the item itself can't be reserved (maintenance, out of service, damaged); null when it can.</summary>
         public string BlockedReason { get; set; }
 
@@ -234,6 +237,8 @@ namespace ASI.Basecode.Services.ViewModelClasses
     public class ReservationListViewModel
     {
         public long ReservationId { get; set; }
+
+        public string StatusReason { get; set; }
 
         public string ReservationNumber { get; set; }
 
@@ -274,6 +279,8 @@ namespace ASI.Basecode.Services.ViewModelClasses
     public class ReservationDetailsViewModel
     {
         public long ReservationId { get; set; }
+
+        public string StatusReason { get; set; }
 
         public string ReservationNumber { get; set; }
 

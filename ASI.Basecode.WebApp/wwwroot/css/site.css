@@ -142,5 +142,6 @@ a.cp-kpi:hover { border-color: #C9DACF; box-shadow: 0 6px 18px -8px rgba(16,45,3
 .cp-alert { border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 16px; line-height: 1.5; }
 .cp-alert-success { background: #EDF7F1; border: 1px solid #CEE7D9; color: #0B5D3E; }
 .cp-alert-error { background: #FCEEEE; border: 1px solid #F2D3D3; color: #8E2F2F; font-weight: 500; }
+.cp-alert-warning { background: #FFF8E6; border: 1px solid #F2E2B3; color: #7A5A0B; }
 .cp-alert-error ul { margin: 0; padding-left: 18px; }
 .cp-alert.validation-summary-valid { display: none; }

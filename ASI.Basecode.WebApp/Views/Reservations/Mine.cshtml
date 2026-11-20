@@ -49,7 +49,14 @@
                     </td>
                     <td>@r.RequestedQuantity</td>
                     <td>@r.RequestedStartAtUtc.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")<div class="cp-cell-sub">Return @r.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM, hh:mm tt")</div></td>
-                    <td><span class="@StatusBadge.Css(r.StatusCode)">@r.StatusDescription</span></td>
+                    <td>
+                        <span class="@StatusBadge.Css(r.StatusCode)">@r.StatusDescription</span>
+                        @if (!string.IsNullOrWhiteSpace(r.StatusReason)
+                             && r.StatusCode is ReservationStatusCodes.Cancelled or ReservationStatusCodes.Rejected or ReservationStatusCodes.Expired)
+                        {
+                            <div class="cp-cell-sub" title="@r.StatusReason">Reason: @r.StatusReason</div>
+                        }
+                    </td>
                     <td>
                         <a class="cp-btn cp-btn-secondary cp-btn-sm" href="/Reservations/Details/@r.ReservationId">View</a>
                         @if (r.CanCancel)

@@ -227,5 +227,19 @@ namespace ASI.Basecode.Data.Repositories
                 .OrderBy(b => b.DueAtUtc)
                 .ToList();
         }
+
+        public System.Collections.Generic.List<Reservation> GetReservationsByStatusInScope(System.Collections.Generic.IReadOnlyCollection<string> statusCodes, long? scopeCustodianUserId)
+        {
+            var scope = scopeCustodianUserId;
+            return this.Context.Reservations.AsNoTracking()
+                .Include(r => r.BorrowerUser)
+                .Include(r => r.Equipment)
+                .Include(r => r.Status)
+                .Include(r => r.PickupLocation)
+                .Where(r => statusCodes.Contains(r.Status.Code))
+                .Where(r => scope == null || r.AssignedCustodianUserId == null || r.AssignedCustodianUserId == scope)
+                .OrderBy(r => r.RequestedStartAtUtc)
+                .ToList();
+        }
     }
 }

@@ -2,6 +2,7 @@
 @using System.Security.Claims
 @inject IHttpContextAccessor HttpContextAccessor
 @inject ASI.Basecode.Services.Interfaces.IProfileService ProfileService
+@inject ASI.Basecode.Services.Interfaces.IEquipmentService EquipmentService
 @{
     var role = User.FindFirst(ClaimTypes.Role)?.Value;
     var isAdmin = string.Equals(role, RoleCodes.Admin, StringComparison.OrdinalIgnoreCase);
@@ -12,11 +13,14 @@
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var displayName = User.Identity?.Name ?? "Guest";
     var initials = displayName.Length > 0 ? displayName.Substring(0, 1).ToUpperInvariant() : "U";
-    var roleLabel = isBorrower ? "Student" : (isAdmin ? "Administrator" : "Custodian");
+    var roleLabel = isBorrower
+        ? (string.Equals(role, RoleCodes.Faculty, StringComparison.OrdinalIgnoreCase) ? "Faculty" : "Student")
+        : (isAdmin ? "Administrator" : "Custodian");
     var crumb = ViewData["Title"]?.ToString() ?? "Dashboard";
     // Walkthrough: the overview auto-starts once per account (see wwwroot/js/guide.js).
     var signedInId = long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : (long?)null;
     var tourDone = signedInId == null || ProfileService.HasCompletedTour(signedInId.Value);
+    var urgentEquipment = isAdmin ? EquipmentService.CountUrgent() : 0;
     var profilePhoto = signedInId == null ? null : ProfileService.GetProfileImagePath(signedInId.Value);
 }
 <!DOCTYPE html>
@@ -123,11 +127,7 @@
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
                     <div>Reservations</div>
                 </a>
-                <a class="nav-item @(controller == "Custodian" && (action == "Scan" || action == "Release") ? "active" : "")" href="/Custodian/Scan">
-                    <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                    <div>Equipment Release</div>
-                </a>
-                <a class="nav-item @(controller == "Custodian" && action == "Borrowings" ? "active" : "")" href="/Custodian/Borrowings">
+                <a class="nav-item @(controller == "Custodian" && (action == "Borrowings" || action == "Scan" || action == "Release") ? "active" : "")" href="/Custodian/Borrowings">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 11h6M9 15h4"/></svg>
                     <div>Active Borrowings</div>
                 </a>
@@ -166,6 +166,10 @@
                 <a class="nav-item @(controller == "Equipment" ? "active" : "")" href="/Equipment">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
                     <div>Equipment Administration</div>
+                    @if (urgentEquipment > 0)
+                    {
+                        <span class="cp-urgent-dot" title="@urgentEquipment item(s) need attention" role="img" aria-label="@urgentEquipment item(s) need attention"></span>
+                    }
                 </a>
                 <a class="nav-item @(controller == "Monitoring" && action == "Transactions" ? "active" : "")" href="/Monitoring/Transactions">
                     <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11l-3-3M20 17H9l3 3"/><path d="M4 7v10a2 2 0 002 2h1M20 17V7a2 2 0 00-2-2h-1"/></svg>

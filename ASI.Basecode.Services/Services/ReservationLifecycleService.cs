@@ -100,6 +100,9 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 reservation.StatusId = expired.StatusId;
+                reservation.StatusReason = previousStatus == ReservationRules.Pending
+                    ? "Expired automatically because it was not reviewed before the pickup time."
+                    : "Expired automatically because the equipment was not picked up in time.";
                 reservation.HeldQuantity = 0;
                 reservation.CompletedAtUtc = now;
 

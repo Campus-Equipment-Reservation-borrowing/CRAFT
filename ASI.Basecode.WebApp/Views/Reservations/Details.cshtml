@@ -33,6 +33,13 @@
                 Request Status
                 <span class="@StatusBadge.Css(Model.StatusCode)">@Model.StatusDescription</span>
             </div>
+            @if (!string.IsNullOrWhiteSpace(Model.StatusReason)
+                 && Model.StatusCode is ReservationStatusCodes.Cancelled or ReservationStatusCodes.Rejected or ReservationStatusCodes.Expired or ReservationStatusCodes.Completed)
+            {
+                <div class="cp-alert cp-alert-warning" role="status" style="margin-bottom:12px;">
+                    <strong>Reason:</strong> @Model.StatusReason
+                </div>
+            }
             <dl class="cp-kv">
                 <dt>Submitted</dt><dd>@Model.SubmittedAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</dd>
                 @if (Model.CompletedAtUtc.HasValue)

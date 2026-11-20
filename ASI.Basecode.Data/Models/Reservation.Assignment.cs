@@ -11,5 +11,8 @@ public partial class Reservation
     /// <summary>When the custodian was warned that this PENDING request is about to expire unreviewed.</summary>
     public System.DateTime? ExpiryWarningSentAtUtc { get; set; }
 
+    /// <summary>Why the reservation was rejected, cancelled or expired; shown to the borrower.</summary>
+    public string StatusReason { get; set; }
+
     public virtual User AssignedCustodianUser { get; set; }
 }

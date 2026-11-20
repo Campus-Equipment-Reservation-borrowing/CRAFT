@@ -8,6 +8,9 @@
     var unavailableReason = equipment.BlockedReason
         ?? "No units are available right now. Check back later or choose another item.";
     var singleReason = equipment.MaxUnitsPerBorrower <= 1 ? "Only 1 unit per request" : "Only 1 unit available";
+    var maxBorrowDays = equipment.MaxBorrowDays > 0 ? equipment.MaxBorrowDays : 7;
+    // Pickup and return are booked in whole-hour slots.
+    var hourSlots = Enumerable.Range(0, 24).Select(h => new TimeOnly(h, 0)).ToList();
 }
 
 <div class="cp-page-header">
@@ -59,7 +62,8 @@
             <div class="cp-section-title">Borrowing Schedule</div>
             <div class="cp-form-hint" id="rsv-schedule-hint"
                  data-lead-days="@(Model.Equipment?.ReservationLeadTimeDays ?? 1)"
-                 data-max-days="@(Model.Equipment?.MaxAdvanceBookingDays ?? 30)">
+                 data-max-days="@(Model.Equipment?.MaxAdvanceBookingDays ?? 30)"
+                 data-max-borrow-days="@maxBorrowDays">
                 Pickup must be at least @(Model.Equipment?.ReservationLeadTimeDays ?? 1) day(s) from now and at most @(Model.Equipment?.MaxAdvanceBookingDays ?? 30) days ahead.
             </div>
             <div class="cp-form-row">
@@ -70,12 +74,19 @@
                 </div>
                 <div class="cp-form-group">
                     <label asp-for="Form.BorrowingTime" class="cp-form-label">Borrowing Time <span class="required">*</span></label>
-                    <input asp-for="Form.BorrowingTime" type="time" class="cp-input" required />
+                    <select asp-for="Form.BorrowingTime" class="cp-select" required>
+                        <option value="">-- Select time --</option>
+                        @foreach (var t in hourSlots)
+                        {
+                            <option value="@t.ToString("HH:mm")" selected="@(Model.Form?.BorrowingTime == t)">@t.ToString("h:mm tt")</option>
+                        }
+                    </select>
                     <span asp-validation-for="Form.BorrowingTime" class="cp-form-error"></span>
                 </div>
             </div>
 
             <div class="cp-section-title">Expected Return</div>
+            <div class="cp-form-hint" id="rsv-return-hint">You can borrow for up to @maxBorrowDays day(s). Choose the borrowing date first.</div>
             <div class="cp-form-row">
                 <div class="cp-form-group">
                     <label asp-for="Form.ExpectedReturnDate" class="cp-form-label">Expected Return Date <span class="required">*</span></label>
@@ -84,7 +95,13 @@
                 </div>
                 <div class="cp-form-group">
                     <label asp-for="Form.ExpectedReturnTime" class="cp-form-label">Expected Return Time <span class="required">*</span></label>
-                    <input asp-for="Form.ExpectedReturnTime" type="time" class="cp-input" required />
+                    <select asp-for="Form.ExpectedReturnTime" class="cp-select" required>
+                        <option value="">-- Select time --</option>
+                        @foreach (var t in hourSlots)
+                        {
+                            <option value="@t.ToString("HH:mm")" selected="@(Model.Form?.ExpectedReturnTime == t)">@t.ToString("h:mm tt")</option>
+                        }
+                    </select>
                     <span asp-validation-for="Form.ExpectedReturnTime" class="cp-form-error"></span>
                 </div>
             </div>
@@ -129,6 +146,7 @@
             // The server re-checks everything; this just stops the user picking a time it will reject.
             (function () {
                 var hint = document.getElementById('rsv-schedule-hint');
+                var returnHint = document.getElementById('rsv-return-hint');
                 var bd = document.querySelector('[name="Form.BorrowingDate"]');
                 var bt = document.querySelector('[name="Form.BorrowingTime"]');
                 var rd = document.querySelector('[name="Form.ExpectedReturnDate"]');
@@ -136,33 +154,65 @@
                 if (!hint || !bd || !bt || !rd || !rt) return;
                 var leadDays = parseInt(hint.getAttribute('data-lead-days'), 10) || 0;
                 var maxDays = parseInt(hint.getAttribute('data-max-days'), 10) || 30;
+                var borrowDays = parseInt(hint.getAttribute('data-max-borrow-days'), 10) || 7;
                 function pad(n) { return (n < 10 ? '0' : '') + n; }
                 function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
-                function hm(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
                 function at(dateStr, timeStr) { return dateStr && timeStr ? new Date(dateStr + 'T' + timeStr) : null; }
+                function addDays(dateStr, n) { var d = new Date(dateStr + 'T00:00'); d.setDate(d.getDate() + n); return ymd(d); }
                 function earliest() {
-                    // now + lead time, rounded up to the next 5 minutes
+                    // now + lead time, rounded up to the next whole hour
                     var e = new Date(Date.now() + leadDays * 86400000);
-                    e.setSeconds(0, 0);
-                    e.setMinutes(Math.ceil(e.getMinutes() / 5) * 5);
+                    if (e.getMinutes() || e.getSeconds() || e.getMilliseconds()) { e.setHours(e.getHours() + 1); }
+                    e.setMinutes(0, 0, 0);
                     return e;
                 }
                 function latest() { return new Date(Date.now() + maxDays * 86400000); }
-                var fmt = { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' };
+                function mmdd(dateStr) { var d = new Date(dateStr + 'T00:00'); return pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + '/' + d.getFullYear(); }
+                // Enable only hour slots inside [minHour, maxHour]; clear the pick if it falls outside.
+                function limitHours(select, minHour, maxHour) {
+                    Array.prototype.forEach.call(select.options, function (o) {
+                        if (!o.value) return;
+                        var h = parseInt(o.value, 10);
+                        o.disabled = h < minHour || h > maxHour;
+                        o.hidden = o.disabled;
+                    });
+                    var sel = select.options[select.selectedIndex];
+                    if (sel && sel.disabled) select.value = '';
+                }
+                var fmt = { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric' };
 
                 function refresh() {
                     var e = earliest(), l = latest();
                     bd.min = ymd(e); bd.max = ymd(l);
-                    bt.min = bd.value === ymd(e) ? hm(e) : '';
-                    bt.max = bd.value === ymd(l) ? hm(l) : '';
-                    rd.min = bd.value || ymd(e);
-                    rt.min = (rd.value && rd.value === bd.value && bt.value) ? bt.value : '';
+                    limitHours(bt, bd.value === ymd(e) ? e.getHours() : 0, bd.value === ymd(l) ? l.getHours() : 23);
+
+                    if (bd.value) {
+                        // Return window: from the borrowing date up to borrowing date + max borrow days.
+                        var lastReturn = addDays(bd.value, borrowDays);
+                        rd.disabled = false;
+                        rd.min = bd.value;
+                        rd.max = lastReturn;
+                        if (rd.value && (rd.value < rd.min || rd.value > rd.max)) rd.value = '';
+                        var startHour = bt.value ? parseInt(bt.value, 10) : 0;
+                        limitHours(rt,
+                            rd.value === bd.value ? startHour + 1 : 0,
+                            rd.value === lastReturn ? startHour : 23);
+                        returnHint.textContent = 'Return between ' + mmdd(bd.value) + ' and ' + mmdd(lastReturn) +
+                            ' (up to ' + borrowDays + ' day' + (borrowDays === 1 ? '' : 's') + ').';
+                    } else {
+                        rd.disabled = true;
+                        rd.value = '';
+                        limitHours(rt, 0, 23);
+                        returnHint.textContent = 'You can borrow for up to ' + borrowDays + ' day' + (borrowDays === 1 ? '' : 's') + '. Choose the borrowing date first.';
+                    }
+
                     hint.textContent = 'Earliest pickup: ' + e.toLocaleString(undefined, fmt) +
                         ' (at least ' + leadDays + ' day' + (leadDays === 1 ? '' : 's') + ' from now), up to ' + maxDays + ' days ahead.';
 
                     var start = at(bd.value, bt.value), end = at(rd.value, rt.value);
                     bt.setCustomValidity(start && start < e ? 'Pick a pickup time on or after ' + e.toLocaleString(undefined, fmt) + '.' : '');
-                    rt.setCustomValidity(start && end && end <= start ? 'The return must be after the pickup time.' : '');
+                    rt.setCustomValidity(start && end && end <= start ? 'The return must be after the pickup time.'
+                        : start && end && (end - start) > borrowDays * 86400000 ? 'The return must be within ' + borrowDays + ' day(s) of pickup.' : '');
                 }
                 [bd, bt, rd, rt].forEach(function (el) { el.addEventListener('input', refresh); el.addEventListener('change', refresh); });
                 // Re-check right before submitting, in case the page sat open and the clock moved on.

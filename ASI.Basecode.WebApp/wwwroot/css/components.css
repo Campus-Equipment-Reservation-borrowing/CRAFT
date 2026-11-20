@@ -724,7 +724,8 @@
 .cp-text-12 { font-size: 12px; }
 .cp-check-row { display: flex; gap: 8px; align-items: flex-start; }
 .cp-link-button { background: none; border: 0; cursor: pointer; font: inherit; font-size: 12.5px; }
-.cp-img-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cp-img-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 8px; box-sizing: border-box; background: #fff; }
+.cp-img-thumb { object-fit: contain; background: #fff; }
 .cp-break-all { word-break: break-all; }
 #inviteLink { overflow-wrap: anywhere; }
 
@@ -802,12 +803,12 @@
 .cp-ov-foot { margin: 0; font-size: 13px; color: var(--color-text-soft); }
 .cp-ov-foot strong { color: var(--color-text); }
 
-.cp-ov .success { background: var(--color-primary-dark); }
-.cp-ov .reserved { background: #7FB89A; }
-.cp-ov .info { background: #2457A6; }
-.cp-ov .error { background: var(--color-error); }
-.cp-ov .neutral { background: var(--color-text-gray); }
-.cp-ov .faint { background: var(--color-text-faint); }
+.cp-ov .success:not(.banner) { background: var(--color-primary-dark); }
+.cp-ov .reserved:not(.banner) { background: #7FB89A; }
+.cp-ov .info:not(.banner) { background: #2457A6; }
+.cp-ov .error:not(.banner) { background: var(--color-error); }
+.cp-ov .neutral:not(.banner) { background: var(--color-text-gray); }
+.cp-ov .faint:not(.banner) { background: var(--color-text-faint); }
 
 .cp-ov-stack { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--color-border-soft); }
 .cp-ov-stack span { display: block; height: 100%; }
@@ -877,3 +878,6 @@ a.cp-ov-tile:hover { outline: 1px solid var(--color-border-hover); }
 .cp-insp-form:has(input[name=Outcome][value=LOST]:checked) .cp-insp-submit { background: var(--color-danger); border-color: var(--color-danger); }
 @media (max-width: 640px) { .cp-outcomes, .cp-insp-grid { grid-template-columns: 1fr; } .cp-outcome { min-height: 0; } }
 @media (prefers-reduced-motion: reduce) { .cp-outcome { transition: none; } }
+
+.cp-urgent-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--color-error, #D93025); box-shadow: 0 0 0 2px rgba(217, 48, 37, 0.18); vertical-align: middle; margin-left: 6px; flex-shrink: 0; }
+.nav-item .cp-urgent-dot { margin-left: auto; }

@@ -261,6 +261,7 @@ namespace ASI.Basecode.Services.Services
 
                 var heldUnits = this.RemainingHold(entity);
                 entity.StatusId = rejectedStatus.StatusId;
+                entity.StatusReason = reason.Trim();
                 ReleaseHold(entity, heldUnits);
                 entity.HeldQuantity = 0;
                 this._unitOfWork.SaveChanges();
@@ -539,6 +540,7 @@ namespace ASI.Basecode.Services.Services
                 var released = ReleaseHold(entity, this.RemainingHold(entity));
                 entity.HeldQuantity = 0;
                 entity.StatusId = target.StatusId;
+                entity.StatusReason = reason;
                 entity.CompletedAtUtc = DateTime.UtcNow;
                 this.ClaimIfPooled(entity);
                 this._unitOfWork.SaveChanges();
@@ -702,6 +704,14 @@ namespace ASI.Basecode.Services.Services
                     TotalCount = result.TotalCount,
                 },
                 Search = search,
+                ReadyForRelease = this._repository.GetReservationsByStatusInScope(ReleasableReservationStatuses, this._currentUser.GetCustodianScope())
+                    .Where(r => string.IsNullOrWhiteSpace(search)
+                        || (r.ReservationNumber ?? string.Empty).Contains(search, StringComparison.OrdinalIgnoreCase)
+                        || (r.Equipment.EquipmentName ?? string.Empty).Contains(search, StringComparison.OrdinalIgnoreCase)
+                        || (r.Equipment.AssetCode ?? string.Empty).Contains(search, StringComparison.OrdinalIgnoreCase)
+                        || (r.BorrowerUser.FirstName + " " + r.BorrowerUser.LastName).Contains(search, StringComparison.OrdinalIgnoreCase))
+                    .Select(this.MapReservationRow)
+                    .ToList(),
             };
         }
 

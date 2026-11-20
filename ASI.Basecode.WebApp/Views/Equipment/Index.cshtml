@@ -48,6 +48,10 @@
         <select name="location" aria-label="Filter by location" class="cp-select" asp-items="@(ViewBag.LocationOptions as SelectList)"></select>
         <select name="condition" aria-label="Filter by condition" class="cp-select" asp-items="@(ViewBag.ConditionOptions as SelectList)"></select>
         <select name="operationalStatus" aria-label="Filter by operational status" class="cp-select" asp-items="@(ViewBag.OperationalStatusOptions as SelectList)"></select>
+        <label class="cp-check-row" style="align-items:center;white-space:nowrap;">
+            <input type="checkbox" name="urgent" value="true" @(Model.UrgentOnly ? "checked" : "") />
+            <span class="cp-urgent-dot" aria-hidden="true"></span> Needs attention (@Model.UrgentCount)
+        </label>
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Index" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
@@ -79,17 +83,27 @@
                             <div class="cp-cell-media">
                                 @if (!string.IsNullOrWhiteSpace(eq.ImagePath))
                                 {
-                                    <img src="@eq.ImagePath" alt="" class="cp-avatar cp-avatar-sm" />
+                                    <img src="@eq.ImagePath" alt="" class="cp-avatar cp-avatar-sm cp-img-thumb" />
                                 }
                                 <div>
                                     <a asp-action="Details" asp-route-id="@eq.EquipmentId" class="cp-cell-name">@eq.EquipmentName</a>
+                                    @if (eq.IsUrgent)
+                                    {
+                                        <span class="cp-urgent-dot" title="Needs attention: @eq.UrgentReason" role="img" aria-label="Needs attention: @eq.UrgentReason"></span>
+                                    }
                                     <div class="cp-cell-sub cp-mono">@eq.AssetCode</div>
                                 </div>
                             </div>
                         </td>
                         <td>@eq.CategoryName<div class="cp-cell-sub">@(eq.LocationName ?? "No location")</div></td>
                         <td><span class="cp-mono">@eq.AvailableUnits / @eq.TotalQuantity</span></td>
-                        <td>@(eq.ConditionName ?? "-")</td>
+                        <td>
+                            @(eq.ConditionName ?? "-")
+                            @if (eq.IsUrgent)
+                            {
+                                <div class="cp-cell-sub" style="color:var(--color-error, #C0392B);">@eq.UrgentReason</div>
+                            }
+                        </td>
                         <td>
                             @if (!string.IsNullOrWhiteSpace(eq.OperationalStatusName))
                             {
@@ -127,16 +141,16 @@
         <span class="cp-pagination-info">Page @Model.Page.Page of @Model.Page.TotalPages (@Model.Page.TotalCount records)</span>
         <ul class="cp-pagination-list">
             <li class="@(Model.Page.HasPrevious ? "" : "disabled")">
-                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page - 1)">‹</a>
+                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-urgent="@(Model.UrgentOnly ? "true" : null)" asp-route-page="@(Model.Page.Page - 1)">‹</a>
             </li>
             @for (var p = 1; p <= Model.Page.TotalPages; p++)
             {
                 <li class="@(p == Model.Page.Page ? "active" : "")">
-                    <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@p">@p</a>
+                    <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-urgent="@(Model.UrgentOnly ? "true" : null)" asp-route-page="@p">@p</a>
                 </li>
             }
             <li class="@(Model.Page.HasNext ? "" : "disabled")">
-                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-page="@(Model.Page.Page + 1)">›</a>
+                <a asp-action="Index" asp-route-search="@Model.Search" asp-route-category="@Model.CategoryId" asp-route-location="@Model.LocationId" asp-route-condition="@Model.ConditionId" asp-route-operationalStatus="@Model.OperationalStatusId" asp-route-urgent="@(Model.UrgentOnly ? "true" : null)" asp-route-page="@(Model.Page.Page + 1)">›</a>
             </li>
         </ul>
     </div>
