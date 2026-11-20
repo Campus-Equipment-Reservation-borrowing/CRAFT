@@ -7,7 +7,7 @@
 <div class="cp-page-header">
     <div>
         <h1 class="cp-page-title">Active Borrowings</h1>
-        <p class="cp-page-subtitle">Equipment currently released to borrowers.</p>
+        <p class="cp-page-subtitle">Release approved reservations and track equipment currently out with borrowers.</p>
     </div>
 </div>
 
@@ -17,7 +17,69 @@
         <button type="submit" class="cp-btn cp-btn-secondary cp-btn-sm">Apply</button>
         <a asp-action="Borrowings" class="cp-btn cp-btn-secondary cp-btn-sm">Clear</a>
     </form>
+    <button type="button" class="cp-btn cp-btn-primary cp-btn-sm" id="scanOpen" title="Scan a QR code" aria-label="Scan a QR code">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+        Scan QR
+    </button>
 </div>
+
+<div id="scanPanel" class="cp-card" style="display:none;">
+    <div class="cp-card-header">Scan QR code</div>
+    <div class="cp-stack">
+        <video id="scanVideo" playsinline muted style="width:100%;max-width:480px;max-height:340px;border-radius:10px;background:#0E1A14;"></video>
+        <p class="cp-cell-sub" id="scanStatus" role="status">Point the camera at an equipment label or a pickup slip.</p>
+        <div><button type="button" class="cp-btn cp-btn-secondary cp-btn-sm" id="scanStop">Close camera</button></div>
+    </div>
+</div>
+
+<div class="cp-card cp-card-flush">
+    <div class="cp-card-header">Ready for release <span class="cp-cell-sub">@Model.ReadyForRelease.Count approved</span></div>
+    @if (!Model.ReadyForRelease.Any())
+    {
+        <div class="cp-empty-state compact">
+            <div class="cp-empty-state-text">No approved reservations waiting for release.</div>
+        </div>
+    }
+    else
+    {
+        <div class="cp-table-wrap">
+            <table class="cp-table">
+                <thead>
+                    <tr>
+                        <th>Reservation #</th>
+                        <th>Borrower</th>
+                        <th>Equipment</th>
+                        <th class="text-center">Qty</th>
+                        <th>Pickup</th>
+                        <th>Return</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.ReadyForRelease)
+                    {
+                        <tr>
+                            <td class="cp-mono">@r.ReservationNumber</td>
+                            <td>@r.BorrowerName</td>
+                            <td>
+                                <div class="cp-cell-name">@r.EquipmentName</div>
+                                <div class="cp-cell-sub cp-mono">@r.AssetCode</div>
+                            </td>
+                            <td class="text-center cp-mono">@r.RequestedQuantity</td>
+                            <td>@r.RequestedStartAtUtc.ToLocalTime().ToString("dd MMM yyyy, h tt")</td>
+                            <td>@r.ExpectedReturnAtUtc.ToLocalTime().ToString("dd MMM yyyy, h tt")</td>
+                            <td class="text-center">
+                                <a asp-action="Release" asp-route-id="@r.ReservationId" class="cp-btn cp-btn-success cp-btn-sm">Release</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<h2 class="cp-card-header" style="margin-top:8px;">Currently borrowed</h2>
 
 @if (!Model.Page.Items.Any())
 {
@@ -97,4 +159,55 @@ else
             </li>
         </ul>
     </div>
+}
+@section Scripts {
+    <script>
+        (function () {
+            var openBtn = document.getElementById('scanOpen');
+            var panel = document.getElementById('scanPanel');
+            var video = document.getElementById('scanVideo');
+            var status = document.getElementById('scanStatus');
+            var stream = null, timer = null;
+
+            function codeFrom(raw) {
+                try { return new URL(raw).searchParams.get('code') || raw; } catch (e) { return raw; }
+            }
+
+            function stop() {
+                if (timer) { clearInterval(timer); timer = null; }
+                if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+                panel.style.display = 'none';
+            }
+
+            openBtn.addEventListener('click', function () {
+                panel.style.display = 'block';
+                if (!('BarcodeDetector' in window) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    video.style.display = 'none';
+                    status.textContent = "This browser can't read QR codes from the camera. Use Chrome or Edge, or type the code in the search box.";
+                    return;
+                }
+                var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (s) {
+                    stream = s;
+                    video.srcObject = s;
+                    video.play();
+                    timer = setInterval(function () {
+                        detector.detect(video).then(function (codes) {
+                            if (!codes.length) return;
+                            var code = codeFrom(codes[0].rawValue).trim();
+                            if (!code) return;
+                            status.textContent = 'Found ' + code + '. Opening…';
+                            stop();
+                            window.location.href = '/Custodian/Scan?code=' + encodeURIComponent(code);
+                        }).catch(function () { });
+                    }, 400);
+                }).catch(function () {
+                    status.textContent = 'Camera access was blocked. Allow it in the browser, or type the code instead.';
+                });
+            });
+
+            document.getElementById('scanStop').addEventListener('click', stop);
+            window.addEventListener('pagehide', stop);
+        })();
+    </script>
 }

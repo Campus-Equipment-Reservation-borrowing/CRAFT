@@ -8,12 +8,11 @@
 <div class="cp-page-header">
     <div>
         <h1 class="cp-page-title">Custodian Assignments</h1>
-        <p class="cp-page-subtitle">Route reservations to the custodian responsible for them. A borrower assignment wins over a location, and a location wins over a category. Anything unmatched goes to the shared pool.</p>
+        <p class="cp-page-subtitle">Route reservations to the custodian responsible for them. A borrower assignment wins over a location. Anything unmatched goes to the shared pool.</p>
     </div>
 </div>
 
 <div class="cp-stack">
     <partial name="_AssignmentSection" model="@(new AssignmentSectionViewModel { Title = "Borrowers", Hint = "Every verified student or faculty account has a custodian, set when the account is approved. Change it here; it can't be removed while the account is active.", ScopeType = CustodianScopeTypes.Borrower, TargetLabel = "Borrower", Rows = Model.BorrowerAssignments, TargetOptions = Model.UnassignedBorrowerOptions, CustodianOptions = Model.CustodianOptions })" />
     <partial name="_AssignmentSection" model="@(new AssignmentSectionViewModel { Title = "Locations", Hint = "Equipment stored at a location is routed to its custodian.", ScopeType = CustodianScopeTypes.Location, TargetLabel = "Location", Rows = Model.LocationAssignments, TargetOptions = Model.UnassignedLocationOptions, CustodianOptions = Model.CustodianOptions })" />
-    <partial name="_AssignmentSection" model="@(new AssignmentSectionViewModel { Title = "Equipment Categories", Hint = "Fallback by equipment type when no borrower or location rule applies.", ScopeType = CustodianScopeTypes.Category, TargetLabel = "Category", Rows = Model.CategoryAssignments, TargetOptions = Model.UnassignedCategoryOptions, CustodianOptions = Model.CustodianOptions })" />
 </div>

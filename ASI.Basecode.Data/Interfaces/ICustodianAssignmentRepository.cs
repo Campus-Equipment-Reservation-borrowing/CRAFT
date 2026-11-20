@@ -45,10 +45,8 @@ namespace ASI.Basecode.Data.Interfaces
 
         bool LocationHasAssignment(long locationId);
 
-        bool CategoryHasAssignment(long categoryId);
-
-        /// <summary>Scope type and custodian of assignments matching the borrower, location or category whose custodian has the account status.</summary>
-        List<(string ScopeType, long CustodianUserId)> GetRoutingCandidates(long borrowerUserId, long? locationId, long? categoryId, string custodianAccountStatusCode);
+        /// <summary>Scope type and custodian of assignments matching the borrower or location whose custodian has the account status.</summary>
+        List<(string ScopeType, long CustodianUserId)> GetRoutingCandidates(long borrowerUserId, long? locationId, string custodianAccountStatusCode);
 
         /// <summary>Number of assignments per custodian user id.</summary>
         Dictionary<long, int> CountByCustodian();

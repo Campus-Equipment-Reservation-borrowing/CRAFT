@@ -271,7 +271,7 @@ IF COL_LENGTH('dbo.condition_inspections', 'penalty_note') IS NULL
     ALTER TABLE dbo.condition_inspections ADD penalty_note nvarchar(500) NULL;");
         }
 
-        /// <summary>Custodian ownership (borrower / location / category) and reservation routing.</summary>
+        /// <summary>Custodian ownership (borrower / location) and reservation routing.</summary>
         private void EnsureCustodianAssignmentSchema()
         {
             this.DbContext.Database.ExecuteSqlRaw(@"
@@ -310,7 +310,13 @@ BEGIN
 END;
 
 IF COL_LENGTH('dbo.reservations', 'expiry_warning_sent_at_utc') IS NULL
-    ALTER TABLE dbo.reservations ADD expiry_warning_sent_at_utc datetime2 NULL;");
+    ALTER TABLE dbo.reservations ADD expiry_warning_sent_at_utc datetime2 NULL;
+
+IF COL_LENGTH('dbo.reservations', 'status_reason') IS NULL
+    ALTER TABLE dbo.reservations ADD status_reason nvarchar(500) NULL;
+
+-- Custodians are no longer assigned by equipment category; drop any leftover category rules.
+DELETE FROM dbo.custodian_assignments WHERE scope_type = 'CATEGORY';");
         }
 
         /// <summary>
@@ -357,11 +363,10 @@ IF COL_LENGTH('dbo.reservations', 'expiry_warning_sent_at_utc') IS NULL
             var jose = db.Users.Where(u => u.AccountIdentifier == "EMP-2001").Select(u => (long?)u.UserId).FirstOrDefault();
             var main = db.Locations.Where(l => l.LocationCode == "PO-MAIN").Select(l => (long?)l.LocationId).FirstOrDefault();
             var annex = db.Locations.Where(l => l.LocationCode == "PO-ANNEX").Select(l => (long?)l.LocationId).FirstOrDefault();
-            var cameras = db.EquipmentCategories.Where(c => c.CategoryCode == "CAMERA").Select(c => (long?)c.EquipmentCategoryId).FirstOrDefault();
 
-            void Assign(long? custodian, string scope, long? borrower = null, long? location = null, long? category = null)
+            void Assign(long? custodian, string scope, long? borrower = null, long? location = null)
             {
-                if (custodian == null || (borrower ?? location ?? category) == null)
+                if (custodian == null || (borrower ?? location) == null)
                 {
                     return;
                 }
@@ -372,14 +377,12 @@ IF COL_LENGTH('dbo.reservations', 'expiry_warning_sent_at_utc') IS NULL
                     ScopeType = scope,
                     BorrowerUserId = borrower,
                     LocationId = location,
-                    EquipmentCategoryId = category,
                     AssignedAtUtc = DateTime.UtcNow,
                 });
             }
 
             Assign(carlos, CustodianScopeTypes.Location, location: main);
             Assign(rina, CustodianScopeTypes.Location, location: annex);
-            Assign(rina, CustodianScopeTypes.Category, category: cameras);
             Assign(rina, CustodianScopeTypes.Borrower, borrower: jose);
             this._unitOfWork.SaveChanges();
         }

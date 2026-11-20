@@ -14,7 +14,7 @@
     if (Model.BorrowingOverdue > 0)
         attention.Add(("error", $"{Model.BorrowingOverdue} overdue transaction{(Model.BorrowingOverdue == 1 ? "" : "s")}", "Equipment is past its return time.", "/Monitoring/Transactions?tab=Overdue", "View overdue"));
     if (Model.DamagedLostUnits > 0)
-        attention.Add(("error", $"{Model.DamagedLostUnits} damaged or lost unit{(Model.DamagedLostUnits == 1 ? "" : "s")}", "Follow up on the inspection records.", "/Monitoring/AuditLogs", "View records"));
+        attention.Add(("error", $"{Model.DamagedLostUnits} damaged or lost unit{(Model.DamagedLostUnits == 1 ? "" : "s")}", "Follow up on the flagged equipment.", "/Equipment?urgent=true", "View items"));
 
     var allClear = new List<string>();
     if (pendingAccounts == 0) allClear.Add("No accounts awaiting verification");

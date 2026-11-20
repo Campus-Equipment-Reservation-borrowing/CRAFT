@@ -224,6 +224,7 @@ public partial class AllianceDbContext
         {
             entity.Property(e => e.AssignedCustodianUserId).HasColumnName("assigned_custodian_user_id");
             entity.Property(e => e.ExpiryWarningSentAtUtc).HasColumnName("expiry_warning_sent_at_utc");
+            entity.Property(e => e.StatusReason).HasMaxLength(500).HasColumnName("status_reason");
             entity.HasOne(d => d.AssignedCustodianUser).WithMany()
                 .HasForeignKey(d => d.AssignedCustodianUserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

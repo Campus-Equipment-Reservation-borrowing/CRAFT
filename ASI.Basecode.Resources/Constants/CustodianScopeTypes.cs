@@ -7,6 +7,5 @@ namespace ASI.Basecode.Resources.Constants
     {
         public const string Borrower = "BORROWER";
         public const string Location = "LOCATION";
-        public const string Category = "CATEGORY";
     }
 }

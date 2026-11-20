@@ -60,10 +60,11 @@ namespace ASI.Basecode.Services.Services
             long? conditionId,
             long? operationalStatusId,
             int page,
-            int pageSize)
+            int pageSize,
+            bool urgentOnly = false)
         {
             var result = this._equipmentRepository.GetPaged(
-                search, categoryId, locationId, conditionId, operationalStatusId, isActive: null, page, pageSize);
+                search, categoryId, locationId, conditionId, operationalStatusId, isActive: null, page, pageSize, urgentOnly);
 
             return new EquipmentIndexViewModel
             {
@@ -80,8 +81,12 @@ namespace ASI.Basecode.Services.Services
                 LocationId = locationId,
                 ConditionId = conditionId,
                 OperationalStatusId = operationalStatusId,
+                UrgentOnly = urgentOnly,
+                UrgentCount = this._equipmentRepository.CountUrgent(),
             };
         }
+
+        public int CountUrgent() => this._equipmentRepository.CountUrgent();
 
         public Equipment GetByIdWithDetails(long equipmentId)
         {
@@ -339,7 +344,32 @@ namespace ASI.Basecode.Services.Services
                 - (entity.EquipmentInventoryBalance?.AwaitingInspectionQuantity ?? 0)
                 - (entity.EquipmentInventoryBalance?.MaintenanceQuantity ?? 0)
                 - (entity.EquipmentInventoryBalance?.UnreconciledQuantity ?? 0);
+            item.UrgentReason = GetUrgentReason(entity);
             return item;
+        }
+
+        private static string GetUrgentReason(Equipment entity)
+        {
+            var reasons = new List<string>();
+            switch (entity.CurrentCondition?.Code)
+            {
+                case ConditionCodes.Damaged: reasons.Add("Damaged"); break;
+                case ConditionCodes.MissingParts: reasons.Add("Missing parts"); break;
+                case ConditionCodes.Lost: reasons.Add("Lost"); break;
+            }
+
+            var balance = entity.EquipmentInventoryBalance;
+            if (balance?.MaintenanceQuantity > 0)
+            {
+                reasons.Add($"{balance.MaintenanceQuantity} unit(s) in maintenance");
+            }
+
+            if (balance?.UnreconciledQuantity > 0)
+            {
+                reasons.Add($"{balance.UnreconciledQuantity} unit(s) lost or unaccounted for");
+            }
+
+            return reasons.Count == 0 ? null : string.Join(", ", reasons);
         }
 
         /// <inheritdoc />

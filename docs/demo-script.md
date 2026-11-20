@@ -357,7 +357,7 @@ The old rules stay in the database; the new row becomes the current one.
 | A | **System Settings** screen | Borrowing rules (Part 3 and 6) | Admin, on screen |
 | B | `WebApp/appsettings.json` → `ReservationLifecycle` | Automatic checks: expiring old requests, overdue marking, reminders | Edit the file, restart the app |
 | C | Code | Login lockout, reset link expiry, photo size, items that can't be released | Developer changes the code |
-| D | **Custodian Assignments** screen | Which custodian handles which borrower, location or category | Admin, on screen |
+| D | **Custodian Assignments** screen | Which custodian handles which borrower or location | Admin, on screen |
 
 ### A. Borrowing rules
 See Part 3 and Part 6. Saved in `borrowing_policy_versions`.

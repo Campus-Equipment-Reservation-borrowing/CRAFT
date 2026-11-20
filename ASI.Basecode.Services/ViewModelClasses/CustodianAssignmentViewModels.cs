@@ -11,7 +11,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public string CustodianName { get; set; }
         public long TargetId { get; set; }
         public string TargetName { get; set; }
-        /// <summary>Secondary text: account ID for borrowers, code for locations/categories.</summary>
+        /// <summary>Secondary text: account ID for borrowers, code for locations.</summary>
         public string TargetDetail { get; set; }
         public DateTime AssignedAtUtc { get; set; }
 
@@ -43,15 +43,13 @@ namespace ASI.Basecode.Services.ViewModelClasses
     {
         public List<CustodianAssignmentRowViewModel> BorrowerAssignments { get; set; } = new();
         public List<CustodianAssignmentRowViewModel> LocationAssignments { get; set; } = new();
-        public List<CustodianAssignmentRowViewModel> CategoryAssignments { get; set; } = new();
 
         public List<LookupViewModel> CustodianOptions { get; set; } = new();
         public List<LookupViewModel> UnassignedBorrowerOptions { get; set; } = new();
         public List<LookupViewModel> UnassignedLocationOptions { get; set; } = new();
-        public List<LookupViewModel> UnassignedCategoryOptions { get; set; } = new();
     }
 
-    /// <summary>One scope section (borrowers / locations / categories) of the assignments screen.</summary>
+    /// <summary>One scope section (borrowers / locations) of the assignments screen.</summary>
     public class AssignmentSectionViewModel
     {
         public string Title { get; set; }

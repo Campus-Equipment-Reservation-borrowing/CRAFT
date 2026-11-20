@@ -124,6 +124,9 @@ namespace ASI.Basecode.Services.Services
                 MaxUnitsPerBorrower = policy.MaxUnitsPerBorrower,
                 ReservationLeadTimeDays = policy.ReservationLeadTimeDays,
                 MaxAdvanceBookingDays = policy.MaxAdvanceBookingDays,
+                MaxBorrowDays = string.Equals(this._currentUser.GetActorRoleCode(), RoleCodes.Faculty, StringComparison.OrdinalIgnoreCase)
+                    ? policy.FacultyMaxBorrowDays
+                    : policy.MaxBorrowDays,
                 BlockedReason = GetReservationBlock(entity),
             };
 
@@ -300,6 +303,12 @@ namespace ASI.Basecode.Services.Services
                 if (requestedStart == default || expectedReturn == default)
                 {
                     return (false, ErrorMessages.ReservationScheduleMissing, form.EquipmentId);
+                }
+
+                // Pickup and return are booked in whole-hour slots (1:00 PM, 2:00 PM, ...).
+                if (form.BorrowingTime.Value.Minute != 0 || form.ExpectedReturnTime.Value.Minute != 0)
+                {
+                    return (false, "Pick a borrowing and return time on the hour (for example 1:00 PM).", form.EquipmentId);
                 }
 
                 var now = DateTime.UtcNow;
@@ -546,6 +555,7 @@ namespace ASI.Basecode.Services.Services
 
                 var cancelledStatusId = this.GetReservationStatusIds()[ReservationStatusCodes.Cancelled];
                 entity.StatusId = cancelledStatusId;
+                entity.StatusReason = "Cancelled by you.";
                 entity.HeldQuantity = 0;
                 entity.CompletedAtUtc = DateTime.UtcNow;
 

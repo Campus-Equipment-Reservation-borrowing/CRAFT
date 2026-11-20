@@ -12,7 +12,7 @@
         </div>
         @if (summary.Assignments.Count == 0)
         {
-            <div class="cp-empty-state compact"><div class="cp-empty-state-text">No borrowers, locations or categories assigned. This custodian only sees the shared pool.</div></div>
+            <div class="cp-empty-state compact"><div class="cp-empty-state-text">No borrowers or locations assigned. This custodian only sees the shared pool.</div></div>
         }
         else
         {
@@ -24,7 +24,7 @@
                         {
                             <tr>
                                 <td><span class="cp-cell-name">@a.TargetName</span><div class="cp-cell-sub">@a.TargetDetail</div></td>
-                                <td><span class="cp-badge cp-badge-info">@(a.ScopeType switch { "BORROWER" => "Borrower", "LOCATION" => "Location", _ => "Category" })</span></td>
+                                <td><span class="cp-badge cp-badge-info">@(a.ScopeType == "BORROWER" ? "Borrower" : "Location")</span></td>
                             </tr>
                         }
                     </tbody>
@@ -42,7 +42,7 @@ else if (summary != null && summary.IsBorrower)
         </div>
         @if (summary.AssignedCustodianName == null)
         {
-            <p class="cp-cell-sub">Not assigned directly. Requests are routed by equipment location or category, or go to the shared pool.</p>
+            <p class="cp-cell-sub">Not assigned directly. Requests are routed by equipment location or go to the shared pool.</p>
         }
         else
         {

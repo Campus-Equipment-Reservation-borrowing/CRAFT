@@ -31,6 +31,7 @@ namespace ASI.Basecode.Data.Interfaces
         Reservation FindReservationByNumberInScope(string upperReservationNumber, long? scopeCustodianUserId);
 
         /// <summary>Reservations of the equipment in one of the statuses (untracked, with borrower), in scope, by requested start.</summary>
+        System.Collections.Generic.List<Reservation> GetReservationsByStatusInScope(System.Collections.Generic.IReadOnlyCollection<string> statusCodes, long? scopeCustodianUserId);
         System.Collections.Generic.List<Reservation> GetReservationsForEquipmentInScope(long equipmentId, System.Collections.Generic.IReadOnlyCollection<string> statusCodes, long? scopeCustodianUserId);
 
         /// <summary>Borrowings of the equipment in one of the statuses (untracked, with borrower and status), in scope, by due date.</summary>

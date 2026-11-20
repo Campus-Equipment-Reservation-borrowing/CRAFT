@@ -60,13 +60,11 @@ namespace ASI.Basecode.Services.Services
 
             var assignedBorrowers = rows.Where(r => r.ScopeType == CustodianScopeTypes.Borrower).Select(r => r.TargetId).ToHashSet();
             var assignedLocations = rows.Where(r => r.ScopeType == CustodianScopeTypes.Location).Select(r => r.TargetId).ToHashSet();
-            var assignedCategories = rows.Where(r => r.ScopeType == CustodianScopeTypes.Category).Select(r => r.TargetId).ToHashSet();
 
             return new CustodianAssignmentIndexViewModel
             {
                 BorrowerAssignments = rows.Where(r => r.ScopeType == CustodianScopeTypes.Borrower).OrderBy(r => r.TargetName).ToList(),
                 LocationAssignments = rows.Where(r => r.ScopeType == CustodianScopeTypes.Location).OrderBy(r => r.TargetName).ToList(),
-                CategoryAssignments = rows.Where(r => r.ScopeType == CustodianScopeTypes.Category).OrderBy(r => r.TargetName).ToList(),
                 CustodianOptions = this.GetCustodianOptions(),
                 UnassignedBorrowerOptions = this._users.GetBorrowersWithStatusByName(AccountStatusCodes.Active)
                     .Select(u => new { u.UserId, Text = u.LastName + ", " + u.FirstName + " (" + u.AccountIdentifier + ")" })
@@ -77,10 +75,6 @@ namespace ASI.Basecode.Services.Services
                     .Select(l => new LookupViewModel { Id = l.LocationId, Text = l.LocationName })
                     .Where(l => !assignedLocations.Contains(l.Id))
                     .ToList(),
-                UnassignedCategoryOptions = this._equipment.GetCategoriesByName()
-                    .Select(c => new LookupViewModel { Id = c.EquipmentCategoryId, Text = c.CategoryName })
-                    .Where(c => !assignedCategories.Contains(c.Id))
-                    .ToList(),
             };
         }
 
@@ -90,7 +84,7 @@ namespace ASI.Basecode.Services.Services
             {
                 scopeType = scopeType?.Trim().ToUpperInvariant();
                 if (targetId <= 0 || custodianUserId <= 0
-                    || (scopeType != CustodianScopeTypes.Borrower && scopeType != CustodianScopeTypes.Location && scopeType != CustodianScopeTypes.Category))
+                    || (scopeType != CustodianScopeTypes.Borrower && scopeType != CustodianScopeTypes.Location))
                 {
                     return (false, ErrorMessages.AssignmentInvalid);
                 }
@@ -115,28 +109,13 @@ namespace ASI.Basecode.Services.Services
                     AssignedAtUtc = DateTime.UtcNow,
                 };
 
-                string targetName;
-                switch (scopeType)
+                var targetName = this._equipment.GetLocationName(targetId);
+                if (this._assignments.LocationHasAssignment(targetId))
                 {
-                    case CustodianScopeTypes.Location:
-                        targetName = this._equipment.GetLocationName(targetId);
-                        if (this._assignments.LocationHasAssignment(targetId))
-                        {
-                            return (false, ErrorMessages.AssignmentDuplicate);
-                        }
-
-                        assignment.LocationId = targetId;
-                        break;
-                    default:
-                        targetName = this._equipment.GetCategoryName(targetId);
-                        if (this._assignments.CategoryHasAssignment(targetId))
-                        {
-                            return (false, ErrorMessages.AssignmentDuplicate);
-                        }
-
-                        assignment.EquipmentCategoryId = targetId;
-                        break;
+                    return (false, ErrorMessages.AssignmentDuplicate);
                 }
+
+                assignment.LocationId = targetId;
 
                 if (targetName == null)
                 {
@@ -203,15 +182,14 @@ namespace ASI.Basecode.Services.Services
 
         public long? ResolveCustodian(long borrowerUserId, long equipmentId)
         {
-            var (locationId, categoryId) = this._equipment.GetLocationAndCategory(equipmentId);
+            var (locationId, _) = this._equipment.GetLocationAndCategory(equipmentId);
 
             // Only active custodians receive routed work; otherwise it falls through to the pool.
-            var candidates = this._assignments.GetRoutingCandidates(borrowerUserId, locationId, categoryId, AccountStatusCodes.Active);
+            var candidates = this._assignments.GetRoutingCandidates(borrowerUserId, locationId, AccountStatusCodes.Active);
 
             long? First(string scopeType) => candidates.Where(c => c.ScopeType == scopeType).Select(c => (long?)c.CustodianUserId).FirstOrDefault();
             return First(CustodianScopeTypes.Borrower)
-                ?? First(CustodianScopeTypes.Location)
-                ?? First(CustodianScopeTypes.Category);
+                ?? First(CustodianScopeTypes.Location);
         }
 
         public UserAssignmentSummaryViewModel GetUserSummary(long userId)

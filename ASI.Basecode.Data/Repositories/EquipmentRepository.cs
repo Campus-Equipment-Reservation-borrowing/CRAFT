@@ -1,3 +1,4 @@
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +44,8 @@ namespace ASI.Basecode.Data.Repositories
             long? operationalStatusId,
             bool? isActive,
             int page,
-            int pageSize)
+            int pageSize,
+            bool urgentOnly = false)
         {
             const int DefaultPage = 1;
             const int DefaultPageSize = 10;
@@ -89,6 +91,11 @@ namespace ASI.Basecode.Data.Repositories
             if (isActive.HasValue)
             {
                 query = query.Where(e => e.IsActive == isActive.Value);
+            }
+
+            if (urgentOnly)
+            {
+                query = WhereUrgent(query);
             }
 
             var totalCount = query.Count();
@@ -249,6 +256,20 @@ namespace ASI.Basecode.Data.Repositories
                 .Select(e => new { e.LocationId, CategoryId = (long?)e.EquipmentCategoryId })
                 .FirstOrDefault();
             return (equipment?.LocationId, equipment?.CategoryId);
+        }
+
+        public int CountUrgent()
+        {
+            return WhereUrgent(this.Context.Equipment.AsNoTracking()).Count();
+        }
+
+        private static readonly string[] UrgentConditionCodes = { ConditionCodes.Damaged, ConditionCodes.MissingParts, ConditionCodes.Lost };
+
+        private static IQueryable<Equipment> WhereUrgent(IQueryable<Equipment> query)
+        {
+            return query.Where(e => UrgentConditionCodes.Contains(e.CurrentCondition.Code)
+                || (e.EquipmentInventoryBalance != null
+                    && (e.EquipmentInventoryBalance.MaintenanceQuantity > 0 || e.EquipmentInventoryBalance.UnreconciledQuantity > 0)));
         }
     }
 }

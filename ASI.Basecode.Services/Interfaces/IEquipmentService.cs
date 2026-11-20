@@ -20,7 +20,11 @@ namespace ASI.Basecode.Services.Interfaces
             long? conditionId,
             long? operationalStatusId,
             int page,
-            int pageSize);
+            int pageSize,
+            bool urgentOnly = false);
+
+        /// <summary>Number of equipment records with an urgent issue (damaged, lost, in maintenance...).</summary>
+        int CountUrgent();
 
         /// <summary>
         /// Single equipment record with category, location, condition and balance data.

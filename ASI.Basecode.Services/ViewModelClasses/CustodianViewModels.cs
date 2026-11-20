@@ -133,5 +133,7 @@ namespace ASI.Basecode.Services.ViewModelClasses
     {
         public PagedResult<ActiveBorrowingRowViewModel> Page { get; set; }
         public string Search { get; set; }
+        /// <summary>Approved reservations waiting to be released, so custodians can release without scanning.</summary>
+        public List<CustodianReservationRowViewModel> ReadyForRelease { get; set; } = new List<CustodianReservationRowViewModel>();
     }
 }

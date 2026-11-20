@@ -71,8 +71,7 @@
                 { page: '/Custodian/Dashboard', url: '/Custodian/Dashboard', title: 'Welcome to the custodian console', text: 'You review reservation requests, release equipment, and record returns and inspections. This tour shows where each task lives.' },
                 { page: '/Custodian/Dashboard', target: '.cp-kpi-grid', title: 'At a glance', text: 'Pending requests, items ready to release, active loans and overdue items. Click a card to jump to that list.' },
                 { page: '/Custodian/Dashboard', target: nav('/Custodian/Reservations'), title: 'Reservation queue', text: 'Requests routed to you, plus unassigned ones you can claim. Review, approve or reject them here.' },
-                { page: '/Custodian/Dashboard', target: nav('/Custodian/Scan'), title: 'Scan', text: 'Scan or type an asset code or reservation number to jump straight to its release or return.' },
-                { page: '/Custodian/Dashboard', target: nav('/Custodian/Borrowings'), title: 'Active borrowings', text: 'Everything currently out, with due dates and a Record return button.' },
+                { page: '/Custodian/Dashboard', target: nav('/Custodian/Borrowings'), title: 'Active borrowings', text: 'Approved reservations ready to release, everything currently out, and a camera button to scan QR codes.' },
                 { page: '/Custodian/Dashboard', target: nav('/Returns'), title: 'Returns & inspection', text: 'Returned items wait here for an inspection that puts them back into stock, or into maintenance.' },
                 { page: '/Custodian/Dashboard', target: nav('/Equipment'), title: 'Equipment', text: 'Add items, update quantities and condition, and print asset labels.' },
                 { page: '/Custodian/Dashboard', target: BELL, title: 'Notifications', text: 'New requests, overdue loans, damage reports and low-stock alerts. Click one to open it.' },
@@ -94,8 +93,8 @@
             id: 'custodian-release',
             title: 'Release equipment', description: 'Hand items to a borrower',
             steps: [
-                { page: '/Custodian/Scan', url: '/Custodian/Scan', target: 'input[name="code"]', title: 'Scan the slip or label', text: 'Scan the reservation number on the pickup slip (or type it). An approved reservation opens its release form directly.' },
-                { page: '/Custodian/Release', target: '[name="ReleasedQuantity"]', title: 'Quantity', text: 'Release all approved units, or fewer for a partial release.', note: 'Open the release form from Scan or the queue to continue.' },
+                { page: '/Custodian/Borrowings', url: '/Custodian/Borrowings', target: '#scanOpen', title: 'Scan or pick from the list', text: 'Press Release next to an approved reservation, or use the camera button to scan the pickup slip or equipment label.' },
+                { page: '/Custodian/Release', target: '[name="ReleasedQuantity"]', title: 'Quantity', text: 'Release all approved units, or fewer for a partial release.', note: 'Open the release form from Active Borrowings to continue.' },
                 { page: '/Custodian/Release', target: '[name="ReleaseConditionId"]', title: 'Condition at release', text: 'Record the condition the item leaves in. Damaged, lost or under-maintenance items cannot be released.' },
                 { page: '/Custodian/Borrowings', url: '/Custodian/Borrowings', target: 'table.cp-table, .cp-empty-state', title: 'Now on loan', text: 'Released items appear in Active Borrowings until they are returned.' }
             ]
@@ -129,7 +128,7 @@
                 { page: '/Monitoring/Dashboard', target: '.cp-kpi-grid', title: 'Monitoring', text: 'Users, stock and transaction figures across the system. Click a card for the detail.' },
                 { page: '/Monitoring/Dashboard', target: nav('/Users/Verifications'), title: 'Verifications', text: 'New student and faculty accounts wait here until you verify them.' },
                 { page: '/Monitoring/Dashboard', target: nav('/Users'), title: 'Users', text: 'Create staff accounts, edit roles and status, and reset passwords.' },
-                { page: '/Monitoring/Dashboard', target: nav('/CustodianAssignments'), title: 'Custodian assignments', text: 'Route requests to custodians by borrower, location or category.' },
+                { page: '/Monitoring/Dashboard', target: nav('/CustodianAssignments'), title: 'Custodian assignments', text: 'Route requests to custodians by borrower or location.' },
                 { page: '/Monitoring/Dashboard', target: nav('/Settings'), title: 'System settings', text: 'Borrowing policy (limits and durations), equipment categories and locations.' },
                 { page: '/Monitoring/Dashboard', target: nav('/Announcements'), title: 'Announcements', text: 'Post notices to students, faculty or custodians.' },
                 { page: '/Monitoring/Dashboard', target: nav('/Monitoring/Reports'), title: 'Reports', text: 'Summaries and CSV exports of reservations, borrowings, movements and the audit log.' },
@@ -156,7 +155,7 @@
             id: 'admin-assignments',
             title: 'Assign custodians', description: 'Route requests to the right person',
             steps: [
-                { page: '/CustodianAssignments', url: '/CustodianAssignments', target: 'form[action$="/CustodianAssignments/Assign"]', title: 'Create an assignment', text: 'Assign a custodian to a borrower, a location or a category. New requests that match are routed to them; others stay in the shared pool.' }
+                { page: '/CustodianAssignments', url: '/CustodianAssignments', target: 'form[action$="/CustodianAssignments/Assign"]', title: 'Create an assignment', text: 'Assign a custodian to a borrower or a location. New requests that match are routed to them; others stay in the shared pool.' }
             ]
         },
         {

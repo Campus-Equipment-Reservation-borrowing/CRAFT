@@ -97,18 +97,12 @@ namespace ASI.Basecode.Data.Repositories
             return this.Context.CustodianAssignments.Any(a => a.LocationId == locationId);
         }
 
-        public bool CategoryHasAssignment(long categoryId)
-        {
-            return this.Context.CustodianAssignments.Any(a => a.EquipmentCategoryId == categoryId);
-        }
-
-        public List<(string ScopeType, long CustodianUserId)> GetRoutingCandidates(long borrowerUserId, long? locationId, long? categoryId, string custodianAccountStatusCode)
+        public List<(string ScopeType, long CustodianUserId)> GetRoutingCandidates(long borrowerUserId, long? locationId, string custodianAccountStatusCode)
         {
             return this.Context.CustodianAssignments.AsNoTracking()
                 .Where(a => a.CustodianUser.AccountStatus.Code == custodianAccountStatusCode
                     && (a.BorrowerUserId == borrowerUserId
-                        || (locationId != null && a.LocationId == locationId)
-                        || (categoryId != null && a.EquipmentCategoryId == categoryId)))
+                        || (locationId != null && a.LocationId == locationId)))
                 .Select(a => new { a.ScopeType, a.CustodianUserId })
                 .ToList()
                 .Select(a => (a.ScopeType, a.CustodianUserId))

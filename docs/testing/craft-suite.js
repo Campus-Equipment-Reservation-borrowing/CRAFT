@@ -292,14 +292,18 @@
     r = await post('/Users/Verify/' + vid + '?returnTab=pending', { custodianUserId: custodian }, '/Users/Verifications'); check('ADM-07b', 'verify with custodian', has(r, 'verified'), r.text);
     r = await post('/Users/Verify/' + vid + '?returnTab=pending', { custodianUserId: custodian }, '/Users/Verifications'); check('ADM-07c', 'verify twice', has(r, 'not awaiting'), r.text);
     const ca = await get('/CustodianAssignments');
-    const catForm = [...ca.doc.querySelectorAll('form[action*="/CustodianAssignments/Assign"]')].find(f => f.querySelector('[name=scopeType]')?.value === 'CATEGORY');
-    const tgt = [...catForm.querySelectorAll('[name=targetId] option')].map(x => x.value).filter(Boolean).pop();
-    const cus = [...catForm.querySelectorAll('[name=custodianUserId] option')].map(x => x.value).filter(Boolean)[0];
-    r = await post('/CustodianAssignments/Assign', { scopeType: 'CATEGORY', targetId: '', custodianUserId: '' }, '/CustodianAssignments'); check('ADM-09a', 'assign blank', has(r, 'Choose'), r.text);
-    r = await post('/CustodianAssignments/Assign', { scopeType: 'CATEGORY', targetId: tgt, custodianUserId: cus }, '/CustodianAssignments'); check('ADM-09b', 'assign', has(r, 'assigned'), r.text);
-    r = await post('/CustodianAssignments/Assign', { scopeType: 'CATEGORY', targetId: tgt, custodianUserId: cus }, '/CustodianAssignments'); check('ADM-09c', 'assign duplicate', has(r, 'already has'), r.text);
-    const un = [...(await get('/CustodianAssignments')).doc.querySelectorAll('form[action*="Unassign"]')].pop();
-    r = await post(un.getAttribute('action'), Object.fromEntries([...un.querySelectorAll('input')].filter(i => i.name !== '__RequestVerificationToken').map(i => [i.name, i.value])), '/CustodianAssignments'); check('ADM-09d', 'unassign', has(r, 'removed'), r.text);
+    check('ADM-09e', 'no category assignment section', !ca.doc.querySelector('[name=scopeType][value="CATEGORY"]'), '');
+    const locForm = [...ca.doc.querySelectorAll('form[action*="/CustodianAssignments/Assign"]')].find(f => f.querySelector('[name=scopeType]')?.value === 'LOCATION');
+    const cus = [...ca.doc.querySelectorAll('[name=custodianUserId] option')].map(x => x.value).filter(Boolean)[0];
+    r = await post('/CustodianAssignments/Assign', { scopeType: 'CATEGORY', targetId: '1', custodianUserId: cus }, '/CustodianAssignments'); check('ADM-09f', 'category assignment refused', !has(r, 'assigned'), r.text);
+    r = await post('/CustodianAssignments/Assign', { scopeType: 'LOCATION', targetId: '', custodianUserId: '' }, '/CustodianAssignments'); check('ADM-09a', 'assign blank', has(r, 'Choose'), r.text);
+    if (locForm) {
+        const tgt = [...locForm.querySelectorAll('[name=targetId] option')].map(x => x.value).filter(Boolean).pop();
+        r = await post('/CustodianAssignments/Assign', { scopeType: 'LOCATION', targetId: tgt, custodianUserId: cus }, '/CustodianAssignments'); check('ADM-09b', 'assign', has(r, 'assigned'), r.text);
+        r = await post('/CustodianAssignments/Assign', { scopeType: 'LOCATION', targetId: tgt, custodianUserId: cus }, '/CustodianAssignments'); check('ADM-09c', 'assign duplicate', has(r, 'already has'), r.text);
+        const un = [...(await get('/CustodianAssignments')).doc.querySelectorAll('form[action*="Unassign"]')].pop();
+        r = await post(un.getAttribute('action'), Object.fromEntries([...un.querySelectorAll('input')].filter(i => i.name !== '__RequestVerificationToken').map(i => [i.name, i.value])), '/CustodianAssignments'); check('ADM-09d', 'unassign', has(r, 'removed'), r.text);
+    }
     r = await post('/Announcements/Publish', { Title: '', Body: '' }, '/Announcements'); check('ADM-10a', 'announcement blank', has(r, 'needs a title'), r.text);
     r = await post('/Announcements/Publish', [['Title', 'QA Students only'], ['Body', 'Hello students'], ['TargetRoles', 'STUDENT']], '/Announcements'); check('ADM-10b', 'announcement publish', has(r, 'published'), r.text);
     r = await post('/Announcements/Publish', [['Title', 'QA expired'], ['Body', 'x'], ['TargetRoles', 'STUDENT'], ['ExpiresOn', day(-3)]], '/Announcements'); check('ADM-11', 'expired announcement refused (D16)', !has(r, 'published'), r.text);
