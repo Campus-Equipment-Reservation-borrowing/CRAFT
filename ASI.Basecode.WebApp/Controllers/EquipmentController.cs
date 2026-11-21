@@ -54,14 +54,13 @@ namespace ASI.Basecode.WebApp.Controllers
             long? location,
             long? condition,
             long? operationalStatus,
-            bool urgent = false,
             int page = 1,
             int pageSize = 10)
         {
             try
             {
                 var model = this._equipmentService.GetIndexViewModel(
-                    search, category, location, condition, operationalStatus, page, pageSize, urgent);
+                    search, category, location, condition, operationalStatus, page, pageSize);
 
                 this.ViewBag.CategoryOptions = this.ToSelectList(
                     this._equipmentService.GetCategoryOptions(), model.CategoryId, "All Categories");
@@ -224,24 +223,6 @@ namespace ASI.Basecode.WebApp.Controllers
             var (success, error) = this._equipmentService.AdjustStock(id, adjustment, quantity, note);
             this.TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Stock updated." : error;
             return this.RedirectToAction(nameof(this.Details), new { id });
-        }
-
-        /// <summary>
-        /// Printable QR label. The code opens Custodian/Scan for the asset, which lists the
-        /// releases and returns waiting on it.
-        /// </summary>
-        public IActionResult Label(long id)
-        {
-            var entity = this._equipmentService.GetByIdWithDetails(id);
-            if (entity == null)
-            {
-                this.TempData["ErrorMessage"] = ASI.Basecode.Resources.Messages.Errors.EquipmentNotFound;
-                return this.RedirectToAction(nameof(this.Index));
-            }
-
-            var scanUrl = this.Url.Action("Scan", "Custodian", new { code = entity.AssetCode }, this.Request.Scheme);
-            this.ViewBag.QrSvg = QrCode.ToSvg(scanUrl);
-            return this.View(entity);
         }
 
         [Authorize(Roles = RoleCodes.Admin)]

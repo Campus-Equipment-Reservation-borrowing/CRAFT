@@ -131,6 +131,8 @@ namespace ASI.Basecode.Services.Services
                 RequestedStartAtUtc = entity.RequestedStartAtUtc,
                 ExpectedReturnAtUtc = entity.ExpectedReturnAtUtc,
                 Purpose = entity.Purpose,
+                AdditionalNotes = entity.AdditionalNotes,
+                CustodianNotes = entity.CustodianNotes,
                 SubmittedAtUtc = entity.SubmittedAtUtc,
                 CanApprove = entity.Status.Code == ReservationStatusCodes.Pending && approveBlocked == null,
                 CanReject = entity.Status.Code == ReservationStatusCodes.Pending,
@@ -202,6 +204,7 @@ namespace ASI.Basecode.Services.Services
                 entity.StatusId = approvedStatus.StatusId;
                 entity.ApprovedQuantity = entity.RequestedQuantity;
                 entity.HeldQuantity = entity.RequestedQuantity;
+                entity.CustodianNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
 
                 // The units were held on the balance at submit time (ReservationService.Create).
 
@@ -212,7 +215,8 @@ namespace ASI.Basecode.Services.Services
                     (string.IsNullOrWhiteSpace(notes) ? string.Empty : " Notes: " + notes.Trim()));
 
                 this.WriteNotification(entity.BorrowerUserId, "Reservation approved",
-                    $"Your reservation {entity.ReservationNumber} for {entity.Equipment.EquipmentName} has been approved. Please pick up at {entity.PickupLocation?.LocationName ?? "the designated location"}.");
+                    $"Your reservation {entity.ReservationNumber} for {entity.Equipment.EquipmentName} has been approved. Please pick up at {entity.PickupLocation?.LocationName ?? "the designated location"}." +
+                    (entity.CustodianNotes == null ? string.Empty : " Custodian notes: " + entity.CustodianNotes));
 
                 return (true, null);
             }
@@ -563,63 +567,6 @@ namespace ASI.Basecode.Services.Services
                 this._logger.LogError(ex, "Failed to close out reservation {ReservationId}.", reservationId);
                 return (false, ErrorMessages.ServerError);
             }
-        }
-
-        public ScanResultViewModel ResolveScan(string code)
-        {
-            var result = new ScanResultViewModel { Code = code?.Trim(), Searched = !string.IsNullOrWhiteSpace(code) };
-            if (!result.Searched)
-            {
-                return result;
-            }
-
-            var term = result.Code.ToUpperInvariant();
-            var scope = this._currentUser.GetCustodianScope();
-
-            // 1) Reservation number (printed on the pickup slip).
-            var match = this._repository.FindReservationByNumberInScope(term, scope);
-            var reservation = match == null ? null : new { match.ReservationId, match.ReservationNumber, Status = match.Status?.Code, StatusText = match.Status?.Description, match.Equipment?.EquipmentName, Borrower = match.BorrowerUser?.FirstName + " " + match.BorrowerUser?.LastName };
-            if (reservation != null)
-            {
-                result.EquipmentName = reservation.EquipmentName;
-                result.Matches.Add(new ScanMatchViewModel
-                {
-                    Kind = reservation.Status == ReservationStatusCodes.Approved || reservation.Status == ReservationStatusCodes.PartiallyReleased ? "RELEASE" : "REVIEW",
-                    Id = reservation.ReservationId,
-                    Title = reservation.ReservationNumber,
-                    Subtitle = $"{reservation.Borrower} · {reservation.StatusText}",
-                });
-                return result;
-            }
-
-            // 2) Equipment asset code (printed on the item label).
-            var equipment = this._equipment.FindByAssetCodeUpper(term);
-            if (equipment == null)
-            {
-                return result;
-            }
-
-            result.EquipmentName = equipment.EquipmentName;
-            result.Matches.AddRange(this._repository.GetReservationsForEquipmentInScope(equipment.EquipmentId, ReleasableReservationStatuses, scope)
-                .Select(r => new ScanMatchViewModel
-                {
-                    Kind = "RELEASE",
-                    Id = r.ReservationId,
-                    Title = "Release " + r.ReservationNumber,
-                    Subtitle = r.BorrowerUser?.FirstName + " " + r.BorrowerUser?.LastName + " · " + r.ApprovedQuantity.ToString() + " unit(s)",
-                })
-                .ToList());
-            result.Matches.AddRange(this._repository.GetBorrowingsForEquipmentInScope(equipment.EquipmentId, ReturnableBorrowingStatuses, scope)
-                .Select(b => new ScanMatchViewModel
-                {
-                    Kind = "RETURN",
-                    Id = b.BorrowingId,
-                    Title = "Return " + b.TransactionNumber,
-                    Subtitle = b.BorrowerUser?.FirstName + " " + b.BorrowerUser?.LastName + " · " + b.Status?.Description,
-                })
-                .ToList());
-
-            return result;
         }
 
         /// <summary>

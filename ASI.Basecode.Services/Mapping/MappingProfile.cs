@@ -71,7 +71,6 @@ namespace ASI.Basecode.Services.Mapping
                     ? s.BorrowerUser.FirstName + " " + s.BorrowerUser.LastName
                     : null))
                 .ForMember(d => d.PolicyVersionNumber, o => o.MapFrom(s => s.BorrowingPolicyVersion != null ? s.BorrowingPolicyVersion.VersionNumber : null))
-                .ForMember(d => d.AdditionalNotes, o => o.Ignore())
                 .ForMember(d => d.CanCancel, o => o.Ignore());
         }
     }

@@ -33,11 +33,6 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public bool IsActive { get; set; }
 
         public string ImagePath { get; set; }
-
-        /// <summary>Why the item needs attention (damaged, lost, in maintenance); null when it's fine.</summary>
-        public string UrgentReason { get; set; }
-
-        public bool IsUrgent => this.UrgentReason != null;
     }
 
     /// <summary>
@@ -117,11 +112,6 @@ namespace ASI.Basecode.Services.ViewModelClasses
         public long? ConditionId { get; set; }
 
         public long? OperationalStatusId { get; set; }
-
-        /// <summary>Show only equipment that needs attention.</summary>
-        public bool UrgentOnly { get; set; }
-
-        public int UrgentCount { get; set; }
     }
 
     /// <summary>

@@ -205,10 +205,7 @@
     r = await R({}); check('CUS-09', 'release', has(r, 'released successfully'), r.text);
     r = await R({}); check('CUS-10', 'release twice', has(r, 'Only approved'), r.text);
     r = await post('/Custodian/Expire/' + ia, { reason: 'late' }, '/Custodian/Review/' + ia); check('CUS-07b', 'expire after release refused', !has(r, 'expired\\.'), r.text);
-    const eq = await get('/Equipment/Details/5'); const asset = (eq.doc.body.textContent.match(/AUD-\d+/) || [])[0];
-    let s = await get('/Custodian/Scan?code=' + asset); check('CUS-11a', 'scan asset code opens the match', s.status === 200 && /Returns\/Create|Custodian\/Release|Scan/.test(s.url), s.url);
-    s = await get('/Custodian/Scan?code=NOPE-XYZ'); check('CUS-11b', 'scan unknown', s.status === 200, s.status);
-    s = await get('/Custodian/Scan?code='); check('CUS-11c', 'scan empty', s.status === 200, s.status);
+    check('CUS-11', 'QR scan page removed', (await get('/Custodian/Scan?code=X')).status === 404, 'scan page still reachable');
     return a.rsv;
   };
 
@@ -217,10 +214,8 @@
     await login('EMP-1001');
     const bl = await get('/Custodian/Borrowings');
     check('RET-00a', 'borrowings list links to Record return (D20)', !!idFromLink(bl.doc, /\/Returns\/Create\/\d+/), 'no link in list');
-    // Scan by asset code opens the return form directly when exactly one borrowing matches.
-    const sc = await get('/Custodian/Scan?code=AUD-301');
-    const bid = (sc.url.match(/\/Returns\/Create\/(\d+)/) || [])[1] || idFromLink(sc.doc, /\/Returns\/Create\/\d+/);
-    check('RET-00b', 'active borrowing reachable via Scan', !!bid, sc.url);
+    const bid = idFromLink(bl.doc, /\/Returns\/Create\/\d+/);
+    check('RET-00b', 'active borrowing reachable from the list', !!bid, 'no borrowing');
     if (!bid) return;
     const c = await get('/Returns/Create/' + bid);
     check('RET-02', 'return time is not editable (server sets it)', !c.doc.querySelector('input[name=ReturnedAtUtc]:not([type=hidden])'), 'editable field present');
@@ -249,7 +244,7 @@
     r = await C({}); check('EQP-02', 'create', has(r, 'created'), r.text);
     const id = idFromLink((await get('/Equipment?search=' + base.AssetCode)).doc, /\/Equipment\/Details\/\d+/);
     r = await postForm('/Equipment/Edit/' + id, { ...base, EquipmentId: id, EquipmentName: 'QA Item v2' }, null, '/Equipment/Edit/' + id); check('EQP-04', 'edit', has(r, 'updated'), r.text);
-    check('EQP-07', 'label + details', (await get('/Equipment/Label/' + id)).status === 200 && (await get('/Equipment/Details/' + id)).status === 200);
+    check('EQP-07', 'details', (await get('/Equipment/Details/' + id)).status === 200);
     r = await postForm('/Equipment/Edit/5', { ...base, AssetCode: 'AUD-301', EquipmentId: 5, EquipmentName: 'Shure SM58 Microphone Set', TotalQuantity: '0' }, null, '/Equipment/Edit/5');
     check('EQP-05', 'qty below committed / invalid', !has(r, 'updated'), r.text);
     r = await post('/Equipment/Delete/' + id, {}, '/Equipment/Details/' + id); check('EQP-06a', 'delete unused', has(r, 'deleted'), r.text);
@@ -411,7 +406,7 @@
   suites.ACL = async () => {
     const ROUTES = {
       borrower: ['/Borrower/Dashboard', '/Reservations/Available', '/Reservations/EquipmentDetails/1', '/Reservations/New/1', '/Reservations/Mine', '/Borrowings/Mine', '/Borrowings/History'],
-      staff: ['/Custodian/Dashboard', '/Custodian/Reservations', '/Custodian/Scan', '/Custodian/Borrowings', '/Returns', '/Equipment', '/Equipment/Details/1', '/Equipment/Label/1'],
+      staff: ['/Custodian/Dashboard', '/Custodian/Reservations', '/Custodian/Borrowings', '/Returns', '/Equipment', '/Equipment/Details/1'],
       admin: ['/Equipment/Create', '/Equipment/Edit/1', '/Users', '/Users/Create', '/Users/Verifications', '/Users/Details/1', '/Users/Edit/1', '/Users/History/1',
         '/CustodianAssignments', '/Monitoring/Dashboard', '/Monitoring/Transactions', '/Monitoring/Reports', '/Monitoring/AuditLogs',
         '/Monitoring/ExportAuditCsv', '/Monitoring/ExportReservationsCsv', '/Monitoring/ExportBorrowingsCsv', '/Monitoring/ExportMovementsCsv', '/Announcements', '/Settings'],

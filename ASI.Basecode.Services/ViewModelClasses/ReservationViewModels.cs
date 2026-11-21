@@ -310,6 +310,9 @@ namespace ASI.Basecode.Services.ViewModelClasses
 
         public string Purpose { get; set; }
 
+        /// <summary>Custodian's notes for the borrower (set at approval).</summary>
+        public string CustodianNotes { get; set; }
+
         public string AdditionalNotes { get; set; }
 
         public DateTime SubmittedAtUtc { get; set; }

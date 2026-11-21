@@ -97,28 +97,6 @@ namespace ASI.Basecode.WebApp.Controllers
         }
 
         /// <summary>
-        /// Scan-to-release / scan-to-return: resolves a scanned (or typed) asset code or
-        /// reservation number. A single actionable match opens directly.
-        /// </summary>
-        [HttpGet]
-        public IActionResult Scan(string code)
-        {
-            var result = this._custodianService.ResolveScan(code);
-            if (result.Matches.Count == 1)
-            {
-                var match = result.Matches[0];
-                return match.Kind switch
-                {
-                    "RELEASE" => this.RedirectToAction(nameof(this.Release), new { id = match.Id }),
-                    "RETURN" => this.RedirectToAction("Create", "Returns", new { id = match.Id }),
-                    _ => this.RedirectToAction(nameof(this.Review), new { id = match.Id }),
-                };
-            }
-
-            return this.View(result);
-        }
-
-        /// <summary>
         /// Custodian-side cancel (no-show, item withdrawn, duplicate) with a required reason.
         /// </summary>
         [HttpPost]

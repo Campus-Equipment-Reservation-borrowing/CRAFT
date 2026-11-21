@@ -14,5 +14,11 @@ public partial class Reservation
     /// <summary>Why the reservation was rejected, cancelled or expired; shown to the borrower.</summary>
     public string StatusReason { get; set; }
 
+    /// <summary>Borrower's optional remarks for the custodian, entered on the reservation form.</summary>
+    public string AdditionalNotes { get; set; }
+
+    /// <summary>Custodian's notes for the borrower, entered when approving.</summary>
+    public string CustodianNotes { get; set; }
+
     public virtual User AssignedCustodianUser { get; set; }
 }

@@ -315,6 +315,12 @@ IF COL_LENGTH('dbo.reservations', 'expiry_warning_sent_at_utc') IS NULL
 IF COL_LENGTH('dbo.reservations', 'status_reason') IS NULL
     ALTER TABLE dbo.reservations ADD status_reason nvarchar(500) NULL;
 
+IF COL_LENGTH('dbo.reservations', 'borrower_notes') IS NULL
+    ALTER TABLE dbo.reservations ADD borrower_notes nvarchar(500) NULL;
+
+IF COL_LENGTH('dbo.reservations', 'custodian_notes') IS NULL
+    ALTER TABLE dbo.reservations ADD custodian_notes nvarchar(500) NULL;
+
 -- Custodians are no longer assigned by equipment category; drop any leftover category rules.
 DELETE FROM dbo.custodian_assignments WHERE scope_type = 'CATEGORY';");
         }

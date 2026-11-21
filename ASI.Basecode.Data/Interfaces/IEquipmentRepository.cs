@@ -30,14 +30,7 @@ namespace ASI.Basecode.Data.Interfaces
             long? operationalStatusId,
             bool? isActive,
             int page,
-            int pageSize,
-            bool urgentOnly = false);
-
-        /// <summary>
-        /// Counts equipment needing attention: damaged, missing parts or lost condition, or units in
-        /// maintenance / unreconciled after inspection (same rule as the admin dashboard).
-        /// </summary>
-        int CountUrgent();
+            int pageSize);
 
         /// <summary>
         /// Checks whether an asset code is already used (excluding a record being edited).
@@ -74,9 +67,6 @@ namespace ASI.Basecode.Data.Interfaces
 
         /// <summary>Active locations (untracked) by name.</summary>
         System.Collections.Generic.List<Location> GetActiveLocationsByName();
-
-        /// <summary>Equipment (untracked) whose asset code matches case-insensitively (pass it upper-cased), or null.</summary>
-        Equipment FindByAssetCodeUpper(string upperAssetCode);
 
         /// <summary>Name of the location, or null.</summary>
         string GetLocationName(long locationId);

@@ -9,8 +9,8 @@
         ?? "No units are available right now. Check back later or choose another item.";
     var singleReason = equipment.MaxUnitsPerBorrower <= 1 ? "Only 1 unit per request" : "Only 1 unit available";
     var maxBorrowDays = equipment.MaxBorrowDays > 0 ? equipment.MaxBorrowDays : 7;
-    // Pickup and return are booked in whole-hour slots.
-    var hourSlots = Enumerable.Range(0, 24).Select(h => new TimeOnly(h, 0)).ToList();
+    // Pickup and return are booked in office-hour slots (8 AM-12 PM, 1 PM-4 PM).
+    var hourSlots = ASI.Basecode.Services.Manager.ReservationRules.OfficeHourSlots.Select(h => new TimeOnly(h, 0)).ToList();
 }
 
 <div class="cp-page-header">
@@ -66,6 +66,7 @@
                  data-max-borrow-days="@maxBorrowDays">
                 Pickup must be at least @(Model.Equipment?.ReservationLeadTimeDays ?? 1) day(s) from now and at most @(Model.Equipment?.MaxAdvanceBookingDays ?? 30) days ahead.
             </div>
+            <div class="cp-form-hint">Office hours: 8:00 AM - 12:00 PM and 1:00 PM - 4:00 PM.</div>
             <div class="cp-form-row">
                 <div class="cp-form-group">
                     <label asp-for="Form.BorrowingDate" class="cp-form-label">Borrowing Date <span class="required">*</span></label>
@@ -164,6 +165,9 @@
                     var e = new Date(Date.now() + leadDays * 86400000);
                     if (e.getMinutes() || e.getSeconds() || e.getMilliseconds()) { e.setHours(e.getHours() + 1); }
                     e.setMinutes(0, 0, 0);
+                    // Snap to office hours (first slot 8 AM, last slot 4 PM).
+                    if (e.getHours() > 16) { e.setDate(e.getDate() + 1); e.setHours(8); }
+                    else if (e.getHours() < 8) { e.setHours(8); }
                     return e;
                 }
                 function latest() { return new Date(Date.now() + maxDays * 86400000); }

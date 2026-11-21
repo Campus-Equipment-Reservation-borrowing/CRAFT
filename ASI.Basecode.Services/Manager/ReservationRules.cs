@@ -15,6 +15,14 @@ namespace ASI.Basecode.Services.Manager
         public const string Approved = ReservationStatusCodes.Approved;
         public const string PartiallyReleased = ReservationStatusCodes.PartiallyReleased;
 
+        /// <summary>
+        /// Property Office hours: pickups and returns are booked on the hour from 8:00 AM to 12:00 PM
+        /// and 1:00 PM to 4:00 PM (the office is closed 12-1 PM for lunch).
+        /// </summary>
+        public static readonly int[] OfficeHourSlots = { 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+
+        public static bool IsOfficeHourSlot(TimeOnly time) => time.Minute == 0 && time.Second == 0 && OfficeHourSlots.Contains(time.Hour);
+
         /// <summary>Statuses that still own units on the balance's reserved quantity.</summary>
         public static readonly string[] HoldingStatuses = { Pending, Approved, ReservationStatusCodes.ReadyForRelease, PartiallyReleased };
 

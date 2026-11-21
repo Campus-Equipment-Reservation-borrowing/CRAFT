@@ -71,7 +71,7 @@
                 { page: '/Custodian/Dashboard', url: '/Custodian/Dashboard', title: 'Welcome to the custodian console', text: 'You review reservation requests, release equipment, and record returns and inspections. This tour shows where each task lives.' },
                 { page: '/Custodian/Dashboard', target: '.cp-kpi-grid', title: 'At a glance', text: 'Pending requests, items ready to release, active loans and overdue items. Click a card to jump to that list.' },
                 { page: '/Custodian/Dashboard', target: nav('/Custodian/Reservations'), title: 'Reservation queue', text: 'Requests routed to you, plus unassigned ones you can claim. Review, approve or reject them here.' },
-                { page: '/Custodian/Dashboard', target: nav('/Custodian/Borrowings'), title: 'Active borrowings', text: 'Approved reservations ready to release, everything currently out, and a camera button to scan QR codes.' },
+                { page: '/Custodian/Dashboard', target: nav('/Custodian/Borrowings'), title: 'Active borrowings', text: 'Approved reservations ready to release and everything currently out.' },
                 { page: '/Custodian/Dashboard', target: nav('/Returns'), title: 'Returns & inspection', text: 'Returned items wait here for an inspection that puts them back into stock, or into maintenance.' },
                 { page: '/Custodian/Dashboard', target: nav('/Equipment'), title: 'Equipment', text: 'Add items, update quantities and condition, and print asset labels.' },
                 { page: '/Custodian/Dashboard', target: BELL, title: 'Notifications', text: 'New requests, overdue loans, damage reports and low-stock alerts. Click one to open it.' },
@@ -93,7 +93,7 @@
             id: 'custodian-release',
             title: 'Release equipment', description: 'Hand items to a borrower',
             steps: [
-                { page: '/Custodian/Borrowings', url: '/Custodian/Borrowings', target: '#scanOpen', title: 'Scan or pick from the list', text: 'Press Release next to an approved reservation, or use the camera button to scan the pickup slip or equipment label.' },
+                { page: '/Custodian/Borrowings', url: '/Custodian/Borrowings', target: 'a[href^="/Custodian/Release/"], .cp-empty-state', title: 'Pick from the list', text: 'Press Release next to an approved reservation in the Ready for release list.' },
                 { page: '/Custodian/Release', target: '[name="ReleasedQuantity"]', title: 'Quantity', text: 'Release all approved units, or fewer for a partial release.', note: 'Open the release form from Active Borrowings to continue.' },
                 { page: '/Custodian/Release', target: '[name="ReleaseConditionId"]', title: 'Condition at release', text: 'Record the condition the item leaves in. Damaged, lost or under-maintenance items cannot be released.' },
                 { page: '/Custodian/Borrowings', url: '/Custodian/Borrowings', target: 'table.cp-table, .cp-empty-state', title: 'Now on loan', text: 'Released items appear in Active Borrowings until they are returned.' }
@@ -103,7 +103,7 @@
             id: 'custodian-return',
             title: 'Return & inspect', description: 'Record returns and condition',
             steps: [
-                { page: '/Custodian/Borrowings', url: '/Custodian/Borrowings', target: 'a[href^="/Returns/Create/"]', click: true, title: 'Record a return', text: 'Click Record return on the borrowing being brought back (scanning the asset code also opens it).', note: 'Nothing is on loan right now.' },
+                { page: '/Custodian/Borrowings', url: '/Custodian/Borrowings', target: 'a[href^="/Returns/Create/"]', click: true, title: 'Record a return', text: 'Click Record return on the borrowing being brought back.', note: 'Nothing is on loan right now.' },
                 { page: '/Returns/Create', target: '[name="ReturnedQuantity"]', title: 'Units returned', text: 'Enter how many units came back; partial returns keep the loan open for the rest.' },
                 { page: '/Returns/Create', target: '[name="ReturnedAtUtc"]', title: 'Return time', text: 'Defaults to now. Late returns are flagged with the days overdue.' },
                 { page: '/Returns', url: '/Returns', target: 'a[href^="/Returns/Inspect/"]', title: 'Inspect', text: 'Each return needs an inspection: good units go back into stock, damaged units go to maintenance, lost units are reconciled.', note: 'No returns are waiting for inspection.' }
@@ -114,7 +114,7 @@
             title: 'Manage equipment', description: 'Add items and print labels',
             steps: [
                 { page: '/Equipment', url: '/Equipment', target: 'a[href="/Equipment/Create"]', title: 'Add equipment', text: 'Create an item with its asset code, category, location, quantity and photo.' },
-                { page: '/Equipment', target: 'input[name="search"]', title: 'Find and filter', text: 'Search and filter by category, location, condition or status. Open an item to edit it or print its label.' }
+                { page: '/Equipment', target: 'input[name="search"]', title: 'Find and filter', text: 'Search and filter by category, location, condition or status. Open an item to edit it.' }
             ]
         }
     ];
